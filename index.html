@@ -340,6 +340,12 @@ canvas.fbprev{width:100%;height:auto;cursor:pointer}
 #fbCount.over{color:var(--danger);font-weight:600}
 .wipebox{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 @media (max-width:760px){.tabacts{width:100%}.tabacts .btn{flex:1 1 40%;min-height:46px}}
+
+/* ===== v4.5 ===== */
+details.maskbox > summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0;color:var(--text)}
+#maskInfo{margin:-4px 0 12px}
+#maskInfo:empty{display:none}
+@media (max-width:760px){.urlrow .btn{flex:1 1 28%}.urlrow .lbl-hide{display:inline}}
 </style>
 </head>
 <body>
@@ -375,6 +381,7 @@ canvas.fbprev{width:100%;height:auto;cursor:pointer}
           <input type="text" id="urlInput" inputmode="url" data-i18n-ph="urlPh" placeholder="পত্রিকার খবরের লিংক পেস্ট করুন...">
           <button type="button" class="btn" id="pasteUrlBtn"><span>📋</span><span class="lbl-hide" data-i18n="paste">পেস্ট</span></button>
           <button type="submit" class="btn primary" id="fetchBtn"><span data-i18n="fetch">খবর আনুন</span></button>
+          <button type="button" class="btn" id="resetBtn"><span>🔄</span><span data-i18n="resetLbl">নতুন</span></button>
         </div>
       </form>
       <div id="status" class="hidden"><span class="spin"></span><span id="statusText"></span></div>
@@ -734,21 +741,21 @@ canvas.fbprev{width:100%;height:auto;cursor:pointer}
             <div class="hooklist" id="fbHooks"></div>
             <span class="sstatus hidden" data-hook-status><span class="spin"></span><span data-i18n="stHook"></span></span>
           </div>
-          <div class="maskbox">
+          <details class="maskbox"><summary data-i18n="maskSum"></summary>
             <div class="srow" style="margin-top:0">
               <label class="chk"><input type="checkbox" id="maskChk"> <span data-i18n="maskOn"></span></label>
               <label class="chk"><input type="checkbox" id="maskCardChk"> <span data-i18n="maskCard"></span></label>
               <label class="fld" style="flex:0 0 110px"><span data-i18n="maskChar"></span><select id="maskCharSel"><option value="*">*</option><option value="•">•</option><option value="-">-</option><option value=".">.</option></select></label>
               <button type="button" class="btn" id="maskNowBtn" data-i18n="maskNow"></button>
             </div>
-            <div id="maskInfo"></div>
             <details><summary data-i18n="maskEdit"></summary>
               <p class="tiny" data-i18n="maskEditHint"></p>
               <textarea id="maskWords" spellcheck="false"></textarea>
               <div class="srow"><button type="button" class="btn" id="maskResetBtn" data-i18n="maskReset"></button><button type="button" class="btn primary" id="maskSaveBtn" data-i18n="save"></button></div>
             </details>
             <p class="tiny" data-i18n="maskNote"></p>
-          </div>
+          </details>
+          <div id="maskInfo"></div>
           <div class="fbgrid">
             <div>
               <label class="fld full"><span data-i18n="fbPost"></span><textarea id="fbText" class="restext" data-i18n-ph="fbPh"></textarea></label>
@@ -2003,7 +2010,7 @@ function showTab(name){
 function onArticleChange(a){
   const key = (a.url || '') + '|' + (a.url ? '' : (a.title || ''));
   if(!AI.inited || key === AI.key) return;
-  AI.hooks = []; AI.hookSel = -1; renderHooks();
+  AI.hooks = []; AI.hookSel = -1; renderHooks(); setTimeout(renderFbBtns, 0);
   C.spkImg = null; C.spkUrl = ''; C.spkCache = null; C.spkDX = C.spkDY = 0; updateSpkUi();
   AI.key = key; AI.results = {}; AI.images = []; AI.imgIdx = -1; AI.fb = null; AI.promptFor = null;
   $('imgPrompt').value = ''; $('fbText').value = ''; clearFbPrev(); $('imgModelInfo').textContent = '';
@@ -2678,16 +2685,19 @@ async function prepareFacebook(){
   maskFound = maskFound.concat(setHooks(hooks));
   applyHook(0, true);
   if(S.mask) showMaskInfo(maskFound);
-  const src = C.src === 'upload' && C.upUrl ? 'upload' : S.article.image ? 'orig' : (C.aiUrl ? 'ai' : 'none');
-  await setSource(src, true);
+  if(!(C.src !== 'none' && srcUrl(C.src) && C.img && !C.pending)){
+    const src = C.src === 'upload' && C.upUrl ? 'upload' : S.article.image ? 'orig' : (C.aiUrl ? 'ai' : 'none');
+    await setSource(src, true);
+  }
   await ensureFonts(); updateFbPreview();
   toast(t('tFbReady'));
+  AI.fb = true; renderFbBtns();
 }
 
 /* ---------- i18n refresh for dynamic parts ---------- */
 function studioI18n(){
   if(!AI.inited) return;
-  renderChips(); renderModeOpts(); renderStudioResult(); renderHooks(); updateSpkUi(); fillFbWords();
+  renderChips(); renderModeOpts(); renderStudioResult(); renderHooks(); updateSpkUi(); fillFbWords(); renderFbBtns();
   const sel = $('cTpl'), v = C.template; sel.innerHTML = '';
   TPL_ORDER.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = t(TPL[k].key); sel.appendChild(o); });
   sel.value = v;
@@ -2697,6 +2707,7 @@ function studioI18n(){
 
 function initStudio(){
   AI.inited = true;
+  $('resetBtn').addEventListener('click', () => { if(S.article || $('urlInput').value.trim() || $('pasteText').value.trim()) newSearch(); else $('urlInput').focus(); });
   $('newSearchBtn').addEventListener('click', newSearch);
   $('wipeBtn').addEventListener('click', wipeData);
   $('spkFlipBtn').addEventListener('click', () => { C.spkFlip = !C.spkFlip; $('spkFlipBtn').classList.toggle('on', C.spkFlip); C.spkCache = null; scheduleRender(); });
@@ -2726,8 +2737,8 @@ function initStudio(){
   $('outLang').value = store.get('studioLang', 'auto');
   document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
   document.querySelectorAll('[data-open-settings]').forEach(b => b.addEventListener('click', openSettings));
-  $('prepFbBtn').addEventListener('click', prepareFacebook);
-  $('fbPrepBtn2').addEventListener('click', prepareFacebook);
+  $('prepFbBtn').addEventListener('click', openFb);
+  $('fbPrepBtn2').addEventListener('click', regenFb);
   // settings: image model + model check (extends the existing key panel)
   $('saveKeyBtn').addEventListener('click', () => { S.imodel = $('imgModelInput').value.trim(); store.set('imodel', S.imodel); AI.models = null; AI.textChecked = ''; refreshKeyHints(); });
   $('removeKeyBtn').addEventListener('click', () => { AI.models = null; AI.textChecked = ''; refreshKeyHints(); });
@@ -3262,7 +3273,7 @@ function newSearch(){
     fields: { headline: '', sub: '', role: '', desc: '', cat: '', source: '', date: '', url: '', label: '' } });
   $('spkFlipBtn').classList.remove('on'); $('taintOpen').classList.add('hidden'); setCardWarn('');
   syncFields(); syncDesignUi(); updateSrcUi(); updateSpkUi(); clearFbPrev();
-  renderChips(); renderModeOpts(); renderStudioResult(); renderAiImages(); renderHooks();
+  renderChips(); renderModeOpts(); renderStudioResult(); renderAiImages(); renderHooks(); renderFbBtns();
   $('artTitle').textContent = ''; $('artByline').textContent = ''; $('artBody').innerHTML = ''; $('leadFig').classList.add('hidden');
   showTab('orig');
   $('reader').classList.add('hidden'); document.body.classList.remove('has-article'); $('empty').classList.remove('hidden');
@@ -3278,6 +3289,23 @@ async function wipeData(){
   try{ sessionStorage.clear(); }catch(e){}
   try{ if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } }catch(e){}
   location.href = location.pathname;
+}
+
+/* ===== v4.5: keep prepared Facebook content until the user asks to redo it ===== */
+Object.assign(T.bn, { resetLbl:'নতুন', prepAgain:'🔄 সব নতুন করে প্রস্তুত করুন', maskSum:'🛡️ সংবেদনশীল শব্দ সুরক্ষা — সেটিং ও শব্দতালিকা',
+  tFbKept:'আগের প্রস্তুত করা লেখা ও কার্ড রাখা হয়েছে। নতুন চাইলে "🔄 সব নতুন করে প্রস্তুত করুন" চাপুন।', redoConfirm:'আগের পোস্ট ও কার্ডের লেখা বদলে নতুন করে তৈরি হবে। (কার্ডের ছবি, ডিজাইন ও লোগো যেমন আছে থাকবে।) চালিয়ে যাবেন?' });
+Object.assign(T.en, { resetLbl:'New', prepAgain:'🔄 Prepare everything again', maskSum:'🛡️ Sensitive-word protection — settings & word list',
+  tFbKept:'Your earlier post and card are kept. Press "🔄 Prepare everything again" for new ones.', redoConfirm:'The post and card text will be replaced with new ones. (Card photo, design and logo stay as they are.) Continue?' });
+function renderFbBtns(){ const b = $('fbPrepBtn2'); if(b) b.textContent = AI.fb ? t('prepAgain') : t('prepFb'); }
+function openFb(){
+  if(!S.article) return;
+  if(AI.fb){ showTab('fb'); toast(t('tFbKept')); return; }
+  prepareFacebook();
+}
+function regenFb(){
+  if(!S.article || AI.busy.fb) return;
+  if(AI.fb && $('fbText').value.trim() && !window.confirm(t('redoConfirm'))) return;
+  prepareFacebook();
 }
 
 window.TFCR = { fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };

@@ -909,7 +909,7 @@ function fmtDate(d, withTime){
 const JUNK_START = ['বিজ্ঞাপন','advertisement','sponsored','স্পনসর','আরও পড়ুন','আরো পড়ুন','আরও পড়ুন:','আরও খবর','আরো খবর','সম্পর্কিত খবর','সংশ্লিষ্ট খবর','read more','also read','read also','related','পড়ুন:','আরও দেখুন','শেয়ার','share this','share on','follow us','ফলো করুন','সাবস্ক্রাইব','subscribe','ই-পেপার','e-paper','epaper','লগইন','log in','login','sign in','sign up','কপিরাইট','copyright','©','all rights reserved','সর্বস্বত্ব','স্বত্ব','ট্যাগ:','tags:','tag:','বিষয়:','বিষয় :','topics:','মন্তব্য করুন','পাঠকের মন্তব্য','comments','প্রিন্ট','print','গুগল নিউজ','google news','অ্যাপ ডাউনলোড','download app','download the app','click here','ক্লিক করুন','এখানে ক্লিক','listen to','শুনুন','ইউটিউব চ্যানেল','youtube channel','whatsapp channel','হোয়াটসঅ্যাপ চ্যানেল','প্রকাশ:','প্রকাশিত:','আপডেট:','হালনাগাদ:','published:','updated:','photo:','ছবি:','ফাইল ছবি','file photo','image:','video:','ভিডিও:','cookie','কুকি','accept all','advertise','বিজ্ঞাপন দিন'];
 const JUNK_CONTAINS = ['বিজ্ঞাপন','advertisement','আরও পড়ুন','আরো পড়ুন','read more','also read','গুগল নিউজ','google news','ফলো করুন','follow us on','subscribe','সাবস্ক্রাইব','whatsapp channel','হোয়াটসঅ্যাপ চ্যানেল','টেলিগ্রাম চ্যানেল','facebook','ফেসবুক পেজ','টুইটার','twitter','linkedin','all rights reserved','cookies'];
 const STOP_MARKERS = ['সম্পর্কিত খবর','সংশ্লিষ্ট খবর','আরও খবর','আরো খবর','এ বিভাগের আরও','এ বিভাগের আরো','এই বিভাগের আরও','সর্বশেষ খবর','সর্বাধিক পঠিত','সর্বাধিক পঠিত','সর্বাধিক পড়া','জনপ্রিয় খবর','আলোচিত খবর','পাঠকের মন্তব্য','মন্তব্য','সম্পর্কিত','related news','related articles','related stories','more from','more on this','most read','most popular','latest news','you may also like','recommended','trending','comments'];
-const AD_IMG = /(ad[sx]?[-_./]|banner|sponsor|advert|doubleclick|googlesyndication|adservice|outbrain|taboola|pixel|tracking|logo|icon|favicon|avatar|sprite|placeholder|blank\.gif|spacer|emoji|share|social|whatsapp|facebook|twitter|akij|nagad|bkash|walton|daraz|promo|campaign|বিজ্ঞাপন)/i;
+const AD_IMG = /(?:^|[\/_.\-?=&\s])(?:ads?|adv|advert\w*|adserver|banners?|sponsor\w*|promo\w*|campaign\w*)(?=[\/_.\-?=&\s]|\d|$)|doubleclick|googlesyndication|adservice|outbrain|taboola|\/pixel[\/._]|tracking|logo|favicon|avatar|sprite|placeholder|blank\.gif|spacer|emoji|(?:share|social)[-_]?(?:icon|btn|button|img)|(?:^|[\/_.\-])icons?(?=[\/_.\-]|$)|বিজ্ঞাপন/i;
 const SKIP_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','IFRAME','FORM','BUTTON','INPUT','SELECT','TEXTAREA','SVG','CANVAS','VIDEO','AUDIO','OBJECT','EMBED','NAV','ASIDE','FOOTER','HEADER','FIGURE','PICTURE','IMG','FIGCAPTION','TEMPLATE','DIALOG','MENU','LABEL','INS','MAP']);
 const BLOCK_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','LI','BLOCKQUOTE','PRE','TABLE','UL','OL','DIV','SECTION','ARTICLE','MAIN','DL','DD','DT','CENTER','TR']);
 const PRE_REMOVE = 'script,style,noscript,iframe,ins,form,svg,.adsbygoogle,[id^="div-gpt-ad"],[class*="advert"],[id*="advert"],[class*="sponsor"],[class~="ad"],[class~="ads"],[class*="ad-slot"],[class*="ad-container"],[class*="ad-wrapper"],[data-ad],[data-ad-slot],[class*="taboola"],[class*="outbrain"],[class*="related"],[class*="share"],[class*="social"],[class*="newsletter"],[class*="comment"],[class*="breadcrumb"],[class*="subscribe"],[class*="tags"],[class*="most-read"],[class*="popular"],[class*="trending"],nav,aside,footer,[role="navigation"],[role="banner"],[role="complementary"],[aria-hidden="true"]';
@@ -1310,7 +1310,7 @@ async function fetchWithGemini(url){
   const meta = r.cand && (r.cand.urlContextMetadata || r.cand.url_context_metadata);
   const um = meta && (meta.urlMetadata || meta.url_metadata) || [];
   if(um.length && um.every(x => !/SUCCESS/i.test(x.urlRetrievalStatus || x.url_retrieval_status || ''))) throw new Error('AI could not open page');
-  const art = fromAi(parseAiJson(r.text), url);
+  const art = fromAi(parseAiJson(r.text), url); art.imageFromAi = true;
   if(textCount(art.blocks) < 150) throw new Error('thin');
   return art;
 }
@@ -1404,7 +1404,10 @@ function setLeadImage(){
   if(!a || !a.image || !S.lead){ fig.classList.add('hidden'); return; }
   fig.classList.remove('hidden');
   img.onerror = () => {
-    if(img.dataset.stage === 'proxy'){ img.dataset.stage = 'direct'; img.removeAttribute('crossorigin'); img.referrerPolicy = 'no-referrer'; img.src = a.image; }
+    const st = img.dataset.stage;
+    if(st === 'proxy'){ img.dataset.stage = 'wsrv'; img.src = 'https://wsrv.nl/?url=' + encodeURIComponent(a.image) + '&w=1400&output=jpg&q=85'; }
+    else if(st === 'wsrv'){ img.dataset.stage = 'direct'; img.removeAttribute('crossorigin'); img.referrerPolicy = 'no-referrer'; img.src = a.image; }
+    else if(st === 'direct'){ img.dataset.stage = 'direct2'; img.referrerPolicy = 'strict-origin-when-cross-origin'; img.src = a.image + (a.image.includes('?') ? '&' : '?') + '_tf=1'; }
     else fig.classList.add('hidden');
   };
   img.dataset.stage = 'proxy'; img.crossOrigin = 'anonymous'; img.src = proxImg(a.image, 1400);
@@ -1427,6 +1430,7 @@ function showArticle(a, opts){
   $('reader').classList.remove('hidden');
   document.body.classList.add('has-article');
   if(!opts.noSave) saveRecent();
+  if(a.url && (!a.image || a.imageFromAi)) findAndSetImage(a);
   onArticleChange(a);
   window.scrollTo({ top: $('reader').offsetTop - 60, behavior: 'smooth' });
   return true;
@@ -3306,6 +3310,70 @@ function regenFb(){
   if(!S.article || AI.busy.fb) return;
   if(AI.fb && $('fbText').value.trim() && !window.confirm(t('redoConfirm'))) return;
   prepareFacebook();
+}
+
+/* ===== v4.6: always find the newspaper's own lead photo ===== */
+const BAD_LEAD = /(logo|favicon|default[-_]?(image|thumb|og)|placeholder|no[-_]?image)/i;
+function imageFromHtml(html, pageUrl){
+  if(!html || html.length < 200) return '';
+  const doc = new DOMParser().parseFromString(String(html).slice(0, 400000), 'text/html');
+  const m = readMeta(doc, pageUrl);
+  let cands = [m.ldImage, m.image];
+  const tw = doc.querySelector('meta[name="twitter:image"],meta[name="twitter:image:src"],meta[property="og:image:secure_url"],meta[itemprop="image"]');
+  if(tw) cands.push(tw.getAttribute('content'));
+  // first large photo inside the article body
+  Array.from(doc.querySelectorAll('article img, main img, .content img, .details img, img')).slice(0, 40).forEach(i => {
+    const src = i.getAttribute('data-src') || i.getAttribute('data-original') || i.getAttribute('data-lazy-src') || i.getAttribute('src') || '';
+    const w = parseInt(i.getAttribute('width') || '0', 10);
+    if(src && !/^data:/.test(src) && !AD_IMG.test(src + ' ' + (i.alt || '')) && (!w || w >= 300)) cands.push(src);
+  });
+  for(let c of cands){
+    if(!c) continue;
+    try{ c = new URL(c.trim(), pageUrl).href; }catch(e){ continue; }
+    if(/^https?:/.test(c) && !BAD_LEAD.test(c)) return c;
+  }
+  return '';
+}
+async function findLeadImage(url){
+  const enc = encodeURIComponent(url), tasks = [];
+  const viaHtml = async (r, isGet) => {
+    let html = await getText(r, 15000);
+    if(isGet){ try{ html = JSON.parse(html).contents || ''; }catch(e){ html = ''; } }
+    const im = imageFromHtml(html, url); if(!im) throw new Error('none'); return im;
+  };
+  if(S.worker){ const w = S.worker.trim(); tasks.push(viaHtml(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc)); }
+  tasks.push(viaHtml('https://api.allorigins.win/raw?url=' + enc), viaHtml('https://api.allorigins.win/get?url=' + enc, true),
+             viaHtml('https://api.codetabs.com/v1/proxy/?quest=' + enc), viaHtml('https://corsproxy.io/?url=' + enc));
+  // metadata service (reads og:image on its own server)
+  tasks.push((async () => {
+    const j = JSON.parse(await getText('https://api.microlink.io/?url=' + enc, 15000));
+    const im = j && j.data && j.data.image && j.data.image.url;
+    if(!im || BAD_LEAD.test(im)) throw new Error('none'); return im;
+  })());
+  // reader service: first photo of the article
+  tasks.push((async () => {
+    const raw = await getText('https://r.jina.ai/' + url, 25000, { 'Accept': 'application/json', 'X-Return-Format': 'markdown' });
+    let md = raw; try{ const j = JSON.parse(raw); md = (j.data && j.data.content) || raw; }catch(e){}
+    const re = /!\[([^\]]*)\]\(\s*<?(https?:\/\/[^)\s>]+)>?/g; let m;
+    while((m = re.exec(md))){ if(!AD_IMG.test(m[2] + ' ' + m[1]) && !BAD_LEAD.test(m[2])) return m[2]; }
+    throw new Error('none');
+  })());
+  return Promise.any(tasks);
+}
+async function findAndSetImage(a){
+  let im = '';
+  try{ im = await findLeadImage(a.url); }catch(e){ im = ''; }
+  if(S.article !== a) return;               // user moved on to another article
+  if(!im){ if(a.imageFromAi) a.imageFromAi = false; return; }
+  const had = !!a.image;
+  a.image = im; a.imageFromAi = false;
+  setLeadImage(); try{ saveRecent(); }catch(e){}
+  // photo card: use the found photo unless the user picked another source
+  if(C.src === 'orig' || (C.src === 'none' && !had)){
+    C.src = 'orig';
+    if(C.labelAuto){ C.fields.label = autoLabel('orig'); syncFields(); }
+    if(C.pending) updateSrcUi(); else setSource('orig', true);
+  } else updateSrcUi();
 }
 
 window.TFCR = { fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };

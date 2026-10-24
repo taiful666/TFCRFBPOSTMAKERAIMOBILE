@@ -294,6 +294,7 @@ html[data-theme="dark"] .tab.on{color:#111}
   /* photo card: preview stays visible while editing */
   .cardleft{position:sticky;top:52px;z-index:6;background:var(--surface);padding:6px 0 4px;border-bottom:1px solid var(--line)}
   #cardCanvas{max-height:36vh}
+  .cardright *{scroll-margin-top:calc(36vh + 130px)}
   .cardleft > .tiny:not(.warn){display:none}
   .cardleft .srow{flex-wrap:nowrap;overflow-x:auto;margin:6px 0 2px;scrollbar-width:none}
   .cardleft .srow > .btn{flex:1 0 auto;font-size:13px;padding:8px 10px;min-height:40px}
@@ -309,6 +310,36 @@ html[data-theme="dark"] .tab.on{color:#111}
   .modal{padding:8px}
 }
 @media (max-width:440px){.brand b{display:none}.ctrls{gap:4px}.ctrls .btn{padding:8px 10px}}
+
+/* ===== v4.2: catchy card-text options ===== */
+.hookbox{border:1px solid var(--accent);border-radius:12px;padding:10px 12px;margin:10px 0 14px;background:var(--accent-soft)}
+.hookhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.hookhead b{font-size:14.5px;color:var(--accent)}
+.hooklist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.hookopt{display:block;width:100%;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;position:relative;color:var(--text)}
+.hookopt:hover{border-color:var(--accent)}
+.hookopt.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.hookopt.on::after{content:'✓';position:absolute;top:8px;right:10px;background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.hookopt .hstyle{display:inline-block;font-size:11.5px;background:var(--warn-bg);color:var(--warn-text);border:1px solid var(--warn-line);border-radius:999px;padding:1px 8px;margin-bottom:4px}
+.hookopt .hh{display:block;font-size:16.5px;line-height:1.45;padding-right:26px;font-family:var(--serif);font-weight:700}
+.hookopt .hh mark{background:#ffd200;color:#111;padding:0 3px;border-radius:3px}
+.hookopt small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.5}
+.hookempty{font-size:13px;color:var(--muted);padding:6px 0}
+.hookbox .sstatus{margin-top:6px}
+
+/* ===== v4.3: quote-card designs ===== */
+.spkbox{border-top:1px dashed var(--line);padding-top:10px;margin-top:4px;display:flex;flex-direction:column;gap:8px}
+.spkbox b{font-size:13.5px}
+#spkThumb{object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px}
+.hookbox .seg.full button{font-size:13px}
+
+/* ===== v4.4 ===== */
+.tabacts{display:flex;gap:6px;flex-wrap:wrap}
+canvas.fbprev{width:100%;height:auto;cursor:pointer}
+#fbCount{font-size:12.5px;color:var(--muted);margin-top:4px}
+#fbCount.over{color:var(--danger);font-weight:600}
+.wipebox{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+@media (max-width:760px){.tabacts{width:100%}.tabacts .btn{flex:1 1 40%;min-height:46px}}
 </style>
 </head>
 <body>
@@ -418,6 +449,10 @@ html[data-theme="dark"] .tab.on{color:#111}
           <button type="button" class="btn" id="removeWorkerBtn" data-i18n="remove">সরান</button>
           <button type="button" class="btn primary" id="saveWorkerBtn" data-i18n="save">সংরক্ষণ</button>
         </div>
+        <div class="wipebox">
+          <p data-i18n="wipeNote"></p>
+          <button type="button" class="btn" id="wipeBtn" data-i18n="wipeBtn"></button>
+        </div>
       </div>
     </div>
   </section>
@@ -441,7 +476,7 @@ html[data-theme="dark"] .tab.on{color:#111}
           <button type="button" class="tab" role="tab" data-tab="card"><span class="ti">🖼️</span><span class="tl-long" data-i18n="tabCardL">ফটো কার্ড</span><span class="tl-short" data-i18n="tabCardS">কার্ড</span></button>
           <button type="button" class="tab" role="tab" data-tab="fb"><span class="ti">📣</span><span class="tl-long" data-i18n="tabFbL">ফেসবুক</span><span class="tl-short" data-i18n="tabFbS">ফেসবুক</span></button>
         </div>
-        <button type="button" class="btn primary" id="prepFbBtn" data-i18n="prepFb">📣 ফেসবুকের জন্য প্রস্তুত করুন</button>
+        <div class="tabacts"><button type="button" class="btn" id="newSearchBtn" data-i18n="newSearch">🆕 নতুন খবর</button><button type="button" class="btn primary" id="prepFbBtn" data-i18n="prepFb">📣 ফেসবুকের জন্য প্রস্তুত করুন</button></div>
       </div>
     </div>
     <div class="toolbar no-print">
@@ -581,6 +616,7 @@ html[data-theme="dark"] .tab.on{color:#111}
               <div class="canvasbox"><canvas id="cardCanvas" width="1080" height="1080" aria-label="news card preview"></canvas></div>
               <p class="tiny" data-i18n="cardHint"></p>
               <p class="tiny warn hidden" id="cardWarn"></p>
+              <a id="taintOpen" class="btn hidden" href="#" target="_blank" rel="noopener noreferrer" data-i18n="openImg"></a>
               <div class="srow">
                 <button type="button" class="btn" id="cardPreviewBtn" data-i18n="previewCard"></button>
                 <button type="button" class="btn primary" id="cardDlBtn" data-i18n="dlPng"></button>
@@ -604,12 +640,29 @@ html[data-theme="dark"] .tab.on{color:#111}
                     <button type="button" class="btn" id="cCenter" data-i18n="centerImg"></button>
                   </div>
                   <label class="fld"><span data-i18n="zoom"></span><input type="range" id="cZoom" min="100" max="300" step="1"></label>
+                  <div class="spkbox">
+                    <b data-i18n="spkTitle"></b>
+                    <input type="file" id="spkFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+                    <div class="srcprev"><img id="spkThumb" alt="" class="hidden"><span id="spkInfo"></span></div>
+                    <div class="srow" style="margin:0"><button type="button" class="btn" id="spkUpBtn" data-i18n="spkUp"></button><button type="button" class="btn" id="spkRmBtn" data-i18n="spkRm"></button></div>
+                    <label class="fld"><span data-i18n="spkSize"></span><input type="range" id="cSpkSize" min="30" max="85" step="1"></label>
+                    <button type="button" class="btn" id="spkFlipBtn" data-i18n="spkFlip"></button>
+                    <p class="tiny" data-i18n="spkNote"></p>
+                  </div>
                 </div>
               </details>
               <details open id="txtDetails"><summary data-i18n="secText"></summary>
                 <div class="dbody">
+                  <div class="hookbox">
+            <div class="hookhead"><b data-i18n="hookTitle"></b><button type="button" class="btn" data-hook-regen data-i18n="hookRegen"></button></div>
+            <div class="seg full" data-hook-kind style="margin:8px 0 2px"><button type="button" data-kind="news" data-i18n="kindNews"></button><button type="button" data-kind="quote" data-i18n="kindQuote"></button></div>
+            <p class="tiny" data-i18n="hookNote"></p>
+            <div class="hooklist" id="cardHooks"></div>
+            <span class="sstatus hidden" data-hook-status><span class="spin"></span><span data-i18n="stHook"></span></span>
+          </div>
                   <label class="fld"><span data-i18n="f_headline"></span><textarea id="cf-headline" data-cf="headline" rows="3"></textarea><small data-i18n="hlHint"></small></label>
                   <label class="fld"><span data-i18n="f_sub"></span><input type="text" id="cf-sub" data-cf="sub"></label>
+                  <label class="fld"><span data-i18n="f_role"></span><input type="text" id="cf-role" data-cf="role"></label>
                   <label class="fld"><span data-i18n="f_desc"></span><textarea id="cf-desc" data-cf="desc" rows="2"></textarea></label>
                   <div class="grid2">
                     <label class="fld"><span data-i18n="f_cat"></span><input type="text" id="cf-cat" data-cf="cat"></label>
@@ -640,6 +693,7 @@ html[data-theme="dark"] .tab.on{color:#111}
                   </div>
                   <label class="fld"><span data-i18n="ovLbl"></span><input type="range" id="cOv" min="0" max="100" step="1"></label>
                   <label class="fld"><span data-i18n="tyLbl"></span><input type="range" id="cTy" min="-400" max="400" step="1"></label>
+                  <label class="fld"><span data-i18n="qAdj"></span><input type="range" id="cQAdj" min="-25" max="25" step="1" value="0"></label>
                 </div>
               </details>
               <details><summary data-i18n="secLogo"></summary>
@@ -669,8 +723,16 @@ html[data-theme="dark"] .tab.on{color:#111}
           <p class="snote" data-i18n="fbNote"></p>
           <div class="srow">
             <button type="button" class="btn primary" id="fbPrepBtn2" data-i18n="prepFb"></button>
+            <label class="fld" style="flex:0 0 150px"><span data-i18n="fbLen"></span><select id="fbWords"></select></label>
             <label class="chk"><input type="checkbox" id="fbSrcChk" checked> <span data-i18n="fbSrc"></span></label>
             <span class="sstatus hidden" id="fbStatus"><span class="spin"></span><span data-i18n="stFb"></span></span>
+          </div>
+          <div class="hookbox">
+            <div class="hookhead"><b data-i18n="hookTitle"></b><button type="button" class="btn" data-hook-regen data-i18n="hookRegen"></button></div>
+            <div class="seg full" data-hook-kind style="margin:8px 0 2px"><button type="button" data-kind="news" data-i18n="kindNews"></button><button type="button" data-kind="quote" data-i18n="kindQuote"></button></div>
+            <p class="tiny" data-i18n="hookNote"></p>
+            <div class="hooklist" id="fbHooks"></div>
+            <span class="sstatus hidden" data-hook-status><span class="spin"></span><span data-i18n="stHook"></span></span>
           </div>
           <div class="maskbox">
             <div class="srow" style="margin-top:0">
@@ -690,13 +752,15 @@ html[data-theme="dark"] .tab.on{color:#111}
           <div class="fbgrid">
             <div>
               <label class="fld full"><span data-i18n="fbPost"></span><textarea id="fbText" class="restext" data-i18n-ph="fbPh"></textarea></label>
+              <div id="fbCount"></div>
               <div class="srow">
                 <button type="button" class="btn primary" id="fbCopyBtn" data-i18n="fbCopy"></button>
+                <button type="button" class="btn" id="fbRewriteBtn" data-i18n="fbRewrite"></button>
                 <button type="button" class="btn" id="fbEditBtn" data-i18n="fbEdit"></button>
               </div>
             </div>
             <div>
-              <div class="fld full"><span data-i18n="fbCardLbl"></span><img id="fbCardPrev" class="fbprev" alt=""></div>
+              <div class="fld full"><span data-i18n="fbCardLbl"></span><canvas id="fbCardPrev" class="fbprev" width="1080" height="1080"></canvas></div>
               <div class="srow">
                 <button type="button" class="btn" id="fbCardBtn" data-i18n="fbCard"></button>
                 <button type="button" class="btn primary" id="fbDlBtn" data-i18n="fbDl"></button>
@@ -1761,7 +1825,7 @@ function showMaskInfo(found){
 }
 function maskCardFields(){
   let found = [];
-  ['headline', 'sub', 'desc', 'cat'].forEach(k => { const m = maskText(C.fields[k], cardCh()); C.fields[k] = m.text; found = found.concat(m.found); });
+  ['headline', 'sub', 'role', 'desc', 'cat'].forEach(k => { const m = maskText(C.fields[k], cardCh()); C.fields[k] = m.text; found = found.concat(m.found); });
   syncFields(); scheduleRender();
   return found;
 }
@@ -1906,7 +1970,7 @@ async function geminiImage(prompt, ratio){
   return { url: 'data:' + (img.mimeType || img.mime_type) + ';base64,' + img.data, model };
 }
 
-const BUSY = { studio: { btns: ['genBtn', 'regenBtn'], st: 'stuStatus' }, img: { btns: ['imgGenBtn', 'imgRegenBtn', 'suggestBtn'], st: 'imgStatus' }, fb: { btns: ['prepFbBtn', 'fbPrepBtn2'], st: 'fbStatus' } };
+const BUSY = { studio: { btns: ['genBtn', 'regenBtn'], st: 'stuStatus' }, img: { btns: ['imgGenBtn', 'imgRegenBtn', 'suggestBtn'], st: 'imgStatus' }, fb: { btns: ['prepFbBtn', 'fbPrepBtn2', 'fbRewriteBtn'], st: 'fbStatus' } };
 function setBusy(kind, on){
   AI.busy[kind] = on; const b = BUSY[kind];
   b.btns.forEach(id => { const el = $(id); if(el) el.disabled = on; });
@@ -1939,8 +2003,10 @@ function showTab(name){
 function onArticleChange(a){
   const key = (a.url || '') + '|' + (a.url ? '' : (a.title || ''));
   if(!AI.inited || key === AI.key) return;
+  AI.hooks = []; AI.hookSel = -1; renderHooks();
+  C.spkImg = null; C.spkUrl = ''; C.spkCache = null; C.spkDX = C.spkDY = 0; updateSpkUi();
   AI.key = key; AI.results = {}; AI.images = []; AI.imgIdx = -1; AI.fb = null; AI.promptFor = null;
-  $('imgPrompt').value = ''; $('fbText').value = ''; $('fbCardPrev').removeAttribute('src'); $('imgModelInfo').textContent = '';
+  $('imgPrompt').value = ''; $('fbText').value = ''; clearFbPrev(); $('imgModelInfo').textContent = '';
   renderChips(); renderModeOpts(); renderStudioResult(); renderAiImages();
   C.aiUrl = ''; if(C.upUrl){ try{ URL.revokeObjectURL(C.upUrl); }catch(e){} C.upUrl = ''; }
   cardFromArticle(a);
@@ -2098,11 +2164,11 @@ const CFONTS = {
   tiro:  { fam: '"Tiro Bangla","Noto Serif Bengali","Nirmala UI",serif', w: 400, load: '400 48px "Tiro Bangla"' }
 };
 const BFAM = '"Hind Siliguri","Nirmala UI","Vrinda","Noto Sans Bengali",sans-serif';
-const DESIGN_KEYS = ['template','ratio','font','hSize','align','tc','accent','hl','overlay','logoSize','logoPos','logoDX','logoDY'];
-const CARD_DEF = { template:'band', ratio:'1:1', font:'hind', hSize:100, align:'center', tc:'#ffffff', accent:'#c4161c', hl:'#ffd200', overlay:88, logoSize:16, logoPos:'tr', logoDX:0, logoDY:0 };
+const DESIGN_KEYS = ['template','ratio','font','hSize','align','tc','accent','hl','overlay','logoSize','logoPos','logoDX','logoDY','spkSize','qAdj'];
+const CARD_DEF = { qAdj:0, spkSize:62, template:'band', ratio:'1:1', font:'hind', hSize:100, align:'center', tc:'#ffffff', accent:'#c4161c', hl:'#ffd200', overlay:88, logoSize:16, logoPos:'tr', logoDX:0, logoDY:0 };
 const C = Object.assign({}, CARD_DEF, store.get('card', {}), {
   src:'none', pending:false, img:null, tainted:false, panX:0, panY:0, zoom:100, textY:0, pmax:{x:0,y:0}, loadTok:0,
-  fields:{ headline:'', sub:'', desc:'', cat:'', source:'', date:'', url:'', label:'' }, labelAuto:true,
+  fields:{ headline:'', sub:'', role:'', desc:'', cat:'', source:'', date:'', url:'', label:'' }, labelAuto:true,
   aiUrl:'', upUrl:'', logoUrl: store.get('cardLogo', ''), logoImg:null, regions:[], palIdx:0
 });
 if(!TPL[C.template]) C.template = 'band';
@@ -2141,12 +2207,12 @@ function tokens(text){
 function layoutLines(ctx, toks, maxW){
   const sp = ctx.measureText(' ').width, lines = []; let cur = [], cw = 0;
   toks.forEach(tk => {
-    if(tk.br){ if(cur.length) lines.push({ words: cur, w: cw }); cur = []; cw = 0; return; }
+    if(tk.br){ if(cur.length) lines.push({ words: cur, w: cw, end: true }); cur = []; cw = 0; return; }
     const ww = ctx.measureText(tk.w).width;
     if(cur.length && cw + sp + ww > maxW){ lines.push({ words: cur, w: cw }); cur = []; cw = 0; }
     cur.push({ w: tk.w, hl: tk.hl, ww }); cw += (cur.length > 1 ? sp : 0) + ww;
   });
-  if(cur.length) lines.push({ words: cur, w: cw });
+  if(cur.length) lines.push({ words: cur, w: cw, end: true });
   return { lines, sp };
 }
 function measureItem(ctx, it, maxW, u){
@@ -2196,17 +2262,19 @@ function drawItem(ctx, it, boxX, y, boxW, align){
   const innerW = it.w - 2 * it.padX, inX = bx + it.padX;
   it.lay.lines.forEach((ln, i) => {
     let lx = align === 'center' ? inX + (innerW - ln.w) / 2 : align === 'right' ? inX + innerW - ln.w : inX;
+    const gap = it.justify && !ln.end && ln.words.length > 1 && ln.w > innerW * 0.7 ? it.lay.sp + (innerW - ln.w) / (ln.words.length - 1) : it.lay.sp;
+    if(gap !== it.lay.sp) lx = inX;
     const cy = y + it.padY + i * it.lhpx + it.lhpx / 2 + it.fs * 0.04;
     ln.words.forEach((wd, j) => {
       const next = ln.words[j + 1];
       if(wd.hl && it.hlMode === 'box'){
-        ctx.fillStyle = it.hl; ctx.fillRect(lx - it.fs * 0.12, cy - it.lhpx * 0.46, wd.ww + it.fs * 0.24 + (next && next.hl ? it.lay.sp - it.fs * 0.24 : 0), it.lhpx * 0.88);
+        ctx.fillStyle = it.hl; ctx.fillRect(lx - it.fs * 0.12, cy - it.lhpx * 0.46, wd.ww + it.fs * 0.24 + (next && next.hl ? gap - it.fs * 0.24 : 0), it.lhpx * 0.88);
         ctx.fillStyle = it.hlText || '#111111';
       } else ctx.fillStyle = wd.hl && it.hl ? it.hl : it.color;
       if(it.shadow){ ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = it.fs * 0.18; ctx.shadowOffsetY = it.fs * 0.04; }
       ctx.fillText(wd.w, lx, cy);
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      lx += wd.ww + it.lay.sp;
+      lx += wd.ww + gap;
     });
   });
   if(it.k) C.regions.push({ k: it.k, x: bx, y, w: it.w, h: it.h });
@@ -2405,21 +2473,35 @@ function renderCard(){
   const u = Math.min(W, H) / 1080, land = W > H * 1.2;
   try{ (TPLF[C.template] || tplBand)(ctx, W, H, u, land); drawLogo(ctx, W, H, u); }
   catch(e){ console.error(e); }
+  copyToFbPrev();
 }
 
 /* ---- images for the card ---- */
 function loadImg(src, cors){ return new Promise((res, rej) => { const im = new Image(); if(cors) im.crossOrigin = 'anonymous'; im.decoding = 'async'; im.onload = () => im.naturalWidth ? res(im) : rej(new Error('empty')); im.onerror = () => rej(new Error('img')); im.src = src; }); }
 async function loadExportable(url){
   if(/^(data|blob):/.test(url)) return { img: await loadImg(url, false), tainted: false };
-  try{ return { img: await loadImg(proxImg(url, 1600), true), tainted: false }; }catch(e){}
-  for(const p of ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?url=']){
-    try{
-      const to = withTimeout(15000); const r = await fetch(p + encodeURIComponent(url), { signal: to.signal }); to.done();
-      if(!r.ok) continue; const b = await r.blob();
-      if(b.type && !/^image\/|octet-stream/.test(b.type)) continue;
-      return { img: await loadImg(URL.createObjectURL(b), false), tainted: false };
-    }catch(e){}
-  }
+  const enc = encodeURIComponent(url);
+  // 1) image CDNs that allow export (fast, run in parallel)
+  try{
+    return { img: await Promise.any([proxImg(url, 1600), 'https://wsrv.nl/?url=' + enc + '&w=1600&output=jpg&q=85', 'https://images.weserv.nl/?url=' + enc + '&output=jpg&q=85'].map(u => loadImg(u, true))), tainted: false };
+  }catch(e){}
+  // 2) fetch the bytes through proxies (incl. your own Worker, if set)
+  const routes = [];
+  if(S.worker){ const w = S.worker.trim(); routes.push(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc); }
+  routes.push('https://api.allorigins.win/raw?url=' + enc, 'https://corsproxy.io/?url=' + enc, 'https://api.codetabs.com/v1/proxy/?quest=' + enc);
+  try{
+    return { img: await Promise.any(routes.map(async r => {
+      const to = withTimeout(15000);
+      try{
+        const res = await fetch(r, { signal: to.signal }); if(!res.ok) throw new Error('http');
+        let bl = await res.blob();
+        if(bl.size < 600 || (bl.type && !/^image\/|octet-stream/.test(bl.type))) throw new Error('not image');
+        if(!/^image\//.test(bl.type)) bl = new Blob([bl], { type: 'image/jpeg' });
+        return await loadImg(URL.createObjectURL(bl), false);
+      }finally{ to.done(); }
+    })), tainted: false };
+  }catch(e){}
+  // 3) direct
   try{ return { img: await loadImg(url, true), tainted: false }; }catch(e){}
   return { img: await loadImg(url, false), tainted: true };
 }
@@ -2439,12 +2521,13 @@ async function setSource(src, silent){
   updateSrcUi();
   const tok = ++C.loadTok;
   C.img = null; C.tainted = false; C.panX = C.panY = 0; C.zoom = 100; $('cZoom').value = 100;
-  setCardWarn(url ? t('loadingImg') : ''); scheduleRender();
+  setCardWarn(url ? t('loadingImg') : ''); $('taintOpen').classList.add('hidden'); scheduleRender();
   if(!url){ if(AI.tab === 'fb') updateFbPreview(); return; }
   try{
     const r = await loadExportable(url);
     if(tok !== C.loadTok) return;
     C.img = r.img; C.tainted = r.tainted; setCardWarn(r.tainted ? t('tCardTaint') : '');
+    if(r.tainted){ $('taintOpen').href = url; $('taintOpen').classList.remove('hidden'); }
   }catch(e){ if(tok !== C.loadTok) return; setCardWarn(t('tImgLoadFail')); }
   await ensureFonts(); renderCard();
   if(AI.tab === 'fb') updateFbPreview();
@@ -2455,7 +2538,7 @@ function updateSrcUi(){
     b.disabled = (s === 'orig' && !(S.article && S.article.image)) || (s === 'ai' && !C.aiUrl);
   });
   const url = srcUrl(C.src), th = $('srcThumb');
-  if(url){ th.src = /^(data|blob):/.test(url) ? url : proxImg(url, 300); th.classList.remove('hidden'); } else { th.removeAttribute('src'); th.classList.add('hidden'); }
+  if(url){ th.dataset.f = '0'; th.onerror = () => { if(th.dataset.f !== '1'){ th.dataset.f = '1'; th.referrerPolicy = 'no-referrer'; th.src = url; } }; th.src = /^(data|blob):/.test(url) ? url : proxImg(url, 300); th.classList.remove('hidden'); } else { th.removeAttribute('src'); th.classList.add('hidden'); }
   $('srcInfo').textContent = C.src === 'ai' ? t('labelAi') : C.src === 'orig' ? (S.article && paperProfile(S.article.url, S.article.site).name) || '' : C.src === 'none' ? t('srcNone') : '';
 }
 function syncFields(){ document.querySelectorAll('[data-cf]').forEach(el => { const v = C.fields[el.dataset.cf] || ''; if(el.value !== v) el.value = v; }); }
@@ -2465,18 +2548,19 @@ function syncDesignUi(){
   document.querySelectorAll('#cRatio [data-ratio]').forEach(b => b.classList.toggle('on', b.dataset.ratio === C.ratio));
   document.querySelectorAll('#cAlign [data-align]').forEach(b => b.classList.toggle('on', b.dataset.align === C.align));
 }
-function applyTemplate(name){ const d = TPL[name] || TPL.band; C.template = name; C.tc = d.tc; C.accent = d.accent; C.hl = d.hl; C.align = d.align; C.overlay = d.overlay; C.textY = 0; syncDesignUi(); saveCardDesign(); scheduleRender(); }
+function applyTemplate(name){ const d = TPL[name] || TPL.band; C.template = name; if(d.font) C.font = d.font; C.tc = d.tc; C.accent = d.accent; C.hl = d.hl; C.align = d.align; C.overlay = d.overlay; C.textY = 0; syncDesignUi(); saveCardDesign(); scheduleRender(); }
 function cardFromArticle(a){
   const prof = paperProfile(a.url, a.site), pub = parseDate(a.published);
   const firstPara = (a.blocks || []).find(b => (b.type === 'p' || b.type === 'quote') && b.text.length > 40);
-  C.fields = { headline: norm($('artTitle').textContent) || a.title || '', sub: '', desc: firstPara ? shorten(firstPara.text, 170) : '', cat: '', source: prof.name || '', date: pub ? fmtDate(pub) : '', url: prof.host || '', label: '' };
+  C.fields = { headline: norm($('artTitle').textContent) || a.title || '', sub: '', desc: firstPara ? shorten(firstPara.text, 170) : '', cat: '', source: prof.name || '', date: pub ? fmtDate(pub) : '', url: prof.host || '', label: '', role: '' };
   C.labelAuto = true; C.textY = 0; C.src = a.image ? 'orig' : 'none'; C.pending = true; C.img = null;
   syncFields(); updateSrcUi(); setCardWarn('');
 }
 function resetCard(){ if(!S.article) return; applyTemplate(C.template); C.textY = 0; cardFromArticle(S.article); setSource(C.src, true); toast(t('tCardReset')); }
 function nextDesign(){
-  const i = TPL_ORDER.indexOf(C.template); applyTemplate(TPL_ORDER[(i + 1) % TPL_ORDER.length]);
-  if(C.template !== 'quote'){ C.palIdx = (C.palIdx + 1) % PALETTES.length; C.accent = PALETTES[C.palIdx][0]; C.hl = PALETTES[C.palIdx][1]; }
+  const fam = TPL_ORDER.filter(k => isQuoteTpl(k) === isQuoteTpl(C.template));
+  const i = fam.indexOf(C.template); applyTemplate(fam[(i + 1) % fam.length]);
+  if(C.template !== 'quote' && !isQuoteTpl(C.template)){ C.palIdx = (C.palIdx + 1) % PALETTES.length; C.accent = PALETTES[C.palIdx][0]; C.hl = PALETTES[C.palIdx][1]; }
   syncDesignUi(); saveCardDesign(); scheduleRender();
 }
 function cardFileName(){ return safeName(String(C.fields.headline || 'news-card').replace(/\*/g, '')) + ' - ' + C.ratio.replace(':', 'x') + '.png'; }
@@ -2492,7 +2576,7 @@ async function previewCard(){
   catch(e){ toast(t('tCardTaint')); }
 }
 function closeModal(){ $('cardModal').classList.add('hidden'); $('cardModalImg').removeAttribute('src'); }
-function updateFbPreview(){ try{ renderCard(); $('fbCardPrev').src = $('cardCanvas').toDataURL('image/jpeg', 0.85); }catch(e){ $('fbCardPrev').removeAttribute('src'); } }
+function updateFbPreview(){ renderCard(); }
 function validImage(f, maxMB, svg){ const ok = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].concat(svg ? ['image/svg+xml'] : []); return !!f && ok.includes(f.type) && f.size <= maxMB * 1048576; }
 function fileToDataUrl(f){ return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
 function loadLogo(url){
@@ -2542,7 +2626,8 @@ function wireCanvas(){
     if(!drag.moved && Math.hypot(p.x - drag.start.x, p.y - drag.start.y) < 6) return;
     drag.moved = true;
     const k = drag.hit ? drag.hit.k : null, [W, H] = cDims(), u = Math.min(W, H) / 1080;
-    if(k === 'logo'){ C.logoDX += dx / W; C.logoDY += dy / H; }
+    if(k === 'speaker'){ C.spkDX += dx; C.spkDY += dy; }
+    else if(k === 'logo'){ C.logoDX += dx / W; C.logoDY += dy / H; }
     else if(k && k !== 'photo'){ C.textY = clamp(C.textY + dy / u, -400, 400); $('cTy').value = Math.round(C.textY); }
     else { if(C.pmax.x > 0) C.panX = clamp(C.panX + dx / C.pmax.x, -1, 1); if(C.pmax.y > 0) C.panY = clamp(C.panY + dy / C.pmax.y, -1, 1); }
     scheduleRender();
@@ -2573,15 +2658,15 @@ async function prepareFacebook(){
     setBusy('fb', true);
     try{
       await checkTextModel();
-      const prompt = 'Prepare Facebook-ready content for the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE + ' Return ONLY one JSON object (no markdown fences) with this shape: {"headline":"short punchy card headline, max ~12 words; wrap the 1–2 most important words in *asterisks* for highlighting","subheadline":"optional short line (e.g. who said it), or empty","description":"one concise sentence summary, max ~25 words","category":"1–2 word news category","post":"Facebook post text: an attention-grabbing first line, then 2–4 short paragraphs with the key facts; plain text, no hashtags, no links","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
-      const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.5, responseMimeType: 'application/json' } }, 90000);
+      const prompt = 'Prepare Facebook-ready content for the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE + ' ' + hookRules() + ' Return ONLY one JSON object (no markdown fences) with this shape: {"card_options":' + hookShape() + ',"post":"' + postSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
+      const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.75, responseMimeType: 'application/json' } }, 90000);
       data = parseAiJson(r.text);
     }catch(e){ toast(aiErrMsg(e) + ' — ' + t('tFbLocal')); }
     finally{ setBusy('fb', false); }
   }
   if(!data){ data = localFb(title, body); if(!S.gkey) toast(t('tFbLocal')); }
   let tags = (Array.isArray(data.hashtags) ? data.hashtags : []).map(h => '#' + String(h).replace(/^#+/, '').replace(/\s+/g, '')).filter(h => h.length > 1).slice(0, 6);
-  let post = cleanAiText(data.post || title);
+  let post = trimToWords(cleanAiText(data.post || title), fbWordLimit());
   let maskFound = [];
   if(S.mask){ tags = tags.filter(h => !hasSensitive(h.slice(1))); const mk = maskText(post, S.maskCh); post = mk.text; maskFound = mk.found; }
   if(tags.length) post += '\n\n' + tags.join(' ');
@@ -2589,9 +2674,9 @@ async function prepareFacebook(){
   $('fbText').value = post;
   const fres = AI.results.facebook || (AI.results.facebook = { cur: '', prev: [] });
   if(fres.cur) fres.prev.push(fres.cur); fres.cur = post; renderChips(); if(AI.mode === 'facebook') renderStudioResult();
-  Object.assign(C.fields, { headline: String(data.headline || title).replace(/\s+/g, ' ').trim(), sub: norm(data.subheadline || ''), desc: norm(data.description || ''), cat: norm(data.category || '') });
-  syncFields();
-  if(S.mask && S.maskCard) maskFound = maskFound.concat(maskCardFields());
+  const hooks = normHooks(data.card_options, data, title);
+  maskFound = maskFound.concat(setHooks(hooks));
+  applyHook(0, true);
   if(S.mask) showMaskInfo(maskFound);
   const src = C.src === 'upload' && C.upUrl ? 'upload' : S.article.image ? 'orig' : (C.aiUrl ? 'ai' : 'none');
   await setSource(src, true);
@@ -2602,7 +2687,7 @@ async function prepareFacebook(){
 /* ---------- i18n refresh for dynamic parts ---------- */
 function studioI18n(){
   if(!AI.inited) return;
-  renderChips(); renderModeOpts(); renderStudioResult();
+  renderChips(); renderModeOpts(); renderStudioResult(); renderHooks(); updateSpkUi(); fillFbWords();
   const sel = $('cTpl'), v = C.template; sel.innerHTML = '';
   TPL_ORDER.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = t(TPL[k].key); sel.appendChild(o); });
   sel.value = v;
@@ -2612,6 +2697,23 @@ function studioI18n(){
 
 function initStudio(){
   AI.inited = true;
+  $('newSearchBtn').addEventListener('click', newSearch);
+  $('wipeBtn').addEventListener('click', wipeData);
+  $('spkFlipBtn').addEventListener('click', () => { C.spkFlip = !C.spkFlip; $('spkFlipBtn').classList.toggle('on', C.spkFlip); C.spkCache = null; scheduleRender(); });
+  $('cQAdj').value = C.qAdj || 0;
+  $('cQAdj').addEventListener('input', () => { C.qAdj = +$('cQAdj').value; saveCardDesign(); scheduleRender(); });
+  $('fbWords').addEventListener('change', () => { store.set('fbWords', +$('fbWords').value); updateFbCount(); });
+  $('fbRewriteBtn').addEventListener('click', rewritePost);
+  $('fbText').addEventListener('input', updateFbCount);
+  $('fbCardPrev').addEventListener('click', () => showTab('card'));
+  setInterval(() => { if(AI.tab === 'fb') updateFbCount(); }, 900);
+  AI.hooks = AI.hooks || []; AI.hookSel = -1; AI.hookKind = store.get('hookKind', 'news') === 'quote' ? 'quote' : 'news';
+  document.querySelectorAll('[data-hook-kind] [data-kind]').forEach(b => b.addEventListener('click', () => setHookKind(b.dataset.kind)));
+  $('spkUpBtn').addEventListener('click', () => $('spkFile').click());
+  $('spkFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if(f) onSpkFile(f); });
+  $('spkRmBtn').addEventListener('click', () => { C.spkImg = null; C.spkUrl = ''; C.spkCache = null; C.spkDX = C.spkDY = 0; updateSpkUi(); scheduleRender(); });
+  $('cSpkSize').addEventListener('input', () => { C.spkSize = +$('cSpkSize').value; saveCardDesign(); scheduleRender(); });
+  document.querySelectorAll('[data-hook-regen]').forEach(b => b.addEventListener('click', genHooks));
   $('maskChk').checked = !!S.mask; $('maskCardChk').checked = !!S.maskCard; $('maskCharSel').value = S.maskCh; $('maskWords').value = maskList().join('\n');
   $('maskChk').addEventListener('change', () => { S.mask = $('maskChk').checked; store.set('maskOn', S.mask); if(!S.mask) $('maskInfo').textContent = ''; });
   $('maskCardChk').addEventListener('change', () => { S.maskCard = $('maskCardChk').checked; store.set('maskCard', S.maskCard); });
@@ -2830,6 +2932,353 @@ Object.assign(T.en, { install:'Install', tInstalled:'✅ App installed — open 
     });
   }
 })();
+
+/* ===== v4.2: catchy, monetization-safe card text — 3 options to choose from ===== */
+Object.assign(T.bn, { hookTitle:'🎯 কার্ডের চটকদার লেখা — একটি বেছে নিন', hookRegen:'🔄 নতুন ৩টি অপশন',
+  hookNote:'যেটিতে চাপবেন সেটিই কার্ডে বসে যাবে। পরে "কার্ড" ট্যাবের লেখার ঘরে নিজের মতো বদলাতে পারবেন। মূল তথ্য ঠিক রেখে লেখা আকর্ষণীয় করা হয় — প্রকাশের আগে একবার মিলিয়ে নিন।',
+  hookEmpty:'"📣 ফেসবুকের জন্য প্রস্তুত করুন" বা "🔄 নতুন ৩টি অপশন" চাপলে এখানে ৩টি চটকদার লেখা আসবে।', stHook:'নতুন অপশন তৈরি হচ্ছে…',
+  tHookApplied:'✅ কার্ডে বসানো হয়েছে', tHookNone:'AI নতুন অপশন দিতে পারেনি — আবার চেষ্টা করুন', tHookReady:'৩টি নতুন অপশন তৈরি — একটি বেছে নিন' });
+Object.assign(T.en, { hookTitle:'🎯 Catchy card text — pick one', hookRegen:'🔄 3 new options',
+  hookNote:'The option you tap is placed on the card. You can still edit it in the text fields of the "Card" tab. Facts are kept, wording is made engaging — check once before posting.',
+  hookEmpty:'Press "📣 Prepare for Facebook" or "🔄 3 new options" to get 3 catchy texts here.', stHook:'Creating new options…',
+  tHookApplied:'✅ Placed on the card', tHookNone:'The AI returned no options — please try again', tHookReady:'3 new options ready — pick one' });
+
+const HOOK_RULES = 'PHOTO CARD TEXT: write exactly 3 DIFFERENT eye-catching options for the text on the photo card, so people stop scrolling and want to read. ' +
+  'Every option must keep the true core message of the article: no invented facts, numbers, names, quotes or events, nothing misleading and nothing outside the story. ' +
+  'Use a different creative angle for each option: (1) a curiosity hook or question that this news answers; (2) the human or emotional angle — why it matters to ordinary people; (3) a bold, punchy statement built on the most striking real fact or number in the article. ' +
+  'Write in the same language as the article; for Bengali, use lively, natural, conversational Bengali (not dry newspaper style). Headline at most about 10 words; wrap the 1–2 most powerful words in *asterisks* for highlighting. ' +
+  'Must be safe for Facebook monetization: no graphic, gory or violent wording, no shock or fear-mongering, no engagement bait (such as asking people to share, like or comment, or "you will not believe"), no ALL CAPS, no hate or insults towards any person or group, no political taunting.';
+const HOOK_SHAPE = '[{"style":"2–3 word label of the angle, in the article language","headline":"catchy headline with *highlight*","subheadline":"short supporting line (who / where / when), or empty","description":"one catchy but accurate sentence, max ~20 words","category":"1–2 word category"}, (exactly 3 items)]';
+
+function normHooks(list, data, title){
+  let arr = Array.isArray(list) ? list : [];
+  arr = arr.map(o => o && typeof o === 'object' ? {
+    style: norm(o.style || ''), headline: String(o.quote || o.headline || '').replace(/\s+/g, ' ').trim(),
+    sub: norm(o.speaker || o.subheadline || o.sub || ''), desc: norm(o.description || o.desc || ''), cat: norm(o.category || o.cat || ''), role: norm(o.role || ''), quote: !!o.quote
+  } : null).filter(o => o && o.headline).slice(0, 3);
+  if(!arr.length && data) arr = [{ style: '', headline: String(data.headline || title || '').replace(/\s+/g, ' ').trim(), sub: norm(data.subheadline || ''), desc: norm(data.description || ''), cat: norm(data.category || '') }].filter(o => o.headline);
+  return arr;
+}
+function setHooks(list){
+  let found = [];
+  if(S.mask && S.maskCard) list.forEach(h => ['headline', 'sub', 'role', 'desc', 'cat'].forEach(k => { const m = maskText(h[k], cardCh()); h[k] = m.text; found = found.concat(m.found); }));
+  AI.hooks = list; AI.hookSel = -1; renderHooks();
+  return found;
+}
+function applyHook(i, silent){
+  const h = (AI.hooks || [])[i]; if(!h) return;
+  if(h.quote && !isQuoteTpl(C.template)) applyTemplate('qgrid');
+  else if(!h.quote && isQuoteTpl(C.template)) applyTemplate('band');
+  Object.assign(C.fields, h.quote ? { headline: h.headline, sub: h.sub, role: h.role, desc: '', cat: '' } : { headline: h.headline, sub: h.sub, desc: h.desc, cat: h.cat, role: '' });
+  AI.hookSel = i; syncFields(); renderHooks(); scheduleRender();
+  if(AI.tab === 'fb') ensureFonts().then(updateFbPreview);
+  if(!silent) toast(t('tHookApplied'));
+}
+function hookHtml(s){ return esc(s).replace(/\*([^*]+)\*/g, '<mark>$1</mark>').replace(/\*/g, ''); }
+function renderHooks(){
+  document.querySelectorAll('[data-hook-kind] [data-kind]').forEach(b => b.classList.toggle('on', b.dataset.kind === AI.hookKind));
+  const list = AI.hooks || [];
+  ['fbHooks', 'cardHooks'].forEach(id => {
+    const box = $(id); if(!box) return;
+    box.innerHTML = '';
+    if(!list.length){ const p = document.createElement('div'); p.className = 'hookempty'; p.textContent = t('hookEmpty'); box.appendChild(p); return; }
+    list.forEach((h, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'hookopt' + (i === AI.hookSel ? ' on' : '');
+      const who = [h.sub, h.role].filter(Boolean).join(', ');
+      const extra = h.quote ? (who ? '— ' + who : '') : [h.sub, h.desc].filter(Boolean).join(' · ');
+      b.innerHTML = (h.style ? '<span class="hstyle">' + esc(h.style) + '</span>' : '') + '<b class="hh">' + (h.quote ? '❝ ' : '') + hookHtml(h.headline) + '</b>' + (extra ? '<small>' + esc(extra) + '</small>' : '');
+      b.addEventListener('click', () => applyHook(i));
+      box.appendChild(b);
+    });
+  });
+}
+function setHookBusy(on){
+  AI.busy.hook = on;
+  document.querySelectorAll('[data-hook-regen]').forEach(b => { b.disabled = on; });
+  document.querySelectorAll('[data-hook-status]').forEach(el => el.classList.toggle('hidden', !on));
+}
+async function genHooks(){
+  if(!S.article || AI.busy.hook) return;
+  if(!S.gkey){ needKey(); return; }
+  setHookBusy(true);
+  try{
+    await checkTextModel();
+    const prev = (AI.hooks || []).map(h => h.headline).filter(Boolean);
+    const prompt = 'Write fresh photo-card text for the news article below. ' + AD_SAFE + ' ' + hookRules() +
+      (prev.length ? ' Make them clearly different from these earlier options (new wording and new angles): ' + prev.join(' | ') + '.' : '') +
+      ' Return ONLY one JSON object (no markdown fences) with this shape: {"card_options":' + hookShape() + '}\n\n' + articleForAi(20000);
+    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.95, responseMimeType: 'application/json' } }, 90000);
+    const o = parseAiJson(r.text);
+    const hooks = normHooks(o.card_options || o.options || o, null);
+    if(!hooks.length) throw friendly(t('tHookNone'));
+    const found = setHooks(hooks);
+    if(S.mask && found.length) showMaskInfo(found);
+    toast(t('tHookReady'));
+  }catch(e){ toast(aiErrMsg(e)); }
+  finally{ setHookBusy(false); }
+}
+
+/* ===== v4.3: quote cards (speaker statement + highlight + name box + speaker photo) ===== */
+Object.assign(T.bn, { kindNews:'📰 সাধারণ শিরোনাম', kindQuote:'❝ উক্তি কার্ড (কে কী বললেন)', f_sub:'উপশিরোনাম / বক্তার নাম', f_role:'বক্তার পরিচয় / পদবি (উক্তি কার্ডে)',
+  spkTitle:'🧑 বক্তার ছবি (উক্তি ডিজাইনের জন্য, ঐচ্ছিক)', spkUp:'📁 বক্তার ছবি দিন', spkRm:'🗑 সরান', spkSize:'বক্তার ছবির আকার', spkNone:'বক্তার ছবি দেওয়া নেই',
+  spkNote:'শুধু "❝ উক্তি" ডিজাইনে দেখাবে। ব্যাকগ্রাউন্ড মুছে ফেলা (transparent) PNG দিলে নমুনার মতো মানুষের চারপাশে হলুদ রেখা হবে — remove.bg ওয়েবসাইটে ফ্রি করা যায়। সাধারণ ছবি দিলে হলুদ ফ্রেমসহ বসবে। কার্ডে আঙুল দিয়ে টেনে সরাতে পারবেন।',
+  tplQgrid:'❝ উক্তি — গ্রিড পেপার', tplQbig:'❝ উক্তি — বড় হাইলাইট', tplQdark:'❝ উক্তি — ডার্ক' });
+Object.assign(T.en, { kindNews:'📰 Normal headline', kindQuote:'❝ Quote card (who said what)', f_sub:'Subheadline / speaker name', f_role:'Speaker identity / designation (quote card)',
+  spkTitle:'🧑 Speaker photo (for quote designs, optional)', spkUp:'📁 Add speaker photo', spkRm:'🗑 Remove', spkSize:'Speaker photo size', spkNone:'No speaker photo',
+  spkNote:'Shown only in the "❝ Quote" designs. A background-removed (transparent) PNG gets a yellow outline around the person like the samples — remove.bg can do this for free. A normal photo gets a yellow frame. Drag it on the card to move it.',
+  tplQgrid:'❝ Quote — grid paper', tplQbig:'❝ Quote — big highlight', tplQdark:'❝ Quote — dark' });
+
+const QUOTE_RULES = 'QUOTE CARD: write exactly 3 options for a "quote card" (a striking statement shown in big text with the speaker name and short identity, like popular Bangladeshi news pages). ' +
+  'Each option must be a real statement made by a named person in the article: use their actual words from the article. You may shorten by leaving words out, but never change the meaning and never add new claims. If the article only reports what someone said indirectly, rewrite it as a short first-person statement with exactly the same meaning. ' +
+  'Choose the most striking, emotional or surprising statements, preferably from different people or different points. Each quote 15–45 words. Wrap the key part that readers should notice first (usually one clause or sentence, 4–15 words) in *asterisks*; it will be shown on a yellow highlight band. ' +
+  'speaker = the person name exactly as in the article; role = their short identity in a few words (for example "শিক্ষা উপদেষ্টা", "ভুক্তভোগী শিশুর বাবা", "ইসলামিক বক্তা"). If the article has no statement by a named person, use the main finding of the report as the quote, with speaker = the newspaper name and role = "প্রতিবেদন" (or "Report"). ' +
+  'Write in the same language as the article. Must be safe for Facebook monetization: avoid slurs and graphic violent wording, and do not choose statements that insult a religion, ethnicity or group.';
+const QUOTE_SHAPE = '[{"style":"2–3 word label, in the article language","quote":"statement with the *key part highlighted*","speaker":"name","role":"short identity"}, (exactly 3 items)]';
+function hookRules(){ return AI.hookKind === 'quote' ? QUOTE_RULES : HOOK_RULES; }
+function hookShape(){ return AI.hookKind === 'quote' ? QUOTE_SHAPE : HOOK_SHAPE; }
+function isQuoteTpl(k){ return k === 'qgrid' || k === 'qbig' || k === 'qdark'; }
+function setHookKind(k){
+  k = k === 'quote' ? 'quote' : 'news';
+  if(k === AI.hookKind) return;
+  AI.hookKind = k; store.set('hookKind', k);
+  if((k === 'quote') !== isQuoteTpl(C.template)) applyTemplate(k === 'quote' ? 'qgrid' : 'band');
+  AI.hooks = []; AI.hookSel = -1; renderHooks();
+  if(AI.tab === 'fb') ensureFonts().then(updateFbPreview);
+  if(S.article && S.gkey) genHooks();
+}
+
+/* speaker photo */
+Object.assign(C, { spkImg: null, spkUrl: '', spkDX: 0, spkDY: 0, spkCache: null });
+function updateSpkUi(){
+  const th = $('spkThumb'); if(!th) return;
+  if(C.spkUrl){ th.src = C.spkUrl; th.classList.remove('hidden'); $('spkInfo').textContent = ''; }
+  else { th.removeAttribute('src'); th.classList.add('hidden'); $('spkInfo').textContent = t('spkNone'); }
+  $('spkRmBtn').disabled = !C.spkUrl; $('cSpkSize').value = C.spkSize;
+}
+async function onSpkFile(f){
+  if(!validImage(f, 15)){ toast(t('tBadFile')); return; }
+  try{
+    const im0 = await loadImg(await fileToDataUrl(f), false);
+    const sc = Math.min(1, 1400 / Math.max(im0.naturalWidth, im0.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(im0.naturalWidth * sc)); c.height = Math.max(1, Math.round(im0.naturalHeight * sc));
+    c.getContext('2d').drawImage(im0, 0, 0, c.width, c.height);
+    C.spkUrl = c.toDataURL('image/png'); C.spkImg = await loadImg(C.spkUrl, false);
+    C.spkDX = C.spkDY = 0; C.spkCache = null; updateSpkUi();
+    if(!isQuoteTpl(C.template)) applyTemplate('qgrid');
+    await ensureFonts(); renderCard(); if(AI.tab === 'fb') updateFbPreview();
+  }catch(e){ toast(t('tBadFile')); }
+}
+function speakerCanvas(w, h, stroke, color){
+  const key = [Math.round(w), Math.round(h), Math.round(stroke), color, C.spkUrl.length, C.spkFlip ? 1 : 0].join('|');
+  if(C.spkCache && C.spkCache.key === key) return C.spkCache.c;
+  const c = document.createElement('canvas'); c.width = Math.ceil(w + stroke * 2); c.height = Math.ceil(h + stroke * 2);
+  const x = c.getContext('2d');
+  if(C.spkFlip){ x.translate(c.width, 0); x.scale(-1, 1); }
+  for(let i = 0; i < 24; i++){ const a = i / 24 * Math.PI * 2; x.drawImage(C.spkImg, stroke + Math.cos(a) * stroke, stroke + Math.sin(a) * stroke, w, h); }
+  x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'source-over'; x.drawImage(C.spkImg, stroke, stroke, w, h);
+  C.spkCache = { key, c }; return c;
+}
+
+function drawGridPaper(ctx, W, H, dark){
+  const u = Math.min(W, H) / 1080;
+  let g;
+  if(dark){ g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, shade(C.accent, 0.1)); g.addColorStop(1, shade(C.accent, -0.35)); }
+  else { g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#f2f2f0'); g.addColorStop(1, '#e2e2df'); }
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const step = 54 * u;
+  ctx.strokeStyle = dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.08)'; ctx.lineWidth = 1.6 * u;
+  for(let x = step / 2; x < W; x += step){ ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for(let y = step / 2; y < H; y += step){ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  let seed = 7; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  ctx.fillStyle = dark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.045)';
+  for(let i = 0; i < 1400; i++) ctx.fillRect(rnd() * W, rnd() * H, 2.2 * u, 2.2 * u);
+}
+function tplSpeaker(ctx, W, H, u, land, o){
+  const F = C.fields, hs = C.hSize / 100, dark = !!o.dark;
+  drawGridPaper(ctx, W, H, dark);
+  const maxTop = Math.round(H * (H > W * 1.1 ? o.top45 : o.top));
+  const pad = 58 * u;
+  // big quote mark
+  ctx.font = '900 ' + Math.round(230 * u) + 'px Georgia,"Noto Serif","Times New Roman",serif'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  ctx.fillStyle = dark ? C.hl : '#111111'; ctx.fillText('“', pad - 10 * u, 6 * u);
+  // small source credit (top right)
+  if(norm(F.source)){
+    ctx.font = fontStr(22 * u, 500, BFAM); ctx.fillStyle = dark ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)';
+    const sTxt = fitOne(ctx, t('srcPrefix') + F.source, W * 0.5), sw = ctx.measureText(sTxt).width;
+    const lgS = (C.logoImg && C.logoPos === 'tr') ? Math.min(W, H) * C.logoSize / 100 + 24 * u : 0;
+    ctx.fillText(sTxt, W - pad - lgS - sw, 52 * u); C.regions.push({ k: 'source', x: W - pad - lgS - sw, y: 44 * u, w: sw, h: 36 * u });
+  }
+  // name box size
+  const nameT = norm(F.sub), roleT = norm(F.role), nf = 36 * u, rf = 28 * u, bpX = 20 * u, bpY = 12 * u;
+  ctx.font = fontStr(nf, 700, BFAM); const nw = nameT ? ctx.measureText(nameT).width : 0;
+  ctx.font = fontStr(rf, 500, BFAM); const rw = roleT ? ctx.measureText(roleT).width : 0;
+  const boxH = (nameT || roleT) ? bpY * 2 + (nameT ? nf * 1.35 : 0) + (roleT ? rf * 1.4 : 0) : 0;
+  // quote text
+  let qt = String(F.headline || '');
+  if(o.allHl && norm(qt)) qt = '*' + qt.replace(/\*/g, '') + '*';
+  else if(o.autoHl && qt.indexOf('*') < 0 && norm(qt)) qt = '*' + qt + '*';
+  const textTop = (o.textTop || 200) * u + C.textY * u;
+  const maxH = Math.max(80 * u, maxTop - (boxH ? boxH + 36 * u : 26 * u) - textTop);
+  const st = layoutStack(ctx, [{ k: 'headline', text: qt, size: o.size * u * hs, weight: CFONTS[C.font].w, fam: CFONTS[C.font].fam, color: C.tc, hl: C.hl, hlMode: 'box', hlText: lum(C.hl) > 0.55 ? '#111111' : '#ffffff', maxH, lh: 1.5, justify: !!o.justify, min: 22 * u }], W - 2 * pad, u);
+  const textEnd = drawStack(ctx, st, pad, textTop, W - 2 * pad, C.align);
+  const topH = Math.round(clamp(textEnd + (boxH ? boxH + 44 * u : 36 * u) + (C.qAdj || 0) * H / 100, H * 0.34, H * 0.8));
+  // photo strip
+  drawPhoto(ctx, 0, topH, W, H - topH);
+  if(C.overlay > 0){ ctx.fillStyle = 'rgba(0,0,0,' + (C.overlay / 100 * 0.55) + ')'; ctx.fillRect(0, topH, W, H - topH); }
+  if(o.line){ ctx.fillStyle = dark ? C.hl : '#151515'; ctx.fillRect(0, topH - 3 * u, W, 6 * u); }
+  drawTag(ctx, F.label, 22 * u, H - 62 * u, 22 * u, 'rgba(0,0,0,.65)', '#fff');
+  // speaker photo with yellow outline
+  let spkX = W;
+  if(C.spkImg && C.spkImg.naturalWidth){
+    const iw = C.spkImg.naturalWidth, ih = C.spkImg.naturalHeight;
+    let h = clamp(H - textEnd - 16 * u, H * 0.3, H * C.spkSize / 100), w = h * iw / ih;
+    if(w > W * 0.62){ w = W * 0.62; h = w * ih / iw; }
+    const stroke = 9 * u, cv = speakerCanvas(w, h, stroke, C.hl);
+    const x = clamp(W - w - 22 * u + C.spkDX, -w * 0.5, W - w * 0.5), y = clamp(H - h + C.spkDY, -h * 0.3, H - h * 0.4);
+    ctx.drawImage(cv, x - stroke, y - stroke);
+    C.regions.push({ k: 'speaker', x, y, w, h }); spkX = x;
+  }
+  // name box
+  if(boxH){
+    const maxW = Math.max(W * 0.35, C.spkImg ? spkX - pad - 24 * u : W - 2 * pad);
+    const bw = Math.min(maxW, Math.max(nw, rw) + bpX * 2), bx = pad, by = topH - boxH - 18 * u;
+    ctx.fillStyle = dark ? C.hl : C.accent; ctx.fillRect(bx, by, bw, boxH);
+    const fg = dark ? (lum(C.hl) > 0.55 ? '#111111' : '#ffffff') : '#ffffff';
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = fg;
+    let cy = by + bpY;
+    if(nameT){ ctx.font = fontStr(nf, 700, BFAM); ctx.fillText(fitOne(ctx, nameT, bw - bpX * 2), bx + bpX, cy + nf * 0.7); C.regions.push({ k: 'sub', x: bx, y: cy, w: bw, h: nf * 1.35 }); cy += nf * 1.35; }
+    if(roleT){ ctx.font = fontStr(rf, 500, BFAM); ctx.fillText(fitOne(ctx, roleT, bw - bpX * 2), bx + bpX, cy + rf * 0.72); C.regions.push({ k: 'role', x: bx, y: cy, w: bw, h: rf * 1.4 }); }
+  }
+}
+Object.assign(TPL, {
+  qgrid: { key:'tplQgrid', tc:'#111111', accent:'#0f2a4a', hl:'#fff200', align:'left', overlay:8, font:'tiro' },
+  qbig:  { key:'tplQbig',  tc:'#111111', accent:'#0f2a4a', hl:'#fff200', align:'left', overlay:8, font:'tiro' },
+  qdark: { key:'tplQdark', tc:'#ffffff', accent:'#0b1f3a', hl:'#ffd400', align:'left', overlay:12, font:'hind' }
+});
+Object.assign(TPLF, {
+  qgrid: (ctx, W, H, u, land) => tplSpeaker(ctx, W, H, u, land, { size: 58, top: 0.72, top45: 0.68, justify: true }),
+  qbig:  (ctx, W, H, u, land) => tplSpeaker(ctx, W, H, u, land, { size: 84, top: 0.72, top45: 0.68, allHl: true, line: true, textTop: 172 }),
+  qdark: (ctx, W, H, u, land) => tplSpeaker(ctx, W, H, u, land, { size: 58, top: 0.72, top45: 0.68, justify: true, dark: true })
+});
+TPL_ORDER.push('qgrid', 'qbig', 'qdark');
+(function(){ const saved = (store.get('card', {}) || {}).template; if(TPL[saved]) C.template = saved; })();
+
+/* ===== v4.4: new search, data wipe, post length, preview, speaker flip ===== */
+Object.assign(T.bn, { newSearch:'🆕 নতুন খবর', tNewReady:'নতুন খবরের জন্য প্রস্তুত — লিংক বা লেখা দিন',
+  wipeBtn:'🧹 সব সংরক্ষিত ডাটা মুছুন (API কী রেখে)', wipeNote:'অ্যাপে পুরোনো তথ্য থেকে যাচ্ছে মনে হলে এটি চাপুন। সাম্প্রতিক খবর, লোগো, কার্ডের ডিজাইন, শব্দতালিকা ও অন্যান্য সেটিংস মুছে যাবে — শুধু API কী ও মডেলের নাম থাকবে।',
+  wipeConfirm:'API কী ছাড়া সব সংরক্ষিত তথ্য মুছে যাবে (সাম্প্রতিক খবর, লোগো, কার্ডের ডিজাইন, শব্দতালিকা, থিম ইত্যাদি)। মুছবেন?',
+  spkFlip:'↔️ বক্তার ছবি উল্টান (মিরর)', qAdj:'ছবির অংশ ছোট–বড় (উক্তি ডিজাইন)', openImg:'↗ ছবিটি নতুন ট্যাবে খুলুন → সেভ করে "আপলোড" দিন',
+  fbLen:'পোস্টের দৈর্ঘ্য', lenAuto:'AI ঠিক করবে', fbRewrite:'🔄 শুধু পোস্ট নতুন করে লিখুন', fbCountTxt:'শব্দ: {n}', fbTarget:' / লক্ষ্য {n}', tPostReady:'নতুন পোস্ট তৈরি হয়েছে' });
+Object.assign(T.en, { newSearch:'🆕 New article', tNewReady:'Ready for a new article — paste a link or text',
+  wipeBtn:'🧹 Delete all saved data (keep API key)', wipeNote:'Press this if old data seems to stick around. Recent articles, logo, card design, word list and other settings are deleted — only the API key and model names are kept.',
+  wipeConfirm:'All saved data except the API key will be deleted (recent articles, logo, card design, word list, theme, …). Continue?',
+  spkFlip:'↔️ Flip speaker photo (mirror)', qAdj:'Photo area smaller–bigger (quote designs)', openImg:'↗ Open the photo in a new tab → save it and use "Upload"',
+  fbLen:'Post length', lenAuto:'Let AI decide', fbRewrite:'🔄 Rewrite only the post', fbCountTxt:'Words: {n}', fbTarget:' / target {n}', tPostReady:'New post ready' });
+Object.assign(C, { spkFlip: false });
+
+const FB_LENS = [40, 60, 80, 100, 150, 200, 300];
+function fillFbWords(){
+  const sel = $('fbWords'); if(!sel) return;
+  const cur = String(store.get('fbWords', 80));
+  sel.innerHTML = '';
+  FB_LENS.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = '~' + (S.lang === 'bn' ? bnNum(n) : n) + ' ' + t('words'); sel.appendChild(o); });
+  const o = document.createElement('option'); o.value = 0; o.textContent = t('lenAuto'); sel.appendChild(o);
+  sel.value = sel.querySelector('option[value="' + cur + '"]') ? cur : '80';
+}
+const fbWordLimit = () => +(($('fbWords') && $('fbWords').value) || 0);
+function postSpec(){
+  const n = fbWordLimit();
+  return n ? 'Facebook post text of about ' + n + ' words and NEVER more than ' + n + ' words (hashtags not counted): an attention-grabbing first line, then the key facts in short paragraphs; plain text, no hashtags, no links'
+           : 'Facebook post text: an attention-grabbing first line, then 2–4 short paragraphs with the key facts; plain text, no hashtags, no links';
+}
+const countWords = s => (String(s || '').match(/\S+/g) || []).filter(w => !/^#|^https?:/i.test(w)).length;
+function trimToWords(text, n){
+  if(!n || countWords(text) <= Math.round(n * 1.12)) return text;
+  const paras = String(text).split(/\n\s*\n/), out = []; let used = 0;
+  for(const para of paras){
+    const sents = para.split(/(?<=[।!?.])\s+/); const keep = [];
+    for(const se of sents){
+      const c = countWords(se);
+      if(used + c > n){
+        if(!used && !keep.length){ keep.push((se.match(/\S+/g) || []).slice(0, n).join(' ') + '…'); used = n; }
+        break;
+      }
+      keep.push(se); used += c;
+    }
+    if(keep.length) out.push(keep.join(' '));
+    if(used >= n * 0.9) break;
+  }
+  return out.join('\n\n') || text;
+}
+function updateFbCount(){
+  const el = $('fbCount'); if(!el) return;
+  const v = $('fbText').value; if(!v.trim()){ el.textContent = ''; return; }
+  const body = v.split(/\n\s*\n/).filter(p => !/^\s*#/.test(p) && !p.startsWith(t('source'))).join(' ');
+  const n = countWords(body), lim = fbWordLimit(), f = x => S.lang === 'bn' ? bnNum(x) : x;
+  el.textContent = t('fbCountTxt').replace('{n}', f(n)) + (lim ? t('fbTarget').replace('{n}', f(lim)) : '');
+  el.classList.toggle('over', !!lim && n > lim * 1.15);
+}
+async function rewritePost(){
+  if(!S.article || AI.busy.fb) return;
+  if(!S.gkey){ needKey(); return; }
+  setBusy('fb', true);
+  try{
+    await checkTextModel();
+    const prompt = 'Write a Facebook post about the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE +
+      ' Return ONLY one JSON object (no markdown fences) with this shape: {"post":"' + postSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
+    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: 'application/json' } }, 90000);
+    const data = parseAiJson(r.text);
+    let tags = (Array.isArray(data.hashtags) ? data.hashtags : []).map(h => '#' + String(h).replace(/^#+/, '').replace(/\s+/g, '')).filter(h => h.length > 1).slice(0, 6);
+    let post = trimToWords(cleanAiText(data.post || ''), fbWordLimit());
+    if(!post) throw new Error('Empty response');
+    if(S.mask){ tags = tags.filter(h => !hasSensitive(h.slice(1))); const mk = maskText(post, S.maskCh); post = mk.text; showMaskInfo(mk.found); }
+    if(tags.length) post += '\n\n' + tags.join(' ');
+    if($('fbSrcChk').checked) post += '\n\n' + fbSourceLine();
+    $('fbText').value = post; updateFbCount();
+    const fres = AI.results.facebook || (AI.results.facebook = { cur: '', prev: [] });
+    if(fres.cur) fres.prev.push(fres.cur); fres.cur = post;
+    toast(t('tPostReady'));
+  }catch(e){ toast(aiErrMsg(e)); }
+  finally{ setBusy('fb', false); }
+}
+function clearFbPrev(){ const d = $('fbCardPrev'); if(d && d.getContext) d.getContext('2d').clearRect(0, 0, d.width, d.height); }
+function copyToFbPrev(){
+  const d = $('fbCardPrev'), src = $('cardCanvas'); if(!d || !src || !d.getContext) return;
+  if(d.width !== src.width) d.width = src.width; if(d.height !== src.height) d.height = src.height;
+  const x = d.getContext('2d'); x.clearRect(0, 0, d.width, d.height); x.drawImage(src, 0, 0);
+}
+function newSearch(){
+  if(S.editing) toggleEdit(false);
+  if(document.body.classList.contains('focus')) setFocus(false);
+  S.article = null; S.pastedHtml = null;
+  Object.assign(AI, { key: null, results: {}, images: [], imgIdx: -1, fb: null, promptFor: null, hooks: [], hookSel: -1 });
+  ['urlInput', 'pasteText', 'pasteTitle', 'pasteSource', 'imgPrompt', 'fbText', 'resText', 'customInstr'].forEach(id => { const el = $(id); if(el) el.value = ''; });
+  ['imgModelInfo', 'maskInfo', 'fbCount'].forEach(id => { const el = $(id); if(el) el.textContent = ''; });
+  if(C.upUrl){ try{ URL.revokeObjectURL(C.upUrl); }catch(e){} }
+  C.loadTok++;
+  Object.assign(C, { aiUrl: '', upUrl: '', img: null, tainted: false, src: 'none', pending: false, spkImg: null, spkUrl: '', spkCache: null, spkDX: 0, spkDY: 0, spkFlip: false,
+    labelAuto: true, textY: 0, panX: 0, panY: 0, zoom: 100,
+    fields: { headline: '', sub: '', role: '', desc: '', cat: '', source: '', date: '', url: '', label: '' } });
+  $('spkFlipBtn').classList.remove('on'); $('taintOpen').classList.add('hidden'); setCardWarn('');
+  syncFields(); syncDesignUi(); updateSrcUi(); updateSpkUi(); clearFbPrev();
+  renderChips(); renderModeOpts(); renderStudioResult(); renderAiImages(); renderHooks();
+  $('artTitle').textContent = ''; $('artByline').textContent = ''; $('artBody').innerHTML = ''; $('leadFig').classList.add('hidden');
+  showTab('orig');
+  $('reader').classList.add('hidden'); document.body.classList.remove('has-article'); $('empty').classList.remove('hidden');
+  ['rescuePanel', 'pastePanel', 'installPanel'].forEach(id => { if($(id)) togglePanel(id, false); });
+  status(''); $('progress').style.width = '0'; renderRecent();
+  window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => $('urlInput').focus(), 250);
+  toast(t('tNewReady'));
+}
+async function wipeData(){
+  if(!window.confirm(t('wipeConfirm'))) return;
+  const keep = ['tfcr_gkey', 'tfcr_gmodel', 'tfcr_imodel', 'tfcr_aiFirst'];
+  try{ Object.keys(localStorage).filter(k => k.startsWith('tfcr_') && !keep.includes(k)).forEach(k => localStorage.removeItem(k)); }catch(e){}
+  try{ sessionStorage.clear(); }catch(e){}
+  try{ if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } }catch(e){}
+  location.href = location.pathname;
+}
 
 window.TFCR = { fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

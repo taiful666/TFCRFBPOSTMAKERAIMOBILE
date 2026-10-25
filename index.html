@@ -718,6 +718,41 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
   .dbody{gap:8px}
   .scard input[type=text],.scard input[type=url],.scard select,.scard textarea{padding:9px 11px}
 }
+/* ===== v6.3: guided 1-2-3 flow ===== */
+.v6flow{display:flex;flex-direction:column;gap:10px;margin:0 0 14px;position:relative}
+.v6stepc{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:10px 10px 12px;position:relative}
+.v6stepc .sh{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.v6stepc .num{width:30px;height:30px;border-radius:50%;flex:none;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;box-shadow:0 2px 6px rgba(24,119,242,.35)}
+.v6stepc .num i{font-style:normal}
+.v6stepc.done .num{background:#1e8e3e;box-shadow:0 2px 6px rgba(30,142,62,.35)}
+.v6stepc.done .num i{display:none}
+.v6stepc.done .num::before{content:'✓'}
+.v6stepc .stt{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.v6stepc .stt b{font-size:15px}
+.v6stepc .stt small{font-size:12px;color:var(--muted)}
+.v6stepc .sb{display:flex;flex-direction:column;gap:8px}
+.v6stepc .sb > .tiny{margin:0}
+.v6stepc .sb > .seg{margin:0!important}
+.v6write{min-height:46px!important;font-size:15px!important;border-radius:12px!important;background:linear-gradient(135deg,#1877f2,#7b3fe4)!important;border:0!important;box-shadow:0 4px 14px rgba(123,63,228,.3)}
+.v6write .spin{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+.v6flow .hookbox{margin:0;padding:8px 10px;background:var(--surface-2)}
+.v6flow .hookbox > .tiny,.v6flow .hookempty{display:none}
+.v6flow .hookbox .hookhead b{font-size:13.5px}
+.v6flow .hookbox .hookhead .btn{min-height:32px;padding:4px 10px;font-size:12.5px;border-radius:999px}
+.v6capstate{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:12.5px;background:var(--surface-2);border-radius:10px;padding:8px 10px}
+.v6capstate b{color:var(--ok)}
+.v6capstate .cap{flex:1 1 160px;min-width:0;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v6capstate .none{color:var(--muted)}
+.v6capstate .btn{min-height:30px;padding:3px 10px;font-size:12px;border-radius:999px}
+.v6gofb{min-height:46px!important;font-size:15px!important;border-radius:12px!important}
+.v6stepc .v6ds{background:transparent;padding:0}
+.v6stepc .v6ds .dshead{display:none}
+.v6stepc .dsrow{padding:2px 0 4px}
+.v6stepc .v6mz{margin:0}
+.v6finetune{font-size:13px;font-weight:700;color:var(--muted);margin:4px 2px 8px}
+/* connector line between the steps */
+.v6flow::before{content:'';position:absolute;left:25px;top:30px;bottom:30px;width:2px;background:var(--line);z-index:0}
+.v6stepc{z-index:1}
 </style>
 </head>
 <body>
@@ -5430,6 +5465,119 @@ const studioI18n62 = studioI18n;
 studioI18n = function(){ studioI18n62(); if($('v62Built')){ mzUpdate(); } };
 const v62Start = () => setTimeout(() => setTimeout(() => setTimeout(() => { try{ v62Build(); }catch(e){ console.error('v6.2', e); } }, 0), 0), 0);
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v62Start); else v62Start();
+
+/* ===== v6.3: guided 1-2-3 flow (write → design → post) · highlight on/off with automatic highlights ===== */
+Object.assign(T.bn, {
+  tgMarker:'হাইলাইট',
+  st1:'লেখা', st1s:'AI দিয়ে শিরোনাম, উক্তি ও ক্যাপশন — একসাথে', st2:'ডিজাইন', st2s:'ডিজাইন বেছে নিন, দরকার হলে টিক বদলান', st3:'পোস্ট', st3s:'চেক করে ফেসবুকে শেয়ার করুন',
+  writeAll:'✨ শিরোনাম + ক্যাপশন একসাথে লিখুন', writing:'লেখা তৈরি হচ্ছে…', writeHint:'আগে ধরন বেছে নিন: সাধারণ খবর, নাকি কে কী বললেন। তারপর বাটন চাপুন — ৩টি শিরোনাম আসবে, যেটিতে চাপবেন সেটিই কার্ডে বসবে।',
+  capReady:'✅ ক্যাপশন তৈরি:', capNone:'ক্যাপশন এখনো তৈরি হয়নি', capOpen:'✏️ ক্যাপশন দেখুন',
+  goFb:'📣 ফেসবুক পোস্ট দেখুন ও শেয়ার করুন', fineTune:'⚙️ বিস্তারিত সম্পাদনা (ঐচ্ছিক)', tWritten:'✨ লেখা তৈরি — পছন্দের শিরোনামে চাপ দিন'
+});
+Object.assign(T.en, {
+  tgMarker:'Highlight',
+  st1:'Write', st1s:'Headline, quote and caption with AI — all at once', st2:'Design', st2s:'Pick a design, change the ticks if needed', st3:'Post', st3s:'Check and share to Facebook',
+  writeAll:'✨ Write headline + caption together', writing:'Writing…', writeHint:'First pick the type: normal news or who said what. Then tap the button — 3 headlines arrive; the one you tap goes on the card.',
+  capReady:'✅ Caption ready:', capNone:'No caption yet', capOpen:'✏️ View caption',
+  goFb:'📣 See the Facebook post & share', fineTune:'⚙️ Fine-tune (optional)', tWritten:'✨ Text ready — tap the headline you like'
+});
+
+/* ---- highlight on/off: on = marked words (or an automatic pick) get the yellow highlighter; off = no highlight ---- */
+const HL_STOP = new Set(['ও', 'এবং', 'না', 'নয়', 'নেই', 'এর', 'কে', 'থেকে', 'জন্য', 'নিয়ে', 'হলো', 'হল', 'হয়', 'হয়েছে', 'হচ্ছে', 'করে', 'করা', 'করল', 'বলে', 'বললেন', 'যে', 'এ', 'এই', 'সেই', 'তার', 'তাদের', 'আর', 'কি', 'কী', 'কেন', 'আমি', 'আমরা', 'তিনি', 'দিয়ে', 'মধ্যে', 'পর', 'আগে', 'সঙ্গে', 'সাথে', 'বা', 'কিন্তু', 'the', 'a', 'an', 'of', 'to', 'in', 'and', 'for', 'on', 'is', 'are', 'with', 'by', 'at']);
+function autoHl(s){
+  s = String(s || ''); if(!norm(s) || /\*/.test(s)) return s;
+  // 1) a quoted phrase
+  let m = s.match(/[“"‘]([^”"’\n]{3,70})[”"’]/);
+  if(m && m[1].trim().split(/\s+/).length <= 7) return s.replace(m[1], '*' + m[1].trim() + '*');
+  // 2) a number with its unit / next word
+  m = s.match(/(^|\s)([০-৯0-9][০-৯0-9.,:%]*(?:\s*(?:শতাংশ|কোটি|লাখ|লক্ষ|হাজার|টাকা|ডলার|জন|টি|বছর|দিন|ঘণ্টা|মিনিট|কিলোমিটার|%))*(?:\s+[^\s০-৯0-9]+)?)/);
+  if(m) return s.replace(m[2], '*' + m[2] + '*');
+  // 3) the strongest pair of content words (not the very first word on longer headlines)
+  const parts = s.split(/(\s+)/), idx = [];
+  parts.forEach((p, i) => { if(i % 2 === 0 && p) idx.push(i); });
+  const clean = w => w.replace(/[।,.!?;:'"“”‘’()\-–—]/g, '');
+  const ok = i => { const w = clean(parts[i]); return w.length >= 3 && !HL_STOP.has(w.toLowerCase()); };
+  let best = null;
+  idx.forEach((i, n) => {
+    if(idx.length > 4 && n === 0) return;
+    const j = idx[n + 1];
+    if(ok(i) && j != null && ok(j)){ const sc = clean(parts[i]).length + clean(parts[j]).length + 2; if(!best || sc > best.sc) best = { a: i, b: j, sc }; }
+    else if(ok(i)){ const sc = clean(parts[i]).length; if(!best || sc > best.sc) best = { a: i, b: i, sc }; }
+  });
+  if(!best) return s;
+  parts[best.a] = '*' + parts[best.a]; parts[best.b] = parts[best.b] + '*';
+  return parts.join('');
+}
+const paintCard63 = paintCard;
+paintCard = function(cv){
+  const F = C.fields, keep = F.headline;
+  F.headline = S.marker ? autoHl(keep) : String(keep || '').replace(/\*/g, '');
+  try{ return paintCard63(cv); }finally{ F.headline = keep; }
+};
+
+/* ---- write everything with AI without leaving the card ---- */
+async function writeAll(){
+  const btn = $('v6WriteAll'); if(!S.article || !btn || btn.disabled) return;
+  btn.disabled = true; const lbl = btn.textContent; btn.innerHTML = '<span class="spin"></span> ' + t('writing');
+  const realShow = showTab; showTab = () => {};          // stay on the card while the post is written
+  let p; try{ p = prepareFacebook(); }finally{ showTab = realShow; }
+  try{ await p; toast(t('tWritten')); }catch(e){ console.error(e); }
+  finally{ btn.disabled = false; btn.textContent = lbl; updateFlow(); const hb = document.querySelector('.v6flow .hookbox'); if(hb) hb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+function updateFlow(){
+  const st = $('v6CapState'); if(!st) return;
+  const cap = ($('fbText').value || '').trim();
+  st.innerHTML = '';
+  if(cap){
+    const first = cap.split('\n').find(l => l.trim()) || '';
+    st.appendChild(mk('b', '', escH(t('capReady')))); st.appendChild(mk('span', 'cap', escH(first.length > 90 ? first.slice(0, 90) + '…' : first)));
+    const b = mk('button', 'btn'); b.type = 'button'; b.textContent = t('capOpen'); b.addEventListener('click', () => showTab('fb')); st.appendChild(b);
+  } else st.appendChild(mk('span', 'none', escH(t('capNone'))));
+  const done1 = !!cap || (AI.hooks && AI.hooks.length);
+  document.querySelectorAll('.v6stepc').forEach(s => {
+    const n = +s.dataset.n, done = n === 1 ? done1 : n === 3 ? document.getElementById('v6mz') && document.getElementById('v6mz').classList.contains('good') : false;
+    s.classList.toggle('done', !!done);
+  });
+}
+
+function v63Build(){
+  if($('v63Built') || !$('v62Built')) return;
+  document.body.appendChild(mk('i', 'hidden')).id = 'v63Built';
+  const right = document.querySelector('.cardright'), quick = right.querySelector('.v6quickarea');
+  const flow = mk('div', 'v6flow');
+  const step = (n, k) => { const s = mk('section', 'v6stepc', '<div class="sh"><span class="num"><i>' + (S.lang === 'bn' ? bnNum(n) : n) + '</i></span><span class="stt"><b data-i18n="st' + n + '"></b><small data-i18n="st' + n + 's"></small></span></div><div class="sb"></div>'); s.dataset.n = n; flow.appendChild(s); return s.querySelector('.sb'); };
+
+  /* 1 — write */
+  const s1 = step(1), hb = $('txtDetails').querySelector('.hookbox');
+  const hint = mk('p', 'tiny'); hint.setAttribute('data-i18n', 'writeHint'); s1.appendChild(hint);
+  if(hb){ const kind = hb.querySelector('[data-hook-kind]'); if(kind) s1.appendChild(kind); }
+  const wb = mk('button', 'btn primary v6write'); wb.type = 'button'; wb.id = 'v6WriteAll'; wb.setAttribute('data-i18n', 'writeAll'); wb.addEventListener('click', writeAll); s1.appendChild(wb);
+  if(hb) s1.appendChild(hb);
+  const cs = mk('div', 'v6capstate'); cs.id = 'v6CapState'; s1.appendChild(cs);
+
+  /* 2 — design */
+  const s2 = step(2);
+  [quick.querySelector('.v6tog'), $('starInfo'), quick.querySelector('.v6ds')].forEach(el => { if(el) s2.appendChild(el); });
+
+  /* 3 — post */
+  const s3 = step(3);
+  if($('v6mz')) s3.appendChild($('v6mz'));
+  const go = mk('button', 'btn primary v6gofb'); go.type = 'button'; go.setAttribute('data-i18n', 'goFb');
+  go.addEventListener('click', () => { showTab('fb'); window.scrollTo({ top: 0, behavior: 'smooth' }); }); s3.appendChild(go);
+
+  right.insertBefore(flow, right.firstChild);
+  if(quick && !quick.children.length) quick.remove();
+  const ft = mk('div', 'v6finetune'); ft.setAttribute('data-i18n', 'fineTune'); right.insertBefore(ft, right.querySelector('.v6sec'));
+
+  $('fbText').addEventListener('input', updateFlow);
+  applyI18n(); updateFlow(); updateTogs(); renderCard();
+}
+const mzUpdate63 = mzUpdate;
+mzUpdate = function(){ mzUpdate63(); updateFlow(); };
+const showTab63 = showTab;
+showTab = function(name){ showTab63(name); if(name === 'card') updateFlow(); };
+const v63Start = () => setTimeout(() => setTimeout(() => setTimeout(() => setTimeout(() => { try{ v63Build(); }catch(e){ console.error('v6.3', e); } }, 0), 0), 0), 0);
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v63Start); else v63Start();
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

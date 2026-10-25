@@ -138,7 +138,7 @@ jobs:
             return '';
           }
           const meta2 = (html, n) => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
-          let jinaLeft = 18;   // free reader service as a last resort (it has a small rate limit)
+          const NEEDY = [];
           async function details(o) {
             if (CACHE.has(o.link)) { const c = CACHE.get(o.link); if (!o.img && c.img) o.img = c.img; if ((!o.desc || o.desc.length < 60) && c.desc) o.desc = c.desc; if (o.img) return; }
             let html = '';
@@ -147,18 +147,7 @@ jobs:
               if (!o.img) o.img = pickImage(html, o.link);
               if (!o.desc || o.desc.length < 60) { const d = meta2(html, 'og:description') || meta2(html, 'description'); if (d) o.desc = d.trim().slice(0, 320); }
             }
-            if (!o.img && jinaLeft > 0) {
-              jinaLeft--;
-              try {
-                const c = new AbortController(); const t = setTimeout(() => c.abort(), 20000);
-                try {
-                  const r = await fetch('https://r.jina.ai/' + o.link, { signal: c.signal, headers: { 'Accept': 'application/json', 'X-Return-Format': 'html', 'X-Timeout': '15' } });
-                  const j = await r.json(); const h2 = (j && j.data && (j.data.html || j.data.content)) || '';
-                  if (h2) o.img = pickImage(h2, o.link);
-                  DIAG.ok(o.link, 'reader ' + r.status + (o.img ? ' img' : ' noimg'));
-                } finally { clearTimeout(t); }
-              } catch {}
-            }
+            if (!o.img) NEEDY.push(o);
             if (o.img) STATS.found++; else STATS.missed++;
           }
           /* Google News link → the newspaper's own link (so the app can open the real article) */
@@ -185,30 +174,6 @@ jobs:
           /* photos already found in earlier runs are reused, so each run only opens new articles */
           const CACHE = new Map(), STATS = { found: 0, missed: 0 };
           const DIAG = { by: {}, ok(link, msg) { try { const k = new URL(link).hostname.replace(/^www\./, ''); const d = this.by[k] || (this.by[k] = {}); d[msg] = (d[msg] || 0) + 1; } catch {} } };
-          /* Bing News carries a picture for most stories — used for papers whose own site blocks GitHub */
-          const normT = s => String(s || '').replace(/[\s\u200c\u200d'"‘’“”:;,.!?।\-–—()]/g, '').slice(0, 40);
-          async function bingPhotos(d, items) {
-            const need = items.filter(o => !o.img); if (!need.length) return 0;
-            let xml = '';
-            try { xml = await get('https://www.bing.com/news/search?q=' + encodeURIComponent('site:' + d) + '&format=rss&setlang=bn-BD&cc=BD&count=50', 15000); } catch (e) { DIAG.ok('https://' + d, 'bing ' + String(e.message).slice(0, 30)); return 0; }
-            const map = new Map();
-            for (const b of xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || []) {
-              const tm = b.match(/<title>([\s\S]*?)<\/title>/i), im = b.match(/<News:Image>([\s\S]*?)<\/News:Image>/i), lm = b.match(/<link>([\s\S]*?)<\/link>/i);
-              if (!tm || !im) continue;
-              let img = decode(cdata(im[1])).trim(); if (!/^https?:/.test(img)) continue;
-              img = img.replace(/&pid=News.*$/, '') + '&w=1200&h=675&c=14&rs=2&qlt=90&pid=News';
-              map.set(normT(strip(cdata(tm[1]))), img);
-              if (lm) { let l = decode(cdata(lm[1])); const u = l.match(/[?&]url=([^&]+)/); if (u) { try { l = decodeURIComponent(u[1]); } catch {} } map.set(l.split('?')[0].replace(/\/$/, ''), img); }
-            }
-            let n = 0;
-            for (const o of need) { const img = map.get(o.link.split('?')[0].replace(/\/$/, '')) || map.get(normT(o.title)); if (img) { o.img = img; n++; } }
-            DIAG.ok('https://' + d, 'bing items ' + map.size / 2 + ' matched ' + n);
-            return n;
-          }
-          try {
-            const prev = JSON.parse(await get('https://raw.githubusercontent.com/' + process.env.GITHUB_REPOSITORY + '/live-news/news.json?t=' + Date.now(), 15000));
-            for (const s of Object.values(prev.sources || {})) for (const o of s.items || []) if (o.link && (o.img || o.desc)) CACHE.set(o.link, { img: o.img || '', desc: o.desc || '' });
-          } catch {}
           const result = { updated: new Date().toISOString(), sources: {} };
           const report = [];
           await pool(SOURCES, 6, async ([id, d, feeds, opt = {}]) => {
@@ -229,11 +194,40 @@ jobs:
             items = items.slice(0, PER_SOURCE);
             if (viaGoogle) { await pool(items.slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link)), 4, details); }
             else { await pool(items.filter(o => /news\.google\./.test(o.link)).slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link) && (!o.img || !o.desc || o.desc.length < 60)), 4, details); }
-            if (items.filter(o => !o.img).length > items.length / 3) await bingPhotos(d.split('/')[0], items);
             for (const o of items) if (o.img && !CACHE.has(o.link)) CACHE.set(o.link, { img: o.img, desc: o.desc || '' });
             if (items.length) result.sources[id] = { via: viaGoogle ? 'google' : 'site', items };
             report.push(id + ': ' + items.length + ' (' + (how || 'failed') + ') photos ' + items.filter(o => o.img).length);
           });
+          /* sites that refuse GitHub's servers: a free reader service opens the page instead.
+             It allows about 20 requests a minute, so the newest stories go first and every photo found is kept for later runs. */
+          async function viaReader(o) {
+            const c = new AbortController(); const t = setTimeout(() => c.abort(), 25000);
+            try {
+              const r = await fetch('https://r.jina.ai/' + o.link, { signal: c.signal, headers: { 'Accept': 'application/json', 'X-With-Images-Summary': 'true', 'X-Timeout': '20' } });
+              if (!r.ok) { DIAG.ok(o.link, 'reader ' + r.status); return r.status === 429; }
+              const j = await r.json(), d = (j && j.data) || {};
+              const cands = [];
+              if (d.metadata) cands.push(d.metadata['og:image'], d.metadata['twitter:image']);
+              if (d.images) cands.push(...Object.values(d.images));
+              for (const m of String(d.content || '').matchAll(/!\[[^\]]*\]\((https?:[^)\s]+)/g)) cands.push(m[1]);
+              const host = new URL(o.link).hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
+              const good = u => u && /^https?:/.test(u) && !badImg(u) && /\.(jpe?g|png|webp)(\?|$)|\/(images?|media|uploads?|photos?)\//i.test(u) && !/icon|avatar|banner|ads?[\/_.-]|sprite|facebook|whatsapp|twitter|youtube|app-?store|google-?play/i.test(u);
+              const pick = cands.find(u => good(u) && u.includes(host)) || cands.find(good);
+              if (pick) { o.img = pick; STATS.found++; STATS.missed--; CACHE.set(o.link, { img: pick, desc: o.desc || '' }); }
+              DIAG.ok(o.link, 'reader ' + (pick ? 'img' : 'noimg'));
+            } catch (e) { DIAG.ok(o.link, 'reader ' + String(e && e.message || e).slice(0, 30)); }
+            finally { clearTimeout(t); }
+            return false;
+          }
+          NEEDY.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          const stopAt = Date.now() + 6 * 60000;
+          for (const o of NEEDY.slice(0, 90)) {
+            if (Date.now() > stopAt) break;
+            const t0 = Date.now(); const limited = await viaReader(o);
+            if (limited) await new Promise(r => setTimeout(r, 20000));
+            const wait = 3200 - (Date.now() - t0); if (wait > 0) await new Promise(r => setTimeout(r, wait));
+          }
+
           try {
             const g = parseFeed(await get(GOOGLE_TOP), 'https://news.google.com/', true).slice(0, 40);
             await pool(g.slice(0, 15), 3, gnDecode); await pool(g.slice(0, 15).filter(o => !/news\.google\./.test(o.link)), 4, details);

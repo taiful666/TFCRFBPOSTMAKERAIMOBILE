@@ -140,7 +140,7 @@ jobs:
           const meta2 = (html, n) => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
           const NEEDY = [];
           async function details(o) {
-            if (CACHE.has(o.link)) { const c = CACHE.get(o.link); if (!o.img && c.img) o.img = c.img; if ((!o.desc || o.desc.length < 60) && c.desc) o.desc = c.desc; if (o.img) return; }
+            if (CACHE.has(o.link)) { const c = CACHE.get(o.link); if (!o.img && c.img) o.img = c.img; if ((!o.desc || o.desc.length < 60) && c.desc) o.desc = c.desc; if (c.nr) o.nr = c.nr; if (o.img || c.nr) return; }
             let html = '';
             try { html = await page(o.link); DIAG.ok(o.link, 'page ' + (html.length >> 10) + 'KB'); } catch (e) { DIAG.ok(o.link, 'page ' + String(e && e.message || e).slice(0, 40)); }
             if (html) {
@@ -174,6 +174,10 @@ jobs:
           /* photos already found in earlier runs are reused, so each run only opens new articles */
           const CACHE = new Map(), STATS = { found: 0, missed: 0 };
           const DIAG = { by: {}, ok(link, msg) { try { const k = new URL(link).hostname.replace(/^www\./, ''); const d = this.by[k] || (this.by[k] = {}); d[msg] = (d[msg] || 0) + 1; } catch {} } };
+          try {
+            const prev = JSON.parse(await get('https://raw.githubusercontent.com/' + process.env.GITHUB_REPOSITORY + '/live-news/news.json?t=' + Date.now(), 15000));
+            for (const s of Object.values(prev.sources || {})) for (const o of s.items || []) if (o.link && (o.img || o.desc || o.nr)) CACHE.set(o.link, { img: o.img || '', desc: o.desc || '', nr: o.nr || 0 });
+          } catch {}
           const result = { updated: new Date().toISOString(), sources: {} };
           const report = [];
           await pool(SOURCES, 6, async ([id, d, feeds, opt = {}]) => {
@@ -204,7 +208,7 @@ jobs:
             const c = new AbortController(); const t = setTimeout(() => c.abort(), 25000);
             try {
               const r = await fetch('https://r.jina.ai/' + o.link, { signal: c.signal, headers: { 'Accept': 'application/json', 'X-With-Images-Summary': 'true', 'X-Timeout': '20' } });
-              if (!r.ok) { DIAG.ok(o.link, 'reader ' + r.status); return r.status === 429; }
+              if (!r.ok) { DIAG.ok(o.link, 'reader ' + r.status); if (r.status === 403 || r.status === 404) o.nr = 1; return r.status === 429; }
               const j = await r.json(), d = (j && j.data) || {};
               const cands = [];
               if (d.metadata) cands.push(d.metadata['og:image'], d.metadata['twitter:image']);
@@ -214,6 +218,7 @@ jobs:
               const good = u => u && /^https?:/.test(u) && !badImg(u) && /\.(jpe?g|png|webp)(\?|$)|\/(images?|media|uploads?|photos?)\//i.test(u) && !/icon|avatar|banner|ads?[\/_.-]|sprite|facebook|whatsapp|twitter|youtube|app-?store|google-?play/i.test(u);
               const pick = cands.find(u => good(u) && u.includes(host)) || cands.find(good);
               if (pick) { o.img = pick; STATS.found++; STATS.missed--; CACHE.set(o.link, { img: pick, desc: o.desc || '' }); }
+              if (!pick) o.nr = 1;
               DIAG.ok(o.link, 'reader ' + (pick ? 'img' : 'noimg'));
             } catch (e) { DIAG.ok(o.link, 'reader ' + String(e && e.message || e).slice(0, 30)); }
             finally { clearTimeout(t); }

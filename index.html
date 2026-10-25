@@ -332,6 +332,17 @@ html[data-theme="dark"] .tab.on{color:#111}
 .takebox .hooklist:empty{display:none}
 .takeopt .hh{font-family:inherit;font-weight:600;font-size:15px}
 .safenote{background:var(--accent-soft);border-left:3px solid var(--accent);padding:6px 9px;border-radius:6px}
+.takechk{display:flex;align-items:center;gap:8px;margin:6px 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600;cursor:pointer}
+.takechk input{width:20px;height:20px;flex:none;accent-color:var(--accent)}
+.morebox{border:1px solid var(--line);border-radius:10px;padding:0 12px;margin:10px 0 4px;background:var(--bg)}
+.morebox > summary{cursor:pointer;padding:11px 0;font-size:14px;color:var(--accent);font-weight:600}
+.morebox[open]{padding-bottom:8px}
+.cardgrid > .cardleft,.cardgrid > .cardright{min-width:0}
+.tplchips{max-width:100%;display:flex;gap:6px;overflow-x:auto;padding:4px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.tplchips::-webkit-scrollbar{display:none}
+.tplchip{flex:none;scroll-snap-align:start;border:1.5px solid var(--line);background:var(--surface);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;white-space:nowrap;min-height:36px;cursor:pointer}
+.tplchip.safe{border-color:var(--accent)}
+.tplchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* ===== v4.3: quote-card designs ===== */
 .spkbox{border-top:1px dashed var(--line);padding-top:10px;margin-top:4px;display:flex;flex-direction:column;gap:8px}
@@ -682,6 +693,7 @@ html[data-theme="dark"] .nwchip.on{color:#111}
                 <button type="button" class="btn" id="cardNextBtn" data-i18n="nextDesign"></button>
                 <button type="button" class="btn" id="cardResetBtn" data-i18n="resetCard"></button>
               </div>
+              <div class="tplchips" id="tplChips" role="listbox" aria-label="designs"></div>
             </div>
             <div class="cardright">
               <details open><summary data-i18n="secImage"></summary>
@@ -721,13 +733,15 @@ html[data-theme="dark"] .nwchip.on{color:#111}
           </div>
                   <label class="fld"><span data-i18n="f_headline"></span><textarea id="cf-headline" data-cf="headline" rows="3"></textarea><small data-i18n="hlHint"></small></label>
                   <label class="fld"><span data-i18n="f_sub"></span><input type="text" id="cf-sub" data-cf="sub"></label>
-                  <label class="fld"><span data-i18n="f_role"></span><input type="text" id="cf-role" data-cf="role"></label>
                   <label class="fld"><span data-i18n="f_desc"></span><textarea id="cf-desc" data-cf="desc" rows="2"></textarea></label>
-                  <div class="takebox">
+                  <label class="chk takechk"><input type="checkbox" id="takeOnChk"> <span data-i18n="takeOn"></span></label>
+                  <div class="takebox hidden" id="takeBox">
                     <label class="fld"><span data-i18n="f_take"></span><textarea id="cf-take" data-cf="take" rows="3"></textarea><small data-i18n="takeHint"></small></label>
                     <div class="srow" style="margin:4px 0 0"><button type="button" class="btn" id="takeGenBtn" data-i18n="takeGen"></button><span class="sstatus hidden" id="takeStatus"><span class="spin"></span><span data-i18n="stTake"></span></span></div>
                     <div class="hooklist" id="takeOpts"></div>
                   </div>
+                  <details class="morebox"><summary data-i18n="moreFields"></summary>
+                  <label class="fld"><span data-i18n="f_role"></span><input type="text" id="cf-role" data-cf="role"></label>
                   <label class="fld"><span data-i18n="f_points"></span><textarea id="cf-points" data-cf="points" rows="3"></textarea><small data-i18n="pointsHint"></small></label>
                   <div class="grid2">
                     <label class="fld"><span data-i18n="f_num"></span><input type="text" id="cf-num" data-cf="num"></label>
@@ -740,6 +754,7 @@ html[data-theme="dark"] .nwchip.on{color:#111}
                   <label class="fld"><span data-i18n="f_source"></span><input type="text" id="cf-source" data-cf="source"></label>
                   <label class="fld"><span data-i18n="f_url"></span><input type="text" id="cf-url" data-cf="url"></label>
                   <label class="fld"><span data-i18n="f_label"></span><input type="text" id="cf-label" data-cf="label"></label>
+                  </details>
                 </div>
               </details>
               <details><summary data-i18n="secDesign"></summary>
@@ -4309,7 +4324,9 @@ TPL_ORDER.splice(TPL_ORDER.indexOf('frame') + 1, 0, 'insight', 'bignum', 'explai
 (function(){ const saved = (store.get('card', {}) || {}).template; if(TPL[saved]) C.template = saved; })();
 
 /* AI: every card-text option now also brings a comment line, key facts and the striking number */
-const HOOK_EXTRA = ' For EVERY option also give: "take" — one short commentary line (12–25 words) in the page owner\'s own voice that adds value beyond the article: why it matters to ordinary readers, what to watch next, or a practical lesson; it must read as commentary (not a new fact), calm, fair and respectful, with no political side-taking, no insults and no fear-mongering. ' +
+const TAKE_SAFE = 'COMMENT SAFETY (very important): the comment must be warm, positive or constructive and must never put the page owner at risk. Never criticise, blame, mock or praise the government, any minister, official, police, court, political party, leader, religion, community, country, company or any named person; never take a side in politics or any dispute; no demands, accusations, conspiracy, sarcasm, anger, insults or fear; no sensitive words (violence, crime, blood, sex, drugs, weapons, death). ' +
+  'Focus instead on humanity, hope, gratitude, unity, awareness, safety tips, simple lessons and good wishes for people. It may end with one gentle, sincere question that invites readers to share their own experience or thoughts on the topic — but never ask people to like, share, tag, follow or "comment YES", and never write "you will not believe". ';
+const HOOK_EXTRA = ' For EVERY option also give: "take" — one short, creative and heart-touching commentary line (12–25 words) in the page owner\'s own voice that adds value beyond the article (why it matters to ordinary people, a simple lesson, or a warm thought); it must read as commentary, not as a new fact. ' + TAKE_SAFE +
   '"points" — 2 or 3 key facts taken from the article, each at most 9 words. "number" — the single most striking real number from the article exactly as written (for example "৩৫%" or "১২ হাজার"), or "" if there is none. "number_label" — what that number means, in 2–5 words.';
 const HOOK_SHAPE5 = '[{"style":"2–3 word label of the angle, in the article language","headline":"catchy headline with *highlight*","subheadline":"short supporting line (who / where / when), or empty","description":"one catchy but accurate sentence, max ~20 words","category":"1–2 word category","take":"one commentary line in the page owner\'s voice","points":["key fact","key fact","key fact"],"number":"striking number or empty","number_label":"what the number means"}, (exactly 3 items)]';
 hookRules = function(){ return AI.hookKind === 'quote' ? QUOTE_RULES : HOOK_RULES + HOOK_EXTRA; };
@@ -4344,14 +4361,14 @@ renderHooks = function(){
   renderHooks4();
   ['fbHooks', 'cardHooks'].forEach(id => {
     const box = $(id); if(!box) return;
-    box.querySelectorAll('.hookopt').forEach((b, i) => { const h = (AI.hooks || [])[i]; if(h && h.take){ const s = document.createElement('small'); s.textContent = '💬 ' + h.take; b.appendChild(s); } });
+    box.querySelectorAll('.hookopt').forEach((b, i) => { const h = (AI.hooks || [])[i]; if(S.takeOn && h && h.take){ const s = document.createElement('small'); s.textContent = '💬 ' + h.take; b.appendChild(s); } });
   });
 };
 
 /* "my comment" ideas in 3 tones — the user picks one and makes it their own */
-const TAKE_RULES = 'Write exactly 3 different short commentary lines (each 12–28 words) that the owner of a Bangladeshi Facebook news page could add to this news in their own voice. ' +
-  'Each must add value beyond the article without inventing any fact: (1) a warm, human or empathetic angle; (2) an analytical angle — why it matters or what to watch next; (3) a practical awareness tip or lesson for ordinary readers. ' +
-  'Calm, fair and respectful; no political side-taking, no insults, no fear-mongering, no engagement bait (never ask people to like, share or comment), no hashtags, no emoji. Write in the same language as the article; for Bengali use natural, conversational Bengali.';
+const TAKE_RULES = 'Write exactly 3 different short, creative and polished commentary lines (each 12–28 words) that the owner of a Bangladeshi Facebook news page could add to this news in their own voice, so readers feel something and want to join the conversation. ' +
+  'Each must add value beyond the article without inventing any fact: (1) a heart-touching, human angle; (2) a hopeful, positive thought or a simple lesson; (3) a practical awareness tip, or a gentle sincere question about readers\' own experience. ' + TAKE_SAFE +
+  'No hashtags, no emoji. Write in the same language as the article; for Bengali use smooth, natural, conversational Bengali that reads like a thoughtful person, not a newspaper.';
 AI.takes = [];
 function renderTakes(){
   const box = $('takeOpts'); if(!box) return;
@@ -4385,6 +4402,86 @@ async function genTakes(){
 if($('takeGenBtn')) $('takeGenBtn').addEventListener('click', genTakes);
 const cardFromArticle4 = cardFromArticle;
 cardFromArticle = function(a){ cardFromArticle4(a); Object.assign(C.fields, { take: '', points: '', num: '', numLabel: '' }); AI.takes = []; renderTakes(); syncFields(); };
+
+/* ===== v5.1: comment only when ticked, more masked words, polished AI text, phone-friendly design picker ===== */
+Object.assign(T.bn, {
+  takeOn:'💬 এই কার্ডে আমার মন্তব্য যোগ করুন', moreFields:'⚙️ আরও ঘর (মূল তথ্য, সংখ্যা, তারিখ, সূত্র…)',
+  tTakeOnHint:'মন্তব্য চালু — চাইলে "✨ AI থেকে ৩টি মন্তব্যের আইডিয়া" চাপুন', tTakeOff:'মন্তব্য বন্ধ — কার্ডে দেখাবে না'
+});
+Object.assign(T.en, {
+  takeOn:'💬 Add my comment to this card', moreFields:'⚙️ More fields (key facts, number, date, source…)',
+  tTakeOnHint:'Comment on — tap "✨ 3 comment ideas from AI" if you like', tTakeOff:'Comment off — not shown on the card'
+});
+
+/* 1) "my comment" is optional: shown and drawn only when the tick box is on */
+S.takeOn = store.get('takeOn', false);
+function updateTakeUi(){
+  const on = !!S.takeOn, chk = $('takeOnChk'), box = $('takeBox');
+  if(chk) chk.checked = on;
+  if(box) box.classList.toggle('hidden', !on);
+}
+const paintCard50 = paintCard;
+paintCard = function(cv){
+  if(S.takeOn) return paintCard50(cv);
+  const keep = C.fields.take; C.fields.take = '';
+  try{ return paintCard50(cv); }finally{ C.fields.take = keep; }
+};
+if($('takeOnChk')) $('takeOnChk').addEventListener('change', () => {
+  S.takeOn = $('takeOnChk').checked; store.set('takeOn', S.takeOn); updateTakeUi(); renderHooks(); scheduleRender();
+  if(AI.tab === 'fb') ensureFonts().then(updateFbPreview);
+  toast(t(S.takeOn ? 'tTakeOnHint' : 'tTakeOff'));
+  if(S.takeOn) setTimeout(() => { const el = $('cf-take'); if(el && !nz(el.value)) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
+});
+updateTakeUi();
+
+/* 2) many more sensitive words (Bangladeshi news vocabulary); also added to a list the user saved earlier */
+const MASK_MORE = ['মারামারি','কাটাকাটি','মারধর','মারপিট','হাতাহাতি','ধাওয়া-পাল্টা ধাওয়া','ধাওয়া পাল্টা ধাওয়া','লাঠিসোঁটা','ইটপাটকেল','রক্ত','রক্তপাত','রক্তারক্তি','রক্তাক্ত','জখম','কোপ','কুপিয়ে','চাপাতি','রামদা','ছুরি','ছুরিকাহত','বন্দুক','পিস্তল','রিভলভার','শটগান','আগ্নেয়াস্ত্র','গুলিবর্ষণ','গুলিবিদ্ধ','গুলি ছুড়ে','গুলি ছোড়া','হাতবোমা','ককটেল','পেট্রলবোমা','অগ্নিসংযোগ','দগ্ধ','অগ্নিদগ্ধ','ঝলসে','পুড়িয়ে','মৃত্যু','প্রাণহানি','শ্বাসরোধ','গলা টিপে','ঝুলন্ত','বিষপান','নিপীড়ন','উত্ত্যক্ত','ইভটিজিং','যৌন','পাচার','মানবপাচার','চোরাচালান','অস্ত্রধারী','সন্ত্রাসী','ডাকাতি','ডাকাত','ছিনতাই','চাঁদাবাজি','লুটপাট','ভাঙচুর','তাণ্ডব','দাঙ্গা','গণপিটুনি','পিটুনি','নৃশংস','বর্বর','বীভৎস','ক্ষতবিক্ষত','খণ্ডিত','টুকরো টুকরো','কঙ্কাল','শিরশ্ছেদ','ফাঁসি','মৃত্যুদণ্ড','ক্রসফায়ার','বন্দুকযুদ্ধ','এনকাউন্টার','গুম','জিম্মি','পণবন্দি','মুক্তিপণ','আত্মাহুতি','গাঁজা','ফেনসিডিল','কোকেন','জুয়া','ক্যাসিনো','অশ্লীল','নগ্ন','পতিতা','সংঘাত','রণক্ষেত্র','বিমান হামলা','ড্রোন হামলা','গণকবর',
+  'blood','bloodshed','stab','stabbing','gun','guns','pistol','rifle','firing','gunman','wounded','assault','assaulted','beaten','lynch','lynching','mob','riot','riots','arson','burned alive','behead','beheaded','hanged','execution','hostage','ransom','trafficking','smuggling','cocaine','heroin','meth','gambling','porn','nude','naked','gore','brutal','dead','death','deaths','casualties'];
+MASK_MORE.forEach(w => { if(!MASK_DEFAULT.includes(w)) MASK_DEFAULT.push(w); });
+(function(){
+  if(store.get('maskV51', false)) return;
+  const saved = store.get('maskWords', null);
+  if(Array.isArray(saved) && saved.length){ const add = MASK_MORE.filter(w => !saved.includes(w)); if(add.length) store.set('maskWords', saved.concat(add)); }
+  store.set('maskV51', true);
+})();
+const maskCardFields50 = maskCardFields;
+maskCardFields = function(){
+  const found = maskCardFields50();
+  let more = [];
+  ['take', 'points', 'numLabel'].forEach(k => { if(!C.fields[k]) return; const m = maskText(C.fields[k], cardCh()); C.fields[k] = m.text; more = more.concat(m.found); });
+  if(more.length){ syncFields(); scheduleRender(); }
+  return found.concat(more);
+};
+
+/* 3) polished, professional, scroll-stopping wording — facts unchanged, soft words instead of graphic ones */
+const POLISH = ' WRITING STYLE: polished, professional and smooth like the best Bangladeshi digital news pages. Short, punchy and rhythmic — every word earns its place; open with the most striking real detail; active voice; natural, flowing, conversational Bengali (not dry newspaper language), no clichés, no exaggeration, no false urgency. ' +
+  'The core facts and meaning must stay exactly true. Whenever the meaning stays correct, prefer soft, neutral words over graphic or sensitive ones (for example "প্রাণ হারিয়েছেন" or "মারা গেছেন" instead of "নিহত", "আহত" instead of "রক্তাক্ত"). Report neutrally: do not judge, criticise or praise the government, any party, religion or group.';
+const hookRules50 = hookRules;
+hookRules = function(){ return AI.hookKind === 'quote' ? hookRules50() : hookRules50() + POLISH; };
+const postSpec50 = postSpec;
+postSpec = function(){ return postSpec50() + '. Style: polished, warm and easy to read, with a hook in the first line; soft neutral wording instead of graphic words; neutral reporting with no political judgement'; };
+
+/* 4) design picker as a swipeable row of buttons right under the preview (easy with one thumb) */
+function renderTplChips(){
+  const box = $('tplChips'); if(!box) return;
+  box.innerHTML = '';
+  const safe = k => /^✅/.test(t(TPL[k].key));
+  TPL_ORDER.filter(k => TPL[k]).sort((x, y) => safe(y) - safe(x)).forEach(k => {
+    const b = document.createElement('button'); b.type = 'button';
+    const label = t(TPL[k].key);
+    b.className = 'tplchip' + (/^✅/.test(label) ? ' safe' : '') + (k === C.template ? ' on' : '');
+    b.textContent = label; b.setAttribute('role', 'option'); b.setAttribute('aria-selected', k === C.template ? 'true' : 'false');
+    b.addEventListener('click', () => { if(k !== C.template) applyTemplate(k); });
+    box.appendChild(b);
+  });
+  const on = box.querySelector('.on');
+  if(on) box.scrollTo({ left: Math.max(0, on.offsetLeft - 12), behavior: 'smooth' });
+}
+const applyTemplate50 = applyTemplate;
+applyTemplate = function(name){ applyTemplate50(name); renderTplChips(); };
+const studioI18n50 = studioI18n;
+studioI18n = function(){ studioI18n50(); renderTplChips(); updateTakeUi(); };
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(renderTplChips, 0)); else setTimeout(renderTplChips, 0);
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

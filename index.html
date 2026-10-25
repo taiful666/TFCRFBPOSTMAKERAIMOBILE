@@ -327,6 +327,12 @@ html[data-theme="dark"] .tab.on{color:#111}
 .hookempty{font-size:13px;color:var(--muted);padding:6px 0}
 .hookbox .sstatus{margin-top:6px}
 
+/* ===== v5.0: original-first designs + own comment ===== */
+.takebox{border:1px dashed var(--accent);border-radius:12px;padding:8px 10px 10px;margin:4px 0 10px;background:var(--accent-soft)}
+.takebox .hooklist:empty{display:none}
+.takeopt .hh{font-family:inherit;font-weight:600;font-size:15px}
+.safenote{background:var(--accent-soft);border-left:3px solid var(--accent);padding:6px 9px;border-radius:6px}
+
 /* ===== v4.3: quote-card designs ===== */
 .spkbox{border-top:1px dashed var(--line);padding-top:10px;margin-top:4px;display:flex;flex-direction:column;gap:8px}
 .spkbox b{font-size:13.5px}
@@ -717,6 +723,16 @@ html[data-theme="dark"] .nwchip.on{color:#111}
                   <label class="fld"><span data-i18n="f_sub"></span><input type="text" id="cf-sub" data-cf="sub"></label>
                   <label class="fld"><span data-i18n="f_role"></span><input type="text" id="cf-role" data-cf="role"></label>
                   <label class="fld"><span data-i18n="f_desc"></span><textarea id="cf-desc" data-cf="desc" rows="2"></textarea></label>
+                  <div class="takebox">
+                    <label class="fld"><span data-i18n="f_take"></span><textarea id="cf-take" data-cf="take" rows="3"></textarea><small data-i18n="takeHint"></small></label>
+                    <div class="srow" style="margin:4px 0 0"><button type="button" class="btn" id="takeGenBtn" data-i18n="takeGen"></button><span class="sstatus hidden" id="takeStatus"><span class="spin"></span><span data-i18n="stTake"></span></span></div>
+                    <div class="hooklist" id="takeOpts"></div>
+                  </div>
+                  <label class="fld"><span data-i18n="f_points"></span><textarea id="cf-points" data-cf="points" rows="3"></textarea><small data-i18n="pointsHint"></small></label>
+                  <div class="grid2">
+                    <label class="fld"><span data-i18n="f_num"></span><input type="text" id="cf-num" data-cf="num"></label>
+                    <label class="fld"><span data-i18n="f_numLabel"></span><input type="text" id="cf-numLabel" data-cf="numLabel"></label>
+                  </div>
                   <div class="grid2">
                     <label class="fld"><span data-i18n="f_cat"></span><input type="text" id="cf-cat" data-cf="cat"></label>
                     <label class="fld"><span data-i18n="f_date"></span><input type="text" id="cf-date" data-cf="date"></label>
@@ -729,6 +745,7 @@ html[data-theme="dark"] .nwchip.on{color:#111}
               <details><summary data-i18n="secDesign"></summary>
                 <div class="dbody">
                   <label class="fld"><span data-i18n="tpl"></span><select id="cTpl"></select></label>
+                  <p class="tiny safenote" data-i18n="safeNote"></p>
                   <div class="fld"><span data-i18n="ratioLbl"></span>
                     <div class="seg full" id="cRatio"><button type="button" data-ratio="1:1" data-i18n="r11"></button><button type="button" data-ratio="4:5" data-i18n="r45"></button><button type="button" data-ratio="16:9" data-i18n="r169"></button></div>
                   </div>
@@ -4003,6 +4020,371 @@ Object.assign(T.en, {
   nwG6:'Copy the address shown at the top (ends in workers.dev), paste it in the box below and tap "Save & test". Do this once on each phone or computer where you use the app.',
   nwCopyBtn:'📋 Copy code', nwSaveTest:'Save & test'
 });
+
+/* ===== v5.0: original-first designs — the news and your own comment lead, the newspaper photo is a small credited inset ===== */
+Object.assign(T.bn, {
+  f_take:'💬 আমার মন্তব্য / বিশ্লেষণ (কার্ডে দেখাবে)', takeHint:'খবরটা কেন গুরুত্বপূর্ণ বা মানুষ কী শিখবে — নিজের ভাষায় ১–২ লাইন। AI-এর আইডিয়া নিলে নিজের মতো একটু বদলে নিন; এই মন্তব্যই আপনার কার্ডকে "মৌলিক" করে।',
+  takeGen:'✨ AI থেকে ৩টি মন্তব্যের আইডিয়া', stTake:'মন্তব্যের আইডিয়া তৈরি হচ্ছে…', tTakeReady:'৩টি আইডিয়া তৈরি — একটি বেছে নিয়ে নিজের মতো বদলে নিন',
+  tTakeNone:'AI কোনো আইডিয়া দিতে পারেনি — আবার চেষ্টা করুন', tTakeApplied:'✅ মন্তব্য বসানো হয়েছে — লেখার ঘরে নিজের মতো বদলে নিন', tNeedArticle:'আগে একটি খবর খুলুন',
+  f_points:'📌 মূল তথ্য (প্রতি লাইনে একটি, সর্বোচ্চ ৩টি)', pointsHint:'"বিশ্লেষণ" আর "এক নজরে" ডিজাইনে নম্বর বা টিক চিহ্নসহ দেখাবে।',
+  f_num:'🔢 বড় সংখ্যা (যেমন ৩৫%)', f_numLabel:'সংখ্যার মানে (যেমন দাম বেড়েছে)',
+  takeLbl:'আমার মন্তব্য', whatLbl:'কী ঘটেছে', whyLbl:'কেন গুরুত্বপূর্ণ', pointsLbl:'মূল তথ্য', glanceLbl:'এক নজরে', newsWord:'আজকের খবর',
+  safeNote:'✅ চিহ্নিত ডিজাইনগুলোতে খবর আর আপনার মন্তব্যই মূল জায়গা পায়; পত্রিকার ছবি ছোট করে "ছবি: সূত্র" লেখাসহ থাকে। প্রতিটি কার্ডে নিজের মন্তব্য দিলে পোস্ট মৌলিক হয়।',
+  tplInsight:'✅ বিশ্লেষণ কার্ড (ছোট ছবি + মন্তব্য)', tplBignum:'✅ বড় সংখ্যা', tplExplain:'✅ কী ঘটেছে · কেন গুরুত্বপূর্ণ', tplPolaroid:'✅ পোলারয়েড নোট', tplGlance:'✅ এক নজরে'
+});
+Object.assign(T.en, {
+  f_take:'💬 My comment / analysis (shown on the card)', takeHint:'Why this matters or what people can learn — 1–2 lines in your own words. If you use an AI idea, change it a little; this comment is what makes your card original.',
+  takeGen:'✨ 3 comment ideas from AI', stTake:'Creating comment ideas…', tTakeReady:'3 ideas ready — pick one and make it your own',
+  tTakeNone:'The AI returned no ideas — please try again', tTakeApplied:'✅ Comment placed — edit it in the text box', tNeedArticle:'Open a news article first',
+  f_points:'📌 Key facts (one per line, up to 3)', pointsHint:'Shown with numbers or ticks in the "Insight" and "At a glance" designs.',
+  f_num:'🔢 Big number (e.g. 35%)', f_numLabel:'What the number means (e.g. prices up)',
+  takeLbl:'My comment', whatLbl:'What happened', whyLbl:'Why it matters', pointsLbl:'Key facts', glanceLbl:'At a glance', newsWord:'Today\'s news',
+  safeNote:'✅ In the ticked designs the news and your comment take the main space; the newspaper photo is small and credited. Adding your own comment to every card keeps posts original.',
+  tplInsight:'✅ Insight card (small photo + comment)', tplBignum:'✅ Big number', tplExplain:'✅ What happened · Why it matters', tplPolaroid:'✅ Polaroid note', tplGlance:'✅ At a glance'
+});
+
+/* shared helpers for the new designs */
+const nz =s => norm(String(s == null ? '' : s));
+function pointsOf(F){ return String(F.points || '').split('\n').map(s => nz(s.replace(/^[\s•·\-–*]+/, ''))).filter(Boolean).slice(0, 3); }
+const NUM_RE = /[০-৯0-9][০-৯0-9,.]*\s*(%|শতাংশ|কোটি|লাখ|লক্ষ|হাজার|জন|টাকা)?/;
+function numOf(F){
+  const label = nz(F.numLabel);
+  if(nz(F.num)) return { n: nz(F.num), label };
+  for(const s of [F.headline, F.sub, F.desc, F.points]){ const m = String(s || '').replace(/\*/g, '').match(NUM_RE); if(m) return { n: m[0].trim(), label }; }
+  return { n: '', label };
+}
+function fitFlow(build, avail){ let s = 1.2, r = build(s); for(let i = 0; i < 9 && r.h > avail; i++){ s *= 0.92; r = build(s); } return r; }
+function stripText(ctx, text, x, cy, size, color, k){
+  ctx.font = fontStr(size, 600, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = color;
+  ctx.fillText(text, x, cy + size * 0.04); const w = ctx.measureText(text).width;
+  C.regions.push({ k, x, y: cy - size * 0.7, w, h: size * 1.4 }); return w;
+}
+function drawInset(ctx, x, y, w, h, rad, border, color, u){
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 26 * u; ctx.shadowOffsetY = 8 * u;
+  ctx.fillStyle = color || '#ffffff'; rr(ctx, x - border, y - border, w + 2 * border, h + 2 * border, rad + border); ctx.fill(); ctx.restore();
+  drawPhoto(ctx, x, y, w, h, rad);
+}
+function drawCredit(ctx, text, x, y, w, size, color, align){
+  if(!nz(text)) return 0;
+  ctx.font = fontStr(size, 500, BFAM); ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillStyle = color;
+  const s = fitOne(ctx, '📷 ' + text, w), tw = ctx.measureText(s).width;
+  const tx = align === 'center' ? x + (w - tw) / 2 : align === 'right' ? x + w - tw : x;
+  ctx.fillText(s, tx, y); C.regions.push({ k: 'label', x: tx, y, w: tw, h: size * 1.3 });
+  return size * 1.5;
+}
+function secLabel(ctx, text, x, y, size, color){
+  ctx.font = fontStr(size, 700, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = color;
+  ctx.fillRect(x, y + size * 0.12, size * 0.3, size * 1.1);
+  ctx.fillText(text, x + size * 0.65, y + size * 0.68);
+  return size * 1.9;
+}
+function drawPoints(ctx, rows, x, y, w, u, dot, dotText, check){
+  rows.forEach((r, i) => {
+    const cy = y + r.lhpx / 2;
+    ctx.fillStyle = dot; ctx.beginPath(); ctx.arc(x + 20 * u, cy, 20 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = dotText; ctx.font = fontStr(23 * u, 700, BFAM); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(check ? '✓' : bnNum(i + 1), x + 20 * u, cy + 1 * u);
+    drawItem(ctx, r, x + 60 * u, y, w - 60 * u, 'left');
+    y += r.h + (i < rows.length - 1 ? 14 * u : 0);
+  });
+  return y;
+}
+const rowsHeight = (rows, u) => rows.reduce((a, r) => a + r.h, 0) + Math.max(0, rows.length - 1) * 14 * u;
+const boxText = hl => lum(hl) > 0.55 ? '#111111' : '#ffffff';
+function catPill(ctx, F, x, y, u, bg, fg){
+  if(!nz(F.cat)) return 0;
+  const p = measureItem(ctx, { type: 'pill', k: 'cat', text: F.cat, size: 26 * u, bg, color: fg }, 1080 * u * 0.45, u);
+  drawItem(ctx, p, x, y, 99999, 'left'); return p.w;
+}
+
+/* 1) Insight card — headline + key facts + "my comment" box; photo is a small framed inset */
+function tplInsight(ctx, W, H, u, land){
+  const F = C.fields, hs = C.hSize / 100, HF = CFONTS[C.font], ink = C.tc, pad = (land ? 72 : 56) * u;
+  ctx.fillStyle = '#f7f4ec'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(0,0,0,.035)'; ctx.lineWidth = 1.5 * u;
+  for(let y = 150 * u; y < H; y += 46 * u){ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const sh = 96 * u;
+  ctx.fillStyle = C.accent; ctx.fillRect(0, 0, W, sh); ctx.fillStyle = C.hl; ctx.fillRect(0, sh, W, 6 * u);
+  let hx = pad; const cw0 = catPill(ctx, F, pad, (sh - 45.5 * u) / 2, u, C.hl, '#111'); if(cw0) hx += cw0 + 20 * u;
+  if(nz(F.date)) stripText(ctx, F.date, hx, sh / 2, 25 * u, 'rgba(255,255,255,.92)', 'date');
+  const foot = 72 * u, top = sh + 48 * u, avail = H - foot - top - 26 * u;
+  const pw = Math.round(W * (land ? 0.27 : 0.36)), ph = Math.round(pw * 0.78), px = W - pad - pw;
+  const capH = nz(F.label) ? 40 * u : 0, colW = px - pad - 36 * u, fw = W - 2 * pad, pts = pointsOf(F), take = nz(F.take);
+  const L = fitFlow(s => {
+    const head = measureItem(ctx, { k: 'headline', text: F.headline, size: 62 * u * hs * s, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, hlMode: 'box', hlText: boxText(C.hl), lh: 1.38, maxLines: 5, min: 26 * u }, colW, u);
+    const sub = nz(F.sub) ? measureItem(ctx, { k: 'sub', text: F.sub, size: 28 * u * s, weight: 600, fam: BFAM, color: C.accent, lh: 1.4, maxLines: 2, min: 18 * u }, colW, u) : null;
+    const topH = Math.max(head.h + (sub ? sub.h + 12 * u : 0), ph + capH);
+    const rows = pts.length ? pts.map(p => measureItem(ctx, { k: 'points', text: p, size: 30 * u * s, weight: 500, fam: BFAM, color: ink, lh: 1.4, maxLines: 2, min: 18 * u }, fw - 60 * u, u))
+      : nz(F.desc) ? [measureItem(ctx, { k: 'desc', text: F.desc, size: 30 * u * s, weight: 400, fam: BFAM, color: hexA(ink, 0.85), lh: 1.5, maxLines: 4, min: 18 * u }, fw, u)] : [];
+    const rowsH = rows.length ? rowsHeight(rows, u) + (pts.length ? 24 * u * 1.9 : 0) : 0;
+    const tk = take ? measureItem(ctx, { k: 'take', text: take, size: 31 * u * s, weight: 600, fam: BFAM, color: ink, lh: 1.45, maxLines: 4, min: 18 * u }, fw - 64 * u, u) : null;
+    const tkH = tk ? tk.h + 98 * u : 0;
+    return { head, sub, topH, rows, rowsH, tk, tkH, h: topH + (rows.length ? 32 * u + rowsH : 0) + (tk ? 30 * u + tkH : 0) };
+  }, avail);
+  let y = top + Math.max(0, (avail - L.h) * 0.4) + C.textY * u;
+  drawInset(ctx, px, y, pw, ph, 14 * u, 8 * u, '#ffffff', u);
+  if(capH) drawCredit(ctx, F.label, px - 8 * u, y + ph + 16 * u, pw + 16 * u, 21 * u, hexA(ink, 0.62), 'left');
+  drawItem(ctx, L.head, pad, y, colW, C.align);
+  if(L.sub) drawItem(ctx, L.sub, pad, y + L.head.h + 12 * u, colW, C.align);
+  y += L.topH;
+  if(L.rows.length){
+    y += 32 * u;
+    if(pts.length){ y += secLabel(ctx, t('pointsLbl'), pad, y, 24 * u, C.accent); y = drawPoints(ctx, L.rows, pad, y, fw, u, C.accent, '#ffffff', false); }
+    else { drawItem(ctx, L.rows[0], pad, y, fw, 'left'); y += L.rows[0].h; }
+  }
+  if(L.tk){
+    y += 30 * u;
+    ctx.fillStyle = hexA(C.accent, 0.1); rr(ctx, pad, y, fw, L.tkH, 14 * u); ctx.fill();
+    ctx.fillStyle = C.accent; rr(ctx, pad, y, 9 * u, L.tkH, 4 * u); ctx.fill();
+    ctx.font = fontStr(24 * u, 700, BFAM); ctx.fillStyle = C.accent; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    ctx.fillText('💬 ' + t('takeLbl'), pad + 32 * u, y + 40 * u);
+    drawItem(ctx, L.tk, pad + 32 * u, y + 70 * u, fw - 64 * u, 'left');
+  }
+  ctx.fillStyle = hexA(ink, 0.18); ctx.fillRect(pad, H - foot, fw, 2 * u);
+  drawFooter(ctx, pad, H - foot, fw, foot, F.source, F.url, hexA(ink, 0.72), 24 * u, t('srcPrefix'));
+}
+
+/* 2) Big number — the most striking real number leads; photo is a small circle */
+function tplBignum(ctx, W, H, u, land){
+  const F = C.fields, hs = C.hSize / 100, HF = CFONTS[C.font], ink = C.tc, pad = (land ? 72 : 60) * u, m = Math.min(W, H);
+  const g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, shade(C.accent, -0.3)); g.addColorStop(1, shade(C.accent, -0.8));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = hexA(C.hl, 0.07);
+  ctx.beginPath(); ctx.arc(W * 0.93, H * 0.1, m * 0.42, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W * 0.04, H * 0.97, m * 0.24, 0, Math.PI * 2); ctx.fill();
+  let hx = pad; const cw0 = catPill(ctx, F, pad, pad, u, C.hl, '#111'); if(cw0) hx += cw0 + 20 * u;
+  if(nz(F.date)) stripText(ctx, F.date, hx, pad + 23 * u, 25 * u, hexA(ink, 0.8), 'date');
+  const d = Math.round(m * (land ? 0.36 : 0.3)), x0 = pad, y0 = pad + 88 * u;
+  ctx.fillStyle = C.hl; ctx.beginPath(); ctx.arc(x0 + d / 2, y0 + d / 2, d / 2 + 9 * u, 0, Math.PI * 2); ctx.fill();
+  drawPhoto(ctx, x0, y0, d, d, d / 2);
+  const capH = nz(F.label) ? drawCredit(ctx, F.label, x0 - 30 * u, y0 + d + 20 * u, d + 60 * u, 20 * u, hexA(ink, 0.7), 'center') : 0;
+  const N = numOf(F), nx = x0 + d + 50 * u, nw = W - nx - pad, big = N.n || t('newsWord');
+  let ns = (N.n ? 196 : 104) * u; ctx.font = fontStr(ns, 800, BFAM);
+  while(ctx.measureText(big).width > nw && ns > 40 * u){ ns *= 0.93; ctx.font = fontStr(ns, 800, BFAM); }
+  const lab = N.label ? measureItem(ctx, { k: 'numLabel', text: N.label, size: 38 * u, weight: 600, fam: BFAM, color: ink, lh: 1.35, maxLines: 2, min: 20 * u }, nw, u) : null;
+  const blockH = ns * 1.12 + 26 * u + (lab ? lab.h : 0);
+  const ny = y0 + Math.max(0, (d - blockH) / 2);
+  ctx.font = fontStr(ns, 800, BFAM); ctx.fillStyle = C.hl; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 20 * u; ctx.fillText(big, nx, ny + ns * 0.58); ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  C.regions.push({ k: 'num', x: nx, y: ny, w: Math.min(nw, ctx.measureText(big).width), h: ns * 1.12 });
+  ctx.fillStyle = C.hl; ctx.fillRect(nx, ny + ns * 1.12 + 4 * u, 96 * u, 7 * u);
+  if(lab) drawItem(ctx, lab, nx, ny + ns * 1.12 + 26 * u, nw, 'left');
+  const foot = 64 * u, take = nz(F.take), fw = W - 2 * pad;
+  const y = Math.max(y0 + d + capH, ny + blockH) + 40 * u;
+  const tk = take ? measureItem(ctx, { k: 'take', text: '💬 ' + take, size: 30 * u, weight: 700, fam: BFAM, color: boxText(C.hl), lh: 1.42, maxLines: 3, min: 18 * u }, fw - 56 * u, u) : null;
+  const tkH = tk ? tk.h + 44 * u : 0, availH = H - foot - (tk ? tkH + 30 * u : 0) - y - 10 * u;
+  const st = layoutStack(ctx, [
+    { k: 'headline', text: F.headline, size: 66 * u * hs, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, lh: 1.36, maxH: availH * (take ? 0.98 : 0.7), min: 24 * u },
+    { k: 'desc', text: take ? '' : F.desc, size: 29 * u, weight: 400, fam: BFAM, color: hexA(ink, 0.85), lh: 1.45, maxH: availH * 0.26, min: 18 * u }
+  ], fw, u);
+  drawStack(ctx, st, pad, y + Math.max(0, (availH - st.total) * 0.5) + C.textY * u, fw, C.align);
+  if(tk){ const by = H - foot - tkH - 16 * u; ctx.fillStyle = C.hl; rr(ctx, pad, by, fw, tkH, 12 * u); ctx.fill(); drawItem(ctx, tk, pad + 28 * u, by + 22 * u, fw - 56 * u, 'left'); }
+  drawFooter(ctx, pad, H - foot, fw, foot, F.source, F.url, hexA(ink, 0.75), 23 * u, t('srcPrefix'));
+}
+
+/* 3) What happened · Why it matters — slim colour-toned photo band, two explained sections */
+function tplExplain(ctx, W, H, u, land){
+  const F = C.fields, hs = C.hSize / 100, HF = CFONTS[C.font], ink = C.tc, pad = (land ? 72 : 56) * u, a = C.overlay / 100;
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+  const bh = Math.round(H * (land ? 0.36 : H > W ? 0.27 : 0.3));
+  drawPhoto(ctx, 0, 0, W, bh);
+  ctx.save(); ctx.globalCompositeOperation = 'color'; ctx.globalAlpha = Math.min(0.85, 0.25 + 0.6 * a); ctx.fillStyle = C.accent; ctx.fillRect(0, 0, W, bh); ctx.restore();
+  const g = ctx.createLinearGradient(0, bh * 0.4, 0, bh); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)');
+  ctx.fillStyle = g; ctx.fillRect(0, bh * 0.4, W, bh * 0.6);
+  ctx.fillStyle = C.hl; ctx.fillRect(0, bh, W, 8 * u);
+  catPill(ctx, F, pad, pad * 0.7, u, C.hl, '#111');
+  if(nz(F.label)) drawTag(ctx, '📷 ' + F.label, pad, bh - 62 * u, 22 * u, 'rgba(0,0,0,.62)', '#fff');
+  if(nz(F.date)){ ctx.font = fontStr(24 * u, 600, BFAM); const dw = ctx.measureText(F.date).width; stripText(ctx, F.date, W - pad - dw, bh - 40 * u, 24 * u, 'rgba(255,255,255,.92)', 'date'); }
+  const foot = 70 * u, top = bh + 48 * u, avail = H - foot - top - 22 * u, fw = W - 2 * pad, take = nz(F.take), pts = pointsOf(F);
+  const whatTxt = nz(F.desc) || (pts.length ? pts.join('। ') : nz(F.sub)), whatK = nz(F.desc) ? 'desc' : pts.length ? 'points' : 'sub';
+  const whyTxt = take || (nz(F.desc) && pts.length ? pts.join('\n') : ''), whyLbl = take ? t('whyLbl') : t('pointsLbl');
+  const lab = 24 * u * 1.9;
+  const L = fitFlow(s => {
+    const head = measureItem(ctx, { k: 'headline', text: F.headline, size: 60 * u * hs * s, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, hlMode: 'box', hlText: boxText(C.hl), lh: 1.38, maxLines: 4, min: 24 * u }, fw, u);
+    const what = whatTxt ? measureItem(ctx, { k: whatK, text: whatTxt, size: 29 * u * s, weight: 400, fam: BFAM, color: hexA(ink, 0.86), lh: 1.5, maxLines: 4, min: 18 * u }, fw, u) : null;
+    const why = whyTxt ? measureItem(ctx, { k: take ? 'take' : 'points', text: whyTxt, size: 30 * u * s, weight: 600, fam: BFAM, color: ink, lh: 1.45, maxLines: 4, min: 18 * u }, fw - 60 * u, u) : null;
+    return { head, what, why, h: head.h + (what ? 28 * u + lab + what.h : 0) + (why ? 30 * u + lab + why.h + 50 * u : 0) };
+  }, avail);
+  let y = top + Math.max(0, (avail - L.h) * 0.35) + C.textY * u;
+  drawItem(ctx, L.head, pad, y, fw, C.align); y += L.head.h;
+  if(L.what){ y += 28 * u; y += secLabel(ctx, t('whatLbl'), pad, y, 24 * u, C.accent); drawItem(ctx, L.what, pad, y, fw, 'left'); y += L.what.h; }
+  if(L.why){
+    y += 30 * u; const bh2 = lab + L.why.h + 50 * u;
+    ctx.fillStyle = hexA(C.hl, 0.3); rr(ctx, pad, y, fw, bh2, 14 * u); ctx.fill();
+    ctx.strokeStyle = hexA(shade(C.hl, -0.25), 0.9); ctx.lineWidth = 2 * u; rr(ctx, pad, y, fw, bh2, 14 * u); ctx.stroke();
+    secLabel(ctx, (take ? '💡 ' : '') + whyLbl, pad + 30 * u, y + 22 * u, 24 * u, shade(C.accent, -0.15));
+    drawItem(ctx, L.why, pad + 30 * u, y + 22 * u + lab, fw - 60 * u, 'left');
+  }
+  ctx.fillStyle = hexA(ink, 0.15); ctx.fillRect(pad, H - foot, fw, 2 * u);
+  drawFooter(ctx, pad, H - foot, fw, foot, F.source, F.url, hexA(ink, 0.7), 24 * u, t('srcPrefix'));
+}
+
+/* 4) Polaroid note — the photo is a small tilted polaroid with its credit; headline + sticky note lead */
+function tplPolaroid(ctx, W, H, u, land){
+  const F = C.fields, hs = C.hSize / 100, HF = CFONTS[C.font], ink = C.tc, pad = (land ? 72 : 56) * u;
+  ctx.fillStyle = '#fbf3df'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(120,90,40,.11)';
+  for(let y = 30 * u; y < H; y += 38 * u) for(let x = 30 * u; x < W; x += 38 * u){ ctx.beginPath(); ctx.arc(x, y, 2 * u, 0, Math.PI * 2); ctx.fill(); }
+  const foot = 68 * u, pw = Math.round(land ? H * 0.44 : W * 0.38), fr = 18 * u, pin = pw - 2 * fr, ph = pin + fr + 80 * u;
+  const px = pad, py = land ? (H - foot - ph) / 2 : pad + 30 * u;
+  ctx.save(); ctx.translate(px + pw / 2, py + ph / 2); ctx.rotate(-0.05);
+  ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 28 * u; ctx.shadowOffsetY = 10 * u; ctx.fillStyle = '#ffffff'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  drawPhoto(ctx, -pw / 2 + fr, -ph / 2 + fr, pin, pin);
+  const reg = C.regions[C.regions.length - 1];
+  if(nz(F.label)){ ctx.font = fontStr(24 * u, 400, CFONTS.tiro.fam); ctx.fillStyle = '#4a4a4a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fitOne(ctx, '📷 ' + F.label, pin), 0, ph / 2 - 42 * u); }
+  ctx.rotate(0.09); ctx.fillStyle = 'rgba(255,232,160,.8)'; ctx.fillRect(-72 * u, -ph / 2 - 22 * u, 144 * u, 42 * u);
+  ctx.restore();
+  if(reg && reg.k === 'photo'){ reg.x = px + fr; reg.y = py + fr; }
+  if(nz(F.label)) C.regions.push({ k: 'label', x: px, y: py + ph - 72 * u, w: pw, h: 60 * u });
+  const cx = px + pw + 48 * u, cw = W - cx - pad, take = nz(F.take), noteTxt = take || nz(F.desc), noteLbl = take ? t('takeLbl') : t('whatLbl');
+  const noteW = land ? cw : W - 2 * pad;
+  const note = noteTxt ? measureItem(ctx, { k: take ? 'take' : 'desc', text: noteTxt, size: 36 * u, weight: 600, fam: BFAM, color: boxText(C.hl), lh: 1.45, maxLines: land ? 5 : 4, min: 18 * u }, noteW - 64 * u, u) : null;
+  const noteH = note ? note.h + 104 * u : 0;
+  const colTop = land ? pad + 20 * u : py - 6 * u, colH = land ? H - foot - colTop - (note ? noteH + 34 * u : 0) - 10 * u : ph + 10 * u;
+  const st = layoutStack(ctx, [
+    nz(F.cat) ? { type: 'pill', k: 'cat', text: F.cat, size: 26 * u, bg: C.accent, color: '#fff' } : null,
+    { k: 'headline', text: F.headline, size: 64 * u * hs, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, hlMode: 'box', hlText: boxText(C.hl), lh: 1.38, maxH: colH * 0.8, min: 24 * u, gap: 18 * u },
+    { k: 'sub', text: F.sub, size: 27 * u, weight: 600, fam: BFAM, color: C.accent, lh: 1.4, maxH: colH * 0.14, min: 18 * u },
+    { k: 'date', text: F.date, size: 23 * u, weight: 500, fam: BFAM, color: hexA(ink, 0.6), maxLines: 1, gap: 10 * u }
+  ], cw, u);
+  const sy = colTop + Math.max(0, (colH - st.total) / 2) + C.textY * u;
+  const endY = drawStack(ctx, st, cx, sy, cw, C.align);
+  if(note){
+    const nx = land ? cx : pad, ny = land ? Math.max(endY + 34 * u, H - foot - noteH - 16 * u) : (s0 => Math.min(s0 + Math.max(0, (H - foot - 14 * u - s0 - noteH) * 0.45), H - foot - noteH - 14 * u))(Math.max(py + ph + 46 * u, endY + 30 * u));
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.22)'; ctx.shadowBlur = 18 * u; ctx.shadowOffsetY = 6 * u;
+    ctx.fillStyle = C.hl; ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(nx + noteW, ny); ctx.lineTo(nx + noteW, ny + noteH - 40 * u); ctx.lineTo(nx + noteW - 40 * u, ny + noteH); ctx.lineTo(nx, ny + noteH); ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.fillStyle = shade(C.hl, -0.22); ctx.beginPath(); ctx.moveTo(nx + noteW, ny + noteH - 40 * u); ctx.lineTo(nx + noteW - 40 * u, ny + noteH - 40 * u); ctx.lineTo(nx + noteW - 40 * u, ny + noteH); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(200,40,40,.85)'; ctx.beginPath(); ctx.arc(nx + noteW / 2, ny + 4 * u, 11 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.font = fontStr(24 * u, 700, BFAM); ctx.fillStyle = hexA(boxText(C.hl), 0.75); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText((take ? '💬 ' : '📌 ') + noteLbl, nx + 32 * u, ny + 44 * u);
+    drawItem(ctx, note, nx + 32 * u, ny + 72 * u, noteW - 64 * u, 'left');
+  }
+  ctx.fillStyle = hexA(ink, 0.18); ctx.fillRect(pad, H - foot, W - 2 * pad, 2 * u);
+  drawFooter(ctx, pad, H - foot, W - 2 * pad, foot, F.source, F.url, hexA(ink, 0.72), 23 * u, t('srcPrefix'));
+}
+
+/* 5) At a glance — bold colour background, ticked key facts, small square photo, comment band */
+function tplGlance(ctx, W, H, u, land){
+  const F = C.fields, hs = C.hSize / 100, HF = CFONTS[C.font], ink = C.tc, pad = (land ? 72 : 56) * u;
+  ctx.fillStyle = C.hl; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(0,0,0,.045)'; ctx.lineWidth = 14 * u;
+  for(let i = -H; i < W; i += 60 * u){ ctx.beginPath(); ctx.moveTo(i, H); ctx.lineTo(i + H, 0); ctx.stroke(); }
+  ctx.font = fontStr(34 * u, 700, BFAM); const rt = '⚡ ' + t('glanceLbl'), rw = ctx.measureText(rt).width + 56 * u, rh = 70 * u, ry = pad * 0.85;
+  ctx.fillStyle = '#111111'; ctx.fillRect(0, ry, pad + rw, rh); ctx.fillStyle = C.accent; ctx.fillRect(0, ry + rh, pad + rw, 7 * u);
+  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText(rt, pad, ry + rh / 2 + 2 * u);
+  let hx = pad + rw + 24 * u; const cw0 = catPill(ctx, F, hx, ry + (rh - 45.5 * u) / 2, u, C.accent, '#fff'); if(cw0) hx += cw0 + 18 * u;
+  if(nz(F.date) && hx < W * 0.7) stripText(ctx, F.date, hx, ry + rh / 2, 24 * u, hexA(ink, 0.75), 'date');
+  const foot = 64 * u, take = nz(F.take), fw = W - 2 * pad;
+  const tk = take ? measureItem(ctx, { k: 'take', text: '💬 ' + take, size: 30 * u, weight: 600, fam: BFAM, color: '#ffffff', lh: 1.42, maxLines: 3, min: 18 * u }, fw, u) : null;
+  const tkH = tk ? tk.h + 48 * u : 0;
+  const top = ry + rh + 50 * u, avail = H - foot - tkH - (tk ? 26 * u : 0) - top - 16 * u;
+  const pw = Math.round(W * (land ? 0.22 : 0.31)), px = W - pad - pw, capH = nz(F.label) ? 38 * u : 0, colW = px - pad - 36 * u, pts = pointsOf(F);
+  const L = fitFlow(s => {
+    const head = measureItem(ctx, { k: 'headline', text: F.headline, size: 64 * u * hs * s, weight: HF.w, fam: HF.fam, color: ink, hl: C.accent, lh: 1.36, maxLines: 5, min: 24 * u }, colW, u);
+    const topH = Math.max(head.h, pw + capH);
+    const rows = pts.length ? pts.map(p => measureItem(ctx, { k: 'points', text: p, size: 31 * u * s, weight: 600, fam: BFAM, color: ink, lh: 1.4, maxLines: 2, min: 18 * u }, fw - 60 * u, u))
+      : nz(F.desc) ? [measureItem(ctx, { k: 'desc', text: F.desc, size: 30 * u * s, weight: 500, fam: BFAM, color: hexA(ink, 0.88), lh: 1.5, maxLines: 4, min: 18 * u }, fw, u)] : [];
+    return { head, topH, rows, h: topH + (rows.length ? 34 * u + rowsHeight(rows, u) : 0) };
+  }, avail);
+  let y = top + Math.max(0, (avail - L.h) * 0.4) + C.textY * u;
+  drawInset(ctx, px, y, pw, pw, 10 * u, 7 * u, '#111111', u);
+  if(capH) drawCredit(ctx, F.label, px - 10 * u, y + pw + 16 * u, pw + 20 * u, 20 * u, hexA(ink, 0.7), 'left');
+  drawItem(ctx, L.head, pad, y, colW, C.align);
+  y += L.topH;
+  if(L.rows.length){ y += 34 * u; if(pts.length) drawPoints(ctx, L.rows, pad, y, fw, u, C.accent, '#ffffff', true); else drawItem(ctx, L.rows[0], pad, y, fw, 'left'); }
+  if(tk){ const by = H - foot - tkH - 10 * u; ctx.fillStyle = '#111111'; ctx.fillRect(0, by, W, tkH); ctx.fillStyle = C.accent; ctx.fillRect(0, by, 12 * u, tkH); drawItem(ctx, tk, pad, by + 24 * u, fw, 'left'); }
+  drawFooter(ctx, pad, H - foot, fw, foot, F.source, F.url, hexA(ink, 0.75), 23 * u, t('srcPrefix'));
+}
+
+Object.assign(TPL, {
+  insight:  { key: 'tplInsight',  tc: '#1d1b17', accent: '#0b4f6c', hl: '#ffd200', align: 'left', overlay: 50, font: 'serif' },
+  bignum:   { key: 'tplBignum',   tc: '#ffffff', accent: '#7a1020', hl: '#ffd200', align: 'left', overlay: 50, font: 'hind' },
+  explain:  { key: 'tplExplain',  tc: '#151515', accent: '#c4161c', hl: '#ffd200', align: 'left', overlay: 55, font: 'hind' },
+  polaroid: { key: 'tplPolaroid', tc: '#1d1b17', accent: '#8b1010', hl: '#ffe066', align: 'left', overlay: 50, font: 'serif' },
+  glance:   { key: 'tplGlance',   tc: '#111111', accent: '#c4161c', hl: '#ffd200', align: 'left', overlay: 50, font: 'hind' }
+});
+Object.assign(TPLF, { insight: tplInsight, bignum: tplBignum, explain: tplExplain, polaroid: tplPolaroid, glance: tplGlance });
+TPL_ORDER.splice(TPL_ORDER.indexOf('frame') + 1, 0, 'insight', 'bignum', 'explain', 'polaroid', 'glance');
+(function(){ const saved = (store.get('card', {}) || {}).template; if(TPL[saved]) C.template = saved; })();
+
+/* AI: every card-text option now also brings a comment line, key facts and the striking number */
+const HOOK_EXTRA = ' For EVERY option also give: "take" — one short commentary line (12–25 words) in the page owner\'s own voice that adds value beyond the article: why it matters to ordinary readers, what to watch next, or a practical lesson; it must read as commentary (not a new fact), calm, fair and respectful, with no political side-taking, no insults and no fear-mongering. ' +
+  '"points" — 2 or 3 key facts taken from the article, each at most 9 words. "number" — the single most striking real number from the article exactly as written (for example "৩৫%" or "১২ হাজার"), or "" if there is none. "number_label" — what that number means, in 2–5 words.';
+const HOOK_SHAPE5 = '[{"style":"2–3 word label of the angle, in the article language","headline":"catchy headline with *highlight*","subheadline":"short supporting line (who / where / when), or empty","description":"one catchy but accurate sentence, max ~20 words","category":"1–2 word category","take":"one commentary line in the page owner\'s voice","points":["key fact","key fact","key fact"],"number":"striking number or empty","number_label":"what the number means"}, (exactly 3 items)]';
+hookRules = function(){ return AI.hookKind === 'quote' ? QUOTE_RULES : HOOK_RULES + HOOK_EXTRA; };
+hookShape = function(){ return AI.hookKind === 'quote' ? QUOTE_SHAPE : HOOK_SHAPE5; };
+const normHooks4 = normHooks;
+normHooks = function(list, data, title){
+  const raw = (Array.isArray(list) ? list : []).filter(o => o && typeof o === 'object' && String(o.quote || o.headline || '').trim()).slice(0, 3);
+  const out = normHooks4(list, data, title);
+  out.forEach((h, i) => {
+    const o = raw[i]; if(!o || h.quote) return;
+    h.take = nz(o.take || o.comment);
+    const p = Array.isArray(o.points) ? o.points : String(o.points || '').split(/\n|;/);
+    h.points = p.map(x => nz(String(x).replace(/^[\s•·\-–*]+/, ''))).filter(Boolean).slice(0, 3).join('\n');
+    h.num = nz(o.number); h.numLabel = nz(o.number_label || o.numberLabel);
+  });
+  return out;
+};
+const setHooks4 = setHooks;
+setHooks = function(list){
+  let found = [];
+  if(S.mask && S.maskCard) list.forEach(h => ['take', 'points', 'numLabel'].forEach(k => { if(!h[k]) return; const m = maskText(h[k], cardCh()); h[k] = m.text; found = found.concat(m.found); }));
+  return setHooks4(list).concat(found);
+};
+const applyHook4 = applyHook;
+applyHook = function(i, silent){
+  const h = (AI.hooks || [])[i];
+  if(h && !h.quote) Object.assign(C.fields, { take: h.take || '', points: h.points || '', num: h.num || '', numLabel: h.numLabel || '' });
+  applyHook4(i, silent); renderTakes();
+};
+const renderHooks4 = renderHooks;
+renderHooks = function(){
+  renderHooks4();
+  ['fbHooks', 'cardHooks'].forEach(id => {
+    const box = $(id); if(!box) return;
+    box.querySelectorAll('.hookopt').forEach((b, i) => { const h = (AI.hooks || [])[i]; if(h && h.take){ const s = document.createElement('small'); s.textContent = '💬 ' + h.take; b.appendChild(s); } });
+  });
+};
+
+/* "my comment" ideas in 3 tones — the user picks one and makes it their own */
+const TAKE_RULES = 'Write exactly 3 different short commentary lines (each 12–28 words) that the owner of a Bangladeshi Facebook news page could add to this news in their own voice. ' +
+  'Each must add value beyond the article without inventing any fact: (1) a warm, human or empathetic angle; (2) an analytical angle — why it matters or what to watch next; (3) a practical awareness tip or lesson for ordinary readers. ' +
+  'Calm, fair and respectful; no political side-taking, no insults, no fear-mongering, no engagement bait (never ask people to like, share or comment), no hashtags, no emoji. Write in the same language as the article; for Bengali use natural, conversational Bengali.';
+AI.takes = [];
+function renderTakes(){
+  const box = $('takeOpts'); if(!box) return;
+  box.innerHTML = '';
+  (AI.takes || []).forEach(x => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'hookopt takeopt' + (nz(C.fields.take) === x.text ? ' on' : '');
+    b.innerHTML = (x.tone ? '<span class="hstyle">' + esc(x.tone) + '</span>' : '') + '<b class="hh">' + esc(x.text) + '</b>';
+    b.addEventListener('click', () => { C.fields.take = x.text; syncFields(); renderTakes(); scheduleRender(); if(AI.tab === 'fb') ensureFonts().then(updateFbPreview); toast(t('tTakeApplied')); });
+    box.appendChild(b);
+  });
+}
+async function genTakes(){
+  if(!S.article){ toast(t('tNeedArticle')); return; }
+  if(!S.gkey){ needKey(); return; }
+  if(AI.busy.take) return;
+  AI.busy.take = true; $('takeGenBtn').disabled = true; $('takeStatus').classList.remove('hidden');
+  try{
+    await checkTextModel();
+    const prev = (AI.takes || []).map(x => x.text);
+    const prompt = TAKE_RULES + ' ' + AD_SAFE + (prev.length ? ' Make them clearly different from these earlier ideas: ' + prev.join(' | ') + '.' : '') +
+      ' Return ONLY one JSON object (no markdown fences) with this shape: {"takes":[{"tone":"2–3 word label of the tone, in the article language","text":"the comment line"}, (exactly 3 items)]}\n\n' + articleForAi(16000);
+    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.9, responseMimeType: 'application/json' } }, 60000);
+    const o = parseAiJson(r.text), arr = Array.isArray(o) ? o : (o.takes || o.options || []);
+    const list = arr.map(x => typeof x === 'string' ? { tone: '', text: nz(x) } : { tone: nz(x && x.tone), text: nz(x && (x.text || x.take)) }).filter(x => x.text).slice(0, 3);
+    if(!list.length) throw friendly(t('tTakeNone'));
+    if(S.mask && S.maskCard) list.forEach(x => { x.text = maskText(x.text, cardCh()).text; });
+    AI.takes = list; renderTakes(); toast(t('tTakeReady'));
+  }catch(e){ toast(aiErrMsg(e)); }
+  finally{ AI.busy.take = false; $('takeGenBtn').disabled = false; $('takeStatus').classList.add('hidden'); }
+}
+if($('takeGenBtn')) $('takeGenBtn').addEventListener('click', genTakes);
+const cardFromArticle4 = cardFromArticle;
+cardFromArticle = function(a){ cardFromArticle4(a); Object.assign(C.fields, { take: '', points: '', num: '', numLabel: '' }); AI.takes = []; renderTakes(); syncFields(); };
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

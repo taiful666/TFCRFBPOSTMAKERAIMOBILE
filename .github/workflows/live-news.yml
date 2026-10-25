@@ -61,7 +61,7 @@ jobs:
             ['dailystar', 'thedailystar.net', ['https://www.thedailystar.net/frontpage/rss.xml', 'https://www.thedailystar.net/rss.xml']]
           ];
           const GOOGLE_TOP = 'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn';
-          const gnSite = d => 'https://news.google.com/rss/search?q=' + encodeURIComponent('site:' + d + ' when:2d') + '&hl=bn&gl=BD&ceid=BD:bn';
+          const gnSite = d => 'https://news.google.com/rss/search?q=' + encodeURIComponent('site:' + (d === 'thedailystar.net' ? 'www.thedailystar.net' : d) + ' when:2d') + '&hl=bn&gl=BD&ceid=BD:bn';
           const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
           const PER_SOURCE = 25, DETAIL_PER_SOURCE = 10, MAX_AGE = 3 * 86400000;
           const JUNK = /ই-পেপার|e-?paper|পৃষ্ঠা-\d|epaper/i;
@@ -146,15 +146,22 @@ jobs:
           const report = [];
           await pool(SOURCES, 6, async ([id, d, feeds, opt = {}]) => {
             let items = [], how = '';
-            if (opt.q) { try { items = await quintype(opt.q, opt.qi); how = 'api'; } catch {} }
-            if (items.length) items = keep(items);
-            for (const f of feeds) { if (items.length) break; try { items = keep(parseFeed(await get(f), f)); if (items.length) how = f; } catch {} }
+            const add = list => { const seen = new Set(items.map(o => o.link)); for (const o of keep(list)) if (!seen.has(o.link)) { items.push(o); seen.add(o.link); } };
+            // site API (Prothom Alo, bdnews24) and the site's own feed are both read and merged — the API alone can lag
+            if (opt.q) { try { add(await quintype(opt.q, opt.qi)); how = 'api'; } catch {} }
+            for (const f of feeds) { try { const n = items.length; add(parseFeed(await get(f), f)); if (items.length > n) { how = how ? how + '+feed' : f; break; } } catch {} }
             let viaGoogle = false;
-            if (!items.length) { try { items = keep(parseFeed(await get(gnSite(d)), 'https://news.google.com/', true)); how = 'google'; viaGoogle = true; } catch {} }
+            // too few fresh stories from the site → Google News fills in (only stories from this site)
+            if (items.length < 5) {
+              try {
+                const g = keep(parseFeed(await get(gnSite(d)), 'https://news.google.com/', true));
+                if (!items.length) { items = g; viaGoogle = true; how = 'google'; } else { add(g); how += '+google'; }
+              } catch {}
+            }
             items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             items = items.slice(0, PER_SOURCE);
             if (viaGoogle) { await pool(items.slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link)), 4, details); }
-            else await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !o.img || !o.desc || o.desc.length < 60), 4, details);
+            else { await pool(items.filter(o => /news\.google\./.test(o.link)).slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link) && (!o.img || !o.desc || o.desc.length < 60)), 4, details); }
             if (items.length) result.sources[id] = { via: viaGoogle ? 'google' : 'site', items };
             report.push(id + ': ' + items.length + ' (' + (how || 'failed') + ')');
           });

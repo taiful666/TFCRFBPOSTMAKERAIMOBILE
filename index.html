@@ -3753,9 +3753,21 @@ const NW_GOOGLE = { id:'google', bn:'গুগল নিউজ', en:'Google News
 function nwSources(){ return NW.src === 'all' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
 /* news.json — collected every 15 minutes by GitHub on its own servers (see .github/workflows/live-news.yml) */
 NW.json = null; NW.jsonAt = 0;
+function nwJsonUrls(){
+  const urls = [], m = location.hostname.match(/^([\w-]+)\.github\.io$/i), repo = location.pathname.split('/').filter(Boolean)[0];
+  if(m) urls.push('https://raw.githubusercontent.com/' + m[1] + '/' + (repo && !/\.html?$/i.test(repo) ? repo : m[1] + '.github.io') + '/live-news/news.json');
+  urls.push('https://raw.githubusercontent.com/taiful666/TFCRFBPOSTMAKERAIMOBILE/live-news/news.json', './news.json');
+  return [...new Set(urls)];
+}
 async function nwJson(force){
   if(!force && NW.json && Date.now() - NW.jsonAt < 60000) return NW.json;
-  try{ const j = JSON.parse(await getText('./news.json?t=' + Date.now(), 8000)); if(j && j.sources){ NW.json = j; NW.jsonAt = Date.now(); } }catch(e){}
+  for(const u of nwJsonUrls()){
+    try{
+      const j = JSON.parse(await getText(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), 8000));
+      if(j && j.sources && (!NW.json || (Date.parse(j.updated) || 0) >= (Date.parse(NW.json.updated) || 0))){ NW.json = j; NW.jsonAt = Date.now(); }
+      if(j && j.sources && Date.now() - (Date.parse(j.updated) || 0) < 3 * 3600000) break;    // fresh enough
+    }catch(e){}
+  }
   return NW.json;
 }
 function nwFromJson(src){
@@ -3891,8 +3903,13 @@ async function nwPick(o){
   $('urlInput').value = url;
   let ok = false, partial = false;
   try{
+    // papers that block outside access: Gemini (your API key) reads the page and finds the photo
+    let art = null;
+    if(S.gkey && (!o.img || !o.desc || o.desc.length < 40) && !/news\.google\./.test(url)){
+      try{ art = await Promise.race([fetchWithGemini(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 45000))]); }catch(e){ art = null; }
+    }
     // full article if it comes within 10 s; otherwise the card is made from the headline, summary and photo
-    const art = await Promise.race([fetchArticle(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), o.desc && o.desc.length > 40 ? 10000 : 20000))]);
+    if(!art) art = await Promise.race([fetchArticle(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), o.desc && o.desc.length > 40 ? 10000 : 20000))]);
     if(!art.title) art.title = o.title;
     if(!art.published && o.date) art.published = o.date.toISOString();
     if(!art.image && o.img){ art.image = o.img; art.imageFromAi = false; }

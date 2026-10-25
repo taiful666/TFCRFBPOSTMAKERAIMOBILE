@@ -1,5 +1,6 @@
-# Collects the latest Bangladeshi news every 15 minutes on GitHub's servers
-# and saves it as news.json next to the app. Nothing to set up — upload and done.
+# Collects the latest Bangladeshi news every 15 minutes on GitHub's servers.
+# The result is kept as a single file (news.json) on a separate "live-news" branch,
+# replaced each time, so the repository never grows and the website is not rebuilt.
 name: Live news for TF app
 
 on:
@@ -22,11 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
       - name: Collect the latest news
+        working-directory: ${{ runner.temp }}
         run: |
-          cat > /tmp/fetch-news.mjs <<'EOF'
+          cat > fetch-news.mjs <<'EOF'
           // Collects the latest Bangladeshi news on GitHub's servers and writes news.json for the app.
           import { writeFileSync } from 'node:fs';
 
@@ -63,7 +63,9 @@ jobs:
           const GOOGLE_TOP = 'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn';
           const gnSite = d => 'https://news.google.com/rss/search?q=' + encodeURIComponent('site:' + d + ' when:2d') + '&hl=bn&gl=BD&ceid=BD:bn';
           const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
-          const PER_SOURCE = 25, DETAIL_PER_SOURCE = 10;
+          const PER_SOURCE = 25, DETAIL_PER_SOURCE = 10, MAX_AGE = 3 * 86400000;
+          const JUNK = /ই-পেপার|e-?paper|পৃষ্ঠা-\d|epaper/i;
+          const keep = list => list.filter(o => !JUNK.test(o.title) && (!o.date || Date.now() - Date.parse(o.date) < MAX_AGE));   // drop e-paper pages and old items
 
           async function get(url, ms = 15000) {
             const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
@@ -95,7 +97,7 @@ jobs:
               let title = strip(cdata(tag(b, 'title'))), src = '';
               if (gn) { const i = title.lastIndexOf(' - '); if (i > 10) { src = title.slice(i + 3).trim(); title = title.slice(0, i).trim(); } }
               const o = { title, link: abs(cdata(link), base), date: isoDate(tag(b, 'pubDate') || tag(b, 'dc:date') || tag(b, 'published') || tag(b, 'updated')),
-                img: im ? abs(im[1], base) : '', desc: gn ? '' : strip(bodyHtml).slice(0, 600) };
+                img: im ? abs(im[1], base) : '', desc: gn ? '' : strip(bodyHtml).slice(0, 320) };
               if (badImg(o.img)) o.img = '';
               if (src) o.gsrc = src;
               if (o.title && /^https?:/.test(o.link)) out.push(o);
@@ -107,7 +109,7 @@ jobs:
             return (j.stories || []).map(st => {
               const key = st['hero-image-s3-key'];
               return { title: String(st.headline || '').trim(), link: st.url || (st.slug ? q + '/' + st.slug : ''), date: isoDate(st['last-published-at'] || st['published-at']),
-                img: key && qi ? qi + key.split('/').map(encodeURIComponent).join('/') : '', desc: strip(st.summary || st.subheadline || '').slice(0, 600) };
+                img: key && qi ? qi + key.split('/').map(encodeURIComponent).join('/') : '', desc: strip(st.summary || st.subheadline || '').slice(0, 320) };
             }).filter(o => o.title && /^https?:/.test(o.link));
           }
           /* article page → photo and short description (used when the feed has none) */
@@ -116,7 +118,7 @@ jobs:
               const html = (await get(o.link, 12000)).slice(0, 400000);
               const meta = n => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
               if (!o.img) { const im = meta('og:image') || meta('twitter:image'); if (im && !badImg(im)) o.img = abs(im, o.link); }
-              if (!o.desc || o.desc.length < 60) { const d = meta('og:description') || meta('description'); if (d) o.desc = d.trim().slice(0, 600); }
+              if (!o.desc || o.desc.length < 60) { const d = meta('og:description') || meta('description'); if (d) o.desc = d.trim().slice(0, 320); }
             } catch {}
           }
           /* Google News link → the newspaper's own link (so the app can open the real article) */
@@ -145,9 +147,10 @@ jobs:
           await pool(SOURCES, 6, async ([id, d, feeds, opt = {}]) => {
             let items = [], how = '';
             if (opt.q) { try { items = await quintype(opt.q, opt.qi); how = 'api'; } catch {} }
-            for (const f of feeds) { if (items.length) break; try { items = parseFeed(await get(f), f); if (items.length) how = f; } catch {} }
+            if (items.length) items = keep(items);
+            for (const f of feeds) { if (items.length) break; try { items = keep(parseFeed(await get(f), f)); if (items.length) how = f; } catch {} }
             let viaGoogle = false;
-            if (!items.length) { try { items = parseFeed(await get(gnSite(d)), 'https://news.google.com/', true); how = 'google'; viaGoogle = true; } catch {} }
+            if (!items.length) { try { items = keep(parseFeed(await get(gnSite(d)), 'https://news.google.com/', true)); how = 'google'; viaGoogle = true; } catch {} }
             items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
             items = items.slice(0, PER_SOURCE);
             if (viaGoogle) { await pool(items.slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link)), 4, details); }
@@ -164,14 +167,17 @@ jobs:
           console.log(report.sort().join('\n'));
           console.log('total items:', Object.values(result.sources).reduce((n, s) => n + s.items.length, 0));
           EOF
-          node /tmp/fetch-news.mjs
+          node fetch-news.mjs
 
-      - name: Save news.json
+      - name: Publish news.json to the live-news branch
+        working-directory: ${{ runner.temp }}
+        env:
+          TOKEN: ${{ github.token }}
         run: |
+          mkdir out && cp news.json out/ && cd out
+          git init -q -b live-news
           git config user.name "TF news bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add news.json
-          git diff --cached --quiet && exit 0
-          git commit -q -m "Update live news"
-          git pull -q --rebase || true
-          git push -q
+          git commit -q -m "Live news $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" live-news

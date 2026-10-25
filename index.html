@@ -346,6 +346,40 @@ details.maskbox > summary{cursor:pointer;font-weight:600;font-size:14px;padding:
 #maskInfo{margin:-4px 0 12px}
 #maskInfo:empty{display:none}
 @media (max-width:760px){.urlrow .btn{flex:1 1 28%}.urlrow .lbl-hide{display:inline}}
+
+/* live news */
+.livebtn{width:100%;justify-content:center;margin-top:10px;padding:11px 12px;font-size:15px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:var(--accent-soft)}
+.livebtn .dot{width:9px;height:9px;border-radius:50%;background:#e02424;box-shadow:0 0 0 0 rgba(224,36,36,.6);animation:nwpulse 1.6s infinite;flex:none}
+@keyframes nwpulse{0%{box-shadow:0 0 0 0 rgba(224,36,36,.55)}70%{box-shadow:0 0 0 8px rgba(224,36,36,0)}100%{box-shadow:0 0 0 0 rgba(224,36,36,0)}}
+body.nwlock{overflow:hidden}
+.nsheet{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.45);display:flex;justify-content:center;align-items:flex-end}
+.nsbox{background:var(--bg);width:100%;max-width:760px;height:92vh;height:92dvh;border-radius:16px 16px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+@media (min-width:761px){.nsheet{align-items:center}.nsbox{height:86vh;border-radius:16px}}
+.nshead{display:flex;align-items:center;gap:8px;padding:12px 14px 8px;border-bottom:1px solid var(--line)}
+.nshead b{font-size:17px;white-space:nowrap}
+.nwupd{font-size:12px;color:var(--muted);margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nshead .x{font-size:28px;padding:0 6px}
+.nwchips{display:flex;gap:6px;overflow-x:auto;padding:10px 14px 6px;scrollbar-width:none;flex:none}
+.nwchips::-webkit-scrollbar{display:none}
+.nwchip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:13.5px;white-space:nowrap}
+.nwchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+html[data-theme="dark"] .nwchip.on{color:#111}
+.nwtools{padding:4px 14px 6px;flex:none}
+.nwtools input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--text);font-size:15px;outline:none}
+.nwstate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:2px 14px 6px;flex:none}
+.nwfail{color:var(--faint)}
+.nwhint{font-size:12.5px;color:var(--muted);padding:0 14px 6px;margin:0;flex:none}
+.nwlist{flex:1;overflow-y:auto;padding:0 10px 18px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.nwitem{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;padding:11px 4px}
+.nwitem:active{background:var(--surface-2)}
+.nwthumb{flex:none;width:96px;height:64px;border-radius:8px;overflow:hidden;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:24px}
+.nwthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.nwthumb img.fav{width:30px;height:30px;object-fit:contain}
+.nwtxt{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nwtxt b{font-size:15.5px;line-height:1.4;font-weight:600;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.nwtxt small{font-size:12.5px;color:var(--muted)}
+.nwtxt em{font-style:normal;background:#e02424;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px;font-size:11px;font-weight:700}
+#nwMore{display:block;margin:12px auto 0}
 </style>
 </head>
 <body>
@@ -384,6 +418,7 @@ details.maskbox > summary{cursor:pointer;font-weight:600;font-size:14px;padding:
           <button type="button" class="btn" id="resetBtn"><span>🔄</span><span data-i18n="resetLbl">নতুন</span></button>
         </div>
       </form>
+      <button type="button" class="btn livebtn" id="liveNewsBtn"><span class="dot"></span><span data-i18n="nwOpen">📰 লাইভ নিউজ — সর্বশেষ খবর থেকে এক চাপে কার্ড</span></button>
       <div id="status" class="hidden"><span class="spin"></span><span id="statusText"></span></div>
       <div class="sublinks">
         <button type="button" class="link" id="togglePasteBtn" data-i18n="orPaste">অথবা লেখা সরাসরি পেস্ট করুন</button>
@@ -791,6 +826,17 @@ details.maskbox > summary{cursor:pointer;font-weight:600;font-size:14px;padding:
   </div>
 </div>
 <div id="menuBackdrop" class="hidden no-print"></div>
+<div id="newsSheet" class="nsheet hidden no-print" role="dialog" aria-modal="true" aria-labelledby="nwTitleTxt">
+  <div class="nsbox">
+    <div class="nshead"><b id="nwTitleTxt" data-i18n="nwTitle">📰 লাইভ নিউজ</b><span id="nwUpd" class="nwupd"></span><button type="button" class="btn" id="nwRefresh" title="refresh">🔄</button><button type="button" class="x" id="nwClose" aria-label="close">×</button></div>
+    <div id="nwChips" class="nwchips"></div>
+    <div class="nwtools"><input type="search" id="nwSearch" autocomplete="off" placeholder="শিরোনামে খুঁজুন…"></div>
+    <p class="nwhint"><span data-i18n="nwHint">যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।</span> · <span data-i18n="nwAuto">প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়</span></p>
+    <div id="nwState" class="nwstate"></div>
+    <div id="nwList" class="nwlist"></div>
+    <div style="padding:0 10px 14px;flex:none"><button type="button" class="btn hidden" id="nwMore" data-i18n="nwMore">আরও খবর দেখান</button></div>
+  </div>
+</div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -879,7 +925,10 @@ const PAPERS = {
  'ajkerpatrika.com':['আজকের পত্রিকা','Ajker Patrika'],'deshrupantor.com':['দেশ রূপান্তর','Desh Rupantor'],'somoynews.tv':['সময় নিউজ','Somoy News'],'ntvbd.com':['এনটিভি','NTV'],
  'channelionline.com':['চ্যানেল আই অনলাইন','Channel i Online'],'jamuna.tv':['যমুনা টেলিভিশন','Jamuna TV'],'ekattor.tv':['একাত্তর','Ekattor TV'],'dailyinqilab.com':['দৈনিক ইনকিলাব','Daily Inqilab'],
  'sharebiz.net':['শেয়ার বিজ','Share Biz'],'thedailycampus.com':['দ্য ডেইলি ক্যাম্পাস','The Daily Campus'],'aljazeera.com':['আল জাজিরা','Al Jazeera'],'reuters.com':['রয়টার্স','Reuters'],
- 'anandabazar.com':['আনন্দবাজার পত্রিকা','Anandabazar Patrika'],'theguardian.com':['দ্য গার্ডিয়ান','The Guardian'],'nytimes.com':['দ্য নিউ ইয়র্ক টাইমস','The New York Times']
+ 'anandabazar.com':['আনন্দবাজার পত্রিকা','Anandabazar Patrika'],'theguardian.com':['দ্য গার্ডিয়ান','The Guardian'],'nytimes.com':['দ্য নিউ ইয়র্ক টাইমস','The New York Times'],
+ 'kalbela.com':['কালবেলা','Kalbela'],'rtvonline.com':['আরটিভি','RTV'],'channel24bd.tv':['চ্যানেল ২৪','Channel 24'],'bangla.bdnews24.com':['বিডিনিউজ২৪','bdnews24.com'],
+ 'bbc.com/bengali':['বিবিসি বাংলা','BBC Bangla'],'independent24.com':['ইনডিপেনডেন্ট টিভি','Independent TV'],'dbcnews.tv':['ডিবিসি নিউজ','DBC News'],'atnnewstv.com':['এটিএন নিউজ','ATN News'],
+ 'atnbangla.tv':['এটিএন বাংলা','ATN Bangla'],'news24bd.tv':['নিউজ২৪','News24'],'banglavision.tv':['বাংলাভিশন','Banglavision'],'dailyjanakantha.com':['জনকণ্ঠ','Janakantha'],'bhorerkagoj.com':['ভোরের কাগজ','Bhorer Kagoj']
 };
 function paperProfile(url, siteName){
   const host = hostOf(url);
@@ -1854,7 +1903,7 @@ async function shareFb(){
   if(s) await copyText(s);
   await ensureFonts(); renderCard();
   let blob = null;
-  try{ blob = await new Promise(r => $('cardCanvas').toBlob(r, 'image/png')); }catch(e){ blob = null; }
+  blob = await cardBlob();
   try{
     if(blob && navigator.canShare){
       const file = new File([blob], cardFileName(), { type: 'image/png' });
@@ -2478,13 +2527,24 @@ function drawLogo(ctx, W, H, u){
 }
 function renderCard(){
   const cv = $('cardCanvas'); if(!cv) return;
+  paintCard(cv);
+  copyToFbPrev();
+}
+/* export always draws on a brand-new canvas: a canvas that once showed a blocked
+   photo stays blocked forever, which is why uploading another photo did not help */
+async function cardBlob(){
+  await ensureFonts();
+  const keep = C.regions, cv = document.createElement('canvas');
+  try{ paintCard(cv); }finally{ C.regions = keep; }
+  try{ return await new Promise((res, rej) => { try{ cv.toBlob(b => res(b), 'image/png'); }catch(e){ rej(e); } }); }catch(e){ return null; }
+}
+function paintCard(cv){
   const [W, H] = cDims(); if(cv.width !== W) cv.width = W; if(cv.height !== H) cv.height = H;
   const ctx = cv.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
   C.regions = [];
   const u = Math.min(W, H) / 1080, land = W > H * 1.2;
   try{ (TPLF[C.template] || tplBand)(ctx, W, H, u, land); drawLogo(ctx, W, H, u); }
   catch(e){ console.error(e); }
-  copyToFbPrev();
 }
 
 /* ---- images for the card ---- */
@@ -2494,7 +2554,10 @@ async function loadExportable(url){
   const enc = encodeURIComponent(url);
   // 1) image CDNs that allow export (fast, run in parallel)
   try{
-    return { img: await Promise.any([proxImg(url, 1600), 'https://wsrv.nl/?url=' + enc + '&w=1600&output=jpg&q=85', 'https://images.weserv.nl/?url=' + enc + '&output=jpg&q=85'].map(u => loadImg(u, true))), tainted: false };
+    const bare = url.replace(/^https?:\/\//, '');
+    return { img: await Promise.any([proxImg(url, 1600), 'https://wsrv.nl/?url=' + enc + '&w=1600&output=jpg&q=85', 'https://images.weserv.nl/?url=' + enc + '&output=jpg&q=85',
+      'https://wsrv.nl/?url=' + encodeURIComponent(bare) + '&output=jpg&q=85&n=-1', 'https://i0.wp.com/' + bare.replace(/\?.*$/, ''), 'https://cdn.statically.io/img/' + bare.replace(/\?.*$/, ''),
+      'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=86400&url=' + enc].map(u => loadImg(u, true))), tainted: false };
   }catch(e){}
   // 2) fetch the bytes through proxies (incl. your own Worker, if set)
   const routes = [];
@@ -2504,7 +2567,7 @@ async function loadExportable(url){
     return { img: await Promise.any(routes.map(async r => {
       const to = withTimeout(15000);
       try{
-        const res = await fetch(r, { signal: to.signal }); if(!res.ok) throw new Error('http');
+        const res = await fetch(r, { signal: to.signal, referrerPolicy: 'no-referrer' }); if(!res.ok) throw new Error('http');
         let bl = await res.blob();
         if(bl.size < 600 || (bl.type && !/^image\/|octet-stream/.test(bl.type))) throw new Error('not image');
         if(!/^image\//.test(bl.type)) bl = new Blob([bl], { type: 'image/jpeg' });
@@ -2577,16 +2640,19 @@ function nextDesign(){
 function cardFileName(){ return safeName(String(C.fields.headline || 'news-card').replace(/\*/g, '')) + ' - ' + C.ratio.replace(':', 'x') + '.png'; }
 async function downloadCard(){
   await ensureFonts(); renderCard();
-  try{
-    $('cardCanvas').toBlob(b => { if(!b){ toast(t('tCardTaint')); return; } download(b, cardFileName()); toast(t('tCardDl')); }, 'image/png');
-  }catch(e){ toast(t('tCardTaint')); setCardWarn(t('tCardTaint')); }
+  const b = await cardBlob();
+  if(!b){ toast(t('tCardTaint')); setCardWarn(t('tCardTaint')); if(C.tainted && srcUrl(C.src)){ $('taintOpen').href = srcUrl(C.src); $('taintOpen').classList.remove('hidden'); } return; }
+  download(b, cardFileName()); toast(t('tCardDl'));
 }
 async function previewCard(){
   await ensureFonts(); renderCard();
-  try{ $('cardModalImg').src = $('cardCanvas').toDataURL('image/png'); $('cardModal').classList.remove('hidden'); $('modalBackBtn').focus(); }
-  catch(e){ toast(t('tCardTaint')); }
+  const b = await cardBlob();
+  if(!b){ toast(t('tCardTaint')); return; }
+  const im = $('cardModalImg'); if(im.dataset.u){ try{ URL.revokeObjectURL(im.dataset.u); }catch(e){} }
+  im.dataset.u = URL.createObjectURL(b); im.src = im.dataset.u;
+  $('cardModal').classList.remove('hidden'); $('modalBackBtn').focus();
 }
-function closeModal(){ $('cardModal').classList.add('hidden'); $('cardModalImg').removeAttribute('src'); }
+function closeModal(){ const im = $('cardModalImg'); $('cardModal').classList.add('hidden'); im.removeAttribute('src'); if(im.dataset.u){ try{ URL.revokeObjectURL(im.dataset.u); }catch(e){} im.dataset.u = ''; } }
 function updateFbPreview(){ renderCard(); }
 function validImage(f, maxMB, svg){ const ok = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].concat(svg ? ['image/svg+xml'] : []); return !!f && ok.includes(f.type) && f.size <= maxMB * 1048576; }
 function fileToDataUrl(f){ return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
@@ -3376,8 +3442,373 @@ async function findAndSetImage(a){
   } else updateSrcUi();
 }
 
-window.TFCR = { fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
+
+/* =====================================================================
+   LIVE NEWS — latest headlines from Bangladeshi papers & TV (free RSS)
+   tap a headline → article + photo load → photo card opens
+   ===================================================================== */
+Object.assign(T.bn, {
+  nwOpen:'📰 লাইভ নিউজ — সর্বশেষ খবর থেকে এক চাপে কার্ড', nwTitle:'📰 লাইভ নিউজ', nwAll:'⭐ সব পত্রিকা', nwGoogle:'🌐 গুগল নিউজ (শীর্ষ খবর)',
+  nwSearch:'শিরোনামে খুঁজুন…', nwLoading:'সর্বশেষ খবর আনা হচ্ছে…', nwEmpty:'এই মুহূর্তে কোনো খবর পাওয়া যায়নি — 🔄 চেপে আবার চেষ্টা করুন।',
+  nwUpd:'হালনাগাদ', nwNew:'নতুন', nwMin:'মিনিট আগে', nwHr:'ঘণ্টা আগে', nwDay:'দিন আগে', nwJust:'এইমাত্র',
+  nwOpening:'খবর ও ছবি আনা হচ্ছে…', nwPartial:'পুরো খবর আনা যায়নি — শিরোনাম, সারাংশ ও ছবি দিয়ে কার্ড তৈরি হয়েছে',
+  nwReady:'✅ কার্ড তৈরি হয়েছে', nwHint:'যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।',
+  nwMore:'আরও খবর দেখান', nwSome:'সাড়া দেয়নি: ', nwCount:'টি খবর', nwFailOne:'এই পত্রিকা থেকে এখন খবর আনা যাচ্ছে না — একটু পরে 🔄 চাপুন, অথবা লিংক পেস্ট করুন।',
+  nwAuto:'প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়',
+  tCardTaint:'⚠️ পত্রিকার সার্ভার এই ছবিটি সরাসরি ডাউনলোড করতে দিচ্ছে না। সমাধান: পাশের "ছবিটি খুলুন" চাপুন → ছবিতে আঙুল চেপে ধরে "ছবি ডাউনলোড" করুন → তারপর এখানে "আপলোড" দিয়ে ছবিটি দিন। এখন আপলোড করা ছবি দিয়ে কার্ড ঠিকমতো ডাউনলোড হবে।'
+});
+Object.assign(T.en, {
+  nwOpen:'📰 Live news — make a card from the latest news in one tap', nwTitle:'📰 Live news', nwAll:'⭐ All papers', nwGoogle:'🌐 Google News (top stories)',
+  nwSearch:'Search headlines…', nwLoading:'Fetching the latest news…', nwEmpty:'No news found right now — tap 🔄 to try again.',
+  nwUpd:'Updated', nwNew:'New', nwMin:'min ago', nwHr:'h ago', nwDay:'d ago', nwJust:'just now',
+  nwOpening:'Fetching article and photo…', nwPartial:'Full article unavailable — card made from the headline, summary and photo',
+  nwReady:'✅ Card ready', nwHint:'Tap any headline — the article, photo and source go straight into a photo card.',
+  nwMore:'Show more', nwSome:'No response: ', nwCount:' stories', nwFailOne:'Cannot fetch this paper right now — tap 🔄 a little later, or paste a link.',
+  nwAuto:'Refreshes on its own every 3 minutes',
+  tCardTaint:'⚠️ The news site does not allow this photo to be downloaded directly. Fix: tap "Open photo" → long-press the photo → "Download image" → then add it here with "Upload". Cards made with an uploaded photo now download normally.'
+});
+
+/* sources: f = known feed addresses (tried in order); if none answer, the paper's
+   home page is searched for its feed, and finally Google News (site:) is used */
+const NEWS_SRC = [
+  { id:'prothomalo', bn:'প্রথম আলো', en:'Prothom Alo', d:'prothomalo.com', f:['https://www.prothomalo.com/feed/', 'https://www.prothomalo.com/stories.rss'], main:1 },
+  { id:'jamuna', bn:'যমুনা টিভি', en:'Jamuna TV', d:'jamuna.tv', f:['https://jamuna.tv/feed', 'https://jamuna.tv/rss.xml', 'https://jamuna.tv/feed/rss.xml'], main:1 },
+  { id:'kalbela', bn:'কালবেলা', en:'Kalbela', d:'kalbela.com', f:['https://www.kalbela.com/rss.xml', 'https://www.kalbela.com/feed', 'https://www.kalbela.com/feed/rss.xml'], main:1 },
+  { id:'bdnews24', bn:'বিডিনিউজ২৪', en:'bdnews24', d:'bangla.bdnews24.com', f:['https://bangla.bdnews24.com/feed', 'https://bangla.bdnews24.com/stories.rss', 'https://bdnews24.com/feed'], main:1 },
+  { id:'jugantor', bn:'যুগান্তর', en:'Jugantor', d:'jugantor.com', f:['https://www.jugantor.com/feed/rss.xml', 'https://www.jugantor.com/rss.xml'], main:1 },
+  { id:'kalerkantho', bn:'কালের কণ্ঠ', en:'Kaler Kantho', d:'kalerkantho.com', f:['https://www.kalerkantho.com/rss.xml', 'https://www.kalerkantho.com/feed/rss.xml'], main:1 },
+  { id:'samakal', bn:'সমকাল', en:'Samakal', d:'samakal.com', f:['https://samakal.com/feed', 'https://samakal.com/rss.xml', 'https://samakal.com/feed/rss.xml'], main:1 },
+  { id:'somoy', bn:'সময় টিভি', en:'Somoy TV', d:'somoynews.tv', f:['https://www.somoynews.tv/rss.xml', 'https://www.somoynews.tv/feed', 'https://www.somoynews.tv/rss'], main:1 },
+  { id:'jagonews', bn:'জাগো নিউজ', en:'Jago News', d:'jagonews24.com', f:['https://www.jagonews24.com/rss/rss.xml'], main:1 },
+  { id:'dailystarbn', bn:'ডেইলি স্টার বাংলা', en:'Daily Star Bangla', d:'bangla.thedailystar.net', f:['https://bangla.thedailystar.net/rss.xml', 'https://bangla.thedailystar.net/feed'], main:1 },
+  { id:'ittefaq', bn:'ইত্তেফাক', en:'Ittefaq', d:'ittefaq.com.bd', f:['https://www.ittefaq.com.bd/feed/', 'https://www.ittefaq.com.bd/rss.xml'] },
+  { id:'bdpratidin', bn:'বাংলাদেশ প্রতিদিন', en:'Bangladesh Pratidin', d:'bd-pratidin.com', f:['https://www.bd-pratidin.com/rss.xml', 'https://www.bd-pratidin.com/feed'] },
+  { id:'rtv', bn:'আরটিভি', en:'RTV', d:'rtvonline.com', f:['https://www.rtvonline.com/rss/rss.xml', 'https://www.rtvonline.com/rss.xml', 'https://www.rtvonline.com/feed'] },
+  { id:'channel24', bn:'চ্যানেল ২৪', en:'Channel 24', d:'channel24bd.tv', f:['https://www.channel24bd.tv/rss.xml', 'https://www.channel24bd.tv/rss/rss.xml', 'https://www.channel24bd.tv/feed'] },
+  { id:'ekattor', bn:'একাত্তর টিভি', en:'Ekattor TV', d:'ekattor.tv', f:['https://ekattor.tv/rss.xml', 'https://ekattor.tv/feed'] },
+  { id:'ntv', bn:'এনটিভি', en:'NTV', d:'ntvbd.com', f:['https://www.ntvbd.com/rss.xml', 'https://www.ntvbd.com/feed'] },
+  { id:'channeli', bn:'চ্যানেল আই', en:'Channel i', d:'channelionline.com', f:['https://www.channelionline.com/feed/'] },
+  { id:'dhakapost', bn:'ঢাকা পোস্ট', en:'Dhaka Post', d:'dhakapost.com', f:['https://www.dhakapost.com/rss/rss.xml', 'https://www.dhakapost.com/rss.xml', 'https://www.dhakapost.com/feed'] },
+  { id:'banglatribune', bn:'বাংলা ট্রিবিউন', en:'Bangla Tribune', d:'banglatribune.com', f:['https://www.banglatribune.com/feed/'] },
+  { id:'banglanews24', bn:'বাংলানিউজ২৪', en:'Banglanews24', d:'banglanews24.com', f:['https://www.banglanews24.com/rss/rss.xml', 'https://www.banglanews24.com/rss.xml'] },
+  { id:'risingbd', bn:'রাইজিংবিডি', en:'Risingbd', d:'risingbd.com', f:['https://www.risingbd.com/rss/rss.xml'] },
+  { id:'ajkerpatrika', bn:'আজকের পত্রিকা', en:'Ajker Patrika', d:'ajkerpatrika.com', f:['https://www.ajkerpatrika.com/feed', 'https://www.ajkerpatrika.com/rss.xml'] },
+  { id:'deshrupantor', bn:'দেশ রূপান্তর', en:'Desh Rupantor', d:'deshrupantor.com', f:['https://www.deshrupantor.com/rss.xml', 'https://www.deshrupantor.com/feed'] },
+  { id:'nayadiganta', bn:'নয়া দিগন্ত', en:'Naya Diganta', d:'dailynayadiganta.com', f:['https://www.dailynayadiganta.com/rss.xml', 'https://www.dailynayadiganta.com/feed'] },
+  { id:'manabzamin', bn:'মানবজমিন', en:'Manab Zamin', d:'mzamin.com', f:['https://mzamin.com/rss.xml', 'https://mzamin.com/feed'] },
+  { id:'inqilab', bn:'ইনকিলাব', en:'Inqilab', d:'dailyinqilab.com', f:['https://dailyinqilab.com/rss.xml', 'https://www.dailyinqilab.com/rss.xml'] },
+  { id:'bbcbangla', bn:'বিবিসি বাংলা', en:'BBC Bangla', d:'bbc.com/bengali', f:['https://feeds.bbci.co.uk/bengali/rss.xml'] },
+  { id:'dailystar', bn:'দ্য ডেইলি স্টার', en:'The Daily Star', d:'thedailystar.net', f:['https://www.thedailystar.net/frontpage/rss.xml', 'https://www.thedailystar.net/rss.xml'] }
+];
+const NW = { src:'all', items:{}, fail:{}, at:{}, busy:{}, open:false, shown:40, timer:0, tok:0, list:[] };
+const NW_REFRESH = 3 * 60 * 1000;
+
+function nwNum(s){ return S.lang === 'bn' ? bnNum(s) : String(s); }
+function nwAgo(d){
+  if(!d) return '';
+  const m = Math.round((Date.now() - d.getTime()) / 60000);
+  if(m < 2) return t('nwJust');
+  if(m < 60) return nwNum(m) + ' ' + t('nwMin');
+  if(m < 48 * 60) return nwNum(Math.floor(m / 60)) + ' ' + t('nwHr');
+  return nwNum(Math.floor(m / 1440)) + ' ' + t('nwDay');
+}
+function nwStrip(html){
+  if(!html) return '';
+  const d = new DOMParser().parseFromString('<body>' + html, 'text/html');
+  d.querySelectorAll('script,style,figure,figcaption').forEach(e => e.remove());
+  return norm(d.body.textContent || '');
+}
+function nwImgFrom(html){
+  if(!html) return '';
+  const m = String(html).match(/<img[^>]+(?:data-src|src)=["']([^"']+)["']/i);
+  return m && /^https?:/.test(m[1]) ? m[1] : '';
+}
+function nwAbs(u, base){ try{ return new URL(u, base).href; }catch(e){ return ''; } }
+function nwCdata(s){ return String(s || '').replace(/^\s*<!\[CDATA\[/, '').replace(/\]\]>\s*$/, '').trim(); }
+function nwDecode(s){ const ta = document.createElement('textarea'); ta.innerHTML = s; return ta.value; }
+
+/* parse RSS / Atom text → items */
+function nwParse(xml, src, base){
+  const out = [];
+  const push = o => {
+    if(!o.title || !o.link) return;
+    o.title = norm(nwDecode(o.title)).replace(/\s+/g, ' ');
+    if(src.gn){ const i = o.title.lastIndexOf(' - '); if(i > 10){ o.gsrc = o.title.slice(i + 3).trim(); o.title = o.title.slice(0, i).trim(); } }
+    o.link = nwAbs(nwDecode(o.link).trim(), base);
+    if(!/^https?:/.test(o.link)) return;
+    if(o.img){ o.img = nwAbs(nwDecode(o.img), base); if(/\.(svg|gif)(\?|$)|logo|placeholder|default[-_]?image|blank\./i.test(o.img)) o.img = ''; }
+    o.date = parseDate(o.date);
+    o.desc = (o.desc || '').slice(0, 900);
+    o.src = src; out.push(o);
+  };
+  let doc = null;
+  try{ doc = new DOMParser().parseFromString(xml, 'text/xml'); if(doc.getElementsByTagName('parsererror').length) doc = null; }catch(e){ doc = null; }
+  if(doc){
+    const txt = (el, names) => { for(const n of names){ const x = el.getElementsByTagName(n)[0]; if(x && norm(x.textContent)) return x.textContent; } return ''; };
+    const attr = (el, names, a, test) => { for(const n of names){ for(const x of el.getElementsByTagName(n)){ const v = x.getAttribute(a); if(v && (!test || test(x))) return v; } } return ''; };
+    const isImg = x => { const ty = (x.getAttribute('type') || '') + (x.getAttribute('medium') || ''); return !ty || /image/i.test(ty); };
+    const items = doc.getElementsByTagName('item');
+    if(items.length){
+      for(const it of items){
+        const body = txt(it, ['content:encoded', 'description']);
+        let link = txt(it, ['link']);
+        if(!link){ const g = it.getElementsByTagName('guid')[0]; if(g && /^https?:/.test(g.textContent.trim())) link = g.textContent; }
+        push({ title: txt(it, ['title']), link, date: txt(it, ['pubDate', 'dc:date', 'published', 'updated']),
+          img: attr(it, ['media:content'], 'url', isImg) || attr(it, ['media:thumbnail'], 'url') || attr(it, ['enclosure'], 'url', isImg) || attr(it, ['itunes:image'], 'href') || txt(it, ['image']) || nwImgFrom(body),
+          desc: nwStrip(txt(it, ['description']) || body) });
+      }
+    } else {
+      for(const en of doc.getElementsByTagName('entry')){
+        let link = ''; for(const l of en.getElementsByTagName('link')){ const r = l.getAttribute('rel'); if(!r || r === 'alternate'){ link = l.getAttribute('href') || ''; break; } }
+        const body = txt(en, ['content', 'summary']);
+        push({ title: txt(en, ['title']), link, date: txt(en, ['published', 'updated']),
+          img: attr(en, ['media:content'], 'url', isImg) || attr(en, ['media:thumbnail'], 'url') || nwImgFrom(body), desc: nwStrip(txt(en, ['summary']) || body) });
+      }
+    }
+    if(out.length) return out;
+  }
+  /* lenient fallback for broken XML */
+  const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) || [];
+  const tag = (b, n) => { const m = b.match(new RegExp('<' + n + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + n + '>', 'i')); return m ? nwCdata(m[1]) : ''; };
+  blocks.forEach(b => {
+    let link = tag(b, 'link'); if(!link){ const m = b.match(/<link[^>]+href=["']([^"']+)/i); link = m ? m[1] : ''; }
+    const im = b.match(/<(?:media:content|media:thumbnail|enclosure)[^>]+url=["']([^"']+)/i);
+    const body = tag(b, 'content:encoded') || tag(b, 'description') || tag(b, 'summary') || tag(b, 'content');
+    push({ title: nwCdata(tag(b, 'title')), link: nwCdata(link), date: tag(b, 'pubDate') || tag(b, 'dc:date') || tag(b, 'published') || tag(b, 'updated'),
+      img: (im && im[1]) || nwImgFrom(nwDecode(body)), desc: nwStrip(nwDecode(body)) });
+  });
+  return out;
+}
+const looksFeed = s => !!s && /<(rss|feed|rdf:RDF)[\s>]/i.test(s.slice(0, 3000)) && /<(item|entry)[\s>]/i.test(s);
+
+/* fetch one feed address through free routes; every route that answers is merged in */
+function nwRoutes(u){
+  const enc = encodeURIComponent(u), r = [];
+  if(S.worker){ const w = S.worker.trim(); r.push({ u: w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc }); }
+  r.push({ u: 'https://api.codetabs.com/v1/proxy/?quest=' + enc }, { u: 'https://api.allorigins.win/raw?url=' + enc },
+         { u: 'https://corsproxy.io/?url=' + enc }, { u: 'https://api.allorigins.win/get?url=' + enc, get: 1 },
+         { u: 'https://api.rss2json.com/v1/api.json?rss_url=' + enc, json: 1 });
+  return r;
+}
+function nwFromRss2json(j, src){
+  if(!j || j.status !== 'ok' || !Array.isArray(j.items)) return [];
+  return j.items.map(x => ({ title: norm(nwDecode(x.title || '')), link: x.link || x.guid || '', date: parseDate((x.pubDate || '').replace(' ', 'T') + (/[zZ+]/.test(x.pubDate || '') ? '' : 'Z')),
+    img: x.thumbnail || (x.enclosure && /image/.test(x.enclosure.type || 'image') && x.enclosure.link) || nwImgFrom(x.content || x.description), desc: nwStrip(x.description || x.content || '').slice(0, 900), src }))
+    .filter(o => o.title && /^https?:/.test(o.link)).map(o => { if(o.img && /\.(svg|gif)(\?|$)|logo/i.test(o.img)) o.img = ''; return o; });
+}
+function nwFeed(feedUrl, src, onItems){
+  return new Promise((resolve, reject) => {
+    let left = 0, got = false;
+    const done = () => { if(--left === 0 && !got) reject(new Error('none')); };
+    nwRoutes(feedUrl).forEach(r => {
+      left++;
+      getText(r.u, 13000).then(text => {
+        let items = [];
+        if(r.json){ items = nwFromRss2json(JSON.parse(text), src); }
+        else {
+          if(r.get){ try{ text = JSON.parse(text).contents || ''; }catch(e){ text = ''; } }
+          if(!looksFeed(text)) throw new Error('not feed');
+          items = nwParse(text, src, feedUrl);
+        }
+        if(!items.length) throw new Error('empty');
+        onItems(items); if(!got){ got = true; resolve(feedUrl); }
+        done();
+      }).catch(done);
+    });
+  });
+}
+/* look for <link rel="alternate" type="application/rss+xml"> on the home page */
+async function nwDiscover(src){
+  const home = 'https://' + (src.d.includes('/') ? src.d : 'www.' + src.d.replace(/^www\./, '')) + '/';
+  const html = await Promise.any(nwRoutes(home).filter(r => !r.json).map(async r => {
+    let h = await getText(r.u, 12000); if(r.get){ try{ h = JSON.parse(h).contents || ''; }catch(e){ h = ''; } }
+    if(!h || h.length < 500) throw new Error('thin'); return h;
+  }));
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const links = [...doc.querySelectorAll('link[rel~="alternate"][type*="rss"], link[rel~="alternate"][type*="atom"], a[href*="rss"], a[href*="/feed"]')]
+    .map(l => nwAbs(l.getAttribute('href'), home)).filter(u => /^https?:/.test(u) && !src.f.includes(u));
+  return [...new Set(links)].slice(0, 3);
+}
+function gnUrl(q){ return 'https://news.google.com/rss/search?q=' + encodeURIComponent(q) + '&hl=bn&gl=BD&ceid=BD:bn'; }
+
+async function nwLoad(src, force){
+  if(NW.busy[src.id]) return NW.busy[src.id];
+  if(!force && NW.at[src.id] && Date.now() - NW.at[src.id] < 90000) return;
+  const merge = items => {
+    const map = new Map((NW.items[src.id] || []).map(o => [o.link, o]));
+    items.forEach(o => { const old = map.get(o.link); if(old){ if(!old.img && o.img) old.img = o.img; if(!old.date && o.date) old.date = o.date; } else map.set(o.link, o); });
+    NW.items[src.id] = [...map.values()]; NW.fail[src.id] = false; NW.at[src.id] = Date.now(); nwSchedule();
+  };
+  const job = (async () => {
+    const ok = store.get('feedOk_' + src.id, '');
+    let list = src.gn ? [src.gn] : [...new Set([ok, ...src.f].filter(Boolean))];
+    for(const f of list){ try{ const w = await nwFeed(f, src, merge); if(!src.gn) store.set('feedOk_' + src.id, w); return; }catch(e){} }
+    if(src.gn) throw new Error('gn');
+    try{ const found = await nwDiscover(src); for(const f of found){ try{ const w = await nwFeed(f, src, merge); store.set('feedOk_' + src.id, w); return; }catch(e){} } }catch(e){}
+    // last resort: Google News for this site (always works for headlines)
+    const gsrc = Object.assign({}, src, { gn: gnUrl('site:' + src.d + ' when:2d') });
+    await nwFeed(gsrc.gn, gsrc, merge);
+  })();
+  NW.busy[src.id] = job;
+  try{ await job; }catch(e){ if(!(NW.items[src.id] || []).length) NW.fail[src.id] = true; }
+  finally{ delete NW.busy[src.id]; nwSchedule(); }
+}
+const NW_GOOGLE = { id:'google', bn:'গুগল নিউজ', en:'Google News', d:'news.google.com', f:[], gn:'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn' };
+function nwSources(){ return NW.src === 'all' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
+function nwRefresh(force){
+  const tok = ++NW.tok; NW.shown = 40;
+  nwSchedule();
+  Promise.allSettled(nwSources().map(s => nwLoad(s, force))).then(() => { if(tok === NW.tok) nwSchedule(); });
+}
+
+/* ---------- UI ---------- */
+let nwRaf = 0;
+function nwSchedule(){ if(nwRaf) return; nwRaf = requestAnimationFrame(() => { nwRaf = 0; nwRender(); }); }
+function nwSrcName(o){ const s = o.src || {}; if(s.id === 'google') return o.gsrc || (S.lang === 'bn' ? s.bn : s.en); return S.lang === 'bn' ? s.bn : s.en; }
+function nwRender(){
+  if(!NW.open) return;
+  const srcs = nwSources(), q = lower($('nwSearch').value || '');
+  const seen = new Set(); let all = [];
+  srcs.forEach(s => (NW.items[s.id] || []).forEach(o => {
+    const k = lower(o.title).replace(/[^\p{L}\p{N}]+/gu, '').slice(0, 60);
+    if(seen.has(k) || seen.has(o.link)) return; seen.add(k); seen.add(o.link); all.push(o);
+  }));
+  if(q) all = all.filter(o => lower(o.title).includes(q) || lower(nwSrcName(o)).includes(q));
+  const now = Date.now();
+  all.sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
+  all = all.filter(o => !o.date || o.date.getTime() < now + 3600000);     // drop wrong future dates
+  NW.list = all;
+  const busy = srcs.some(s => NW.busy[s.id]);
+  const failed = srcs.filter(s => NW.fail[s.id]).map(s => S.lang === 'bn' ? s.bn : s.en);
+  const st = $('nwState');
+  if(!all.length){
+    st.innerHTML = busy ? '<span class="spin"></span> ' + esc(t('nwLoading')) : esc(srcs.length === 1 && failed.length ? t('nwFailOne') : t('nwEmpty'));
+  } else {
+    st.innerHTML = (busy ? '<span class="spin"></span> ' : '') + esc(nwNum(all.length) + t('nwCount')) +
+      (failed.length ? ' · <span class="nwfail">' + esc(t('nwSome') + failed.join(', ')) + '</span>' : '');
+  }
+  const last = Math.max(0, ...srcs.map(s => NW.at[s.id] || 0));
+  $('nwUpd').textContent = last ? t('nwUpd') + ': ' + nwAgo(new Date(last)) : '';
+  const list = $('nwList'), frag = document.createDocumentFragment();
+  all.slice(0, NW.shown).forEach((o, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'nwitem'; b.dataset.i = i;
+    const fresh = o.date && now - o.date.getTime() < 30 * 60000;
+    const host = o.src && o.src.d && !o.src.gn ? o.src.d.split('/')[0] : '';
+    b.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : (host ? '<img class="fav" alt="" src="' + esc(proxImg('www.google.com/s2/favicons?domain=' + host + '&sz=64')) + '">' : '📰')) + '</span>' +
+      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' · ' + esc(nwAgo(o.date)) : '') + '</small></span>';
+    const fav = b.querySelector('img.fav'); if(fav) fav.onerror = () => { fav.parentNode.textContent = '📰'; };
+    if(o.img){
+      const im = b.querySelector('img'); im.dataset.f = '0';
+      im.onerror = () => { if(im.dataset.f === '0'){ im.dataset.f = '1'; im.src = o.img; } else im.parentNode.textContent = '📰'; };
+      im.src = proxImg(o.img, 240);
+    }
+    frag.appendChild(b);
+  });
+  list.innerHTML = ''; list.appendChild(frag);
+  $('nwMore').classList.toggle('hidden', all.length <= NW.shown);
+}
+function nwChips(){
+  const box = $('nwChips'); box.innerHTML = '';
+  const mk = (id, label) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (NW.src === id ? ' on' : ''); b.dataset.src = id; b.textContent = label; box.appendChild(b); };
+  mk('all', t('nwAll')); mk('google', t('nwGoogle'));
+  NEWS_SRC.forEach(s => mk(s.id, S.lang === 'bn' ? s.bn : s.en));
+}
+function nwOpen(){
+  NW.open = true; nwChips();
+  $('newsSheet').classList.remove('hidden'); document.body.classList.add('nwlock');
+  try{ if(!(history.state && history.state.nw)) history.pushState({ nw: 1 }, ''); }catch(e){}
+  const on = $('nwChips').querySelector('.on'); if(on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+  nwRefresh(false);
+  clearInterval(NW.timer); NW.timer = setInterval(() => { if(NW.open && !document.hidden) nwRefresh(true); }, NW_REFRESH);
+}
+function nwClose(fromPop){
+  if(!NW.open) return;
+  NW.open = false; clearInterval(NW.timer);
+  $('newsSheet').classList.add('hidden'); document.body.classList.remove('nwlock');
+  if(!fromPop){ try{ if(history.state && history.state.nw) history.back(); }catch(e){} }
+}
+
+/* Google News links → the real article address */
+async function nwResolve(u){
+  try{
+    const m = u.match(/\/articles\/([^?#/]+)/);
+    if(m){
+      let s = m[1].replace(/-/g, '+').replace(/_/g, '/'); while(s.length % 4) s += '=';
+      const h = atob(s).match(/https?:\/\/[\x21-\x7e]{8,}/);
+      if(h && !/news\.google\./.test(h[0])) return h[0];
+    }
+  }catch(e){}
+  try{
+    const raw = await getText('https://r.jina.ai/' + u, 25000, { 'Accept': 'application/json', 'X-Return-Format': 'text' });
+    const j = JSON.parse(raw); const r = j && j.data && j.data.url;
+    if(r && /^https?:/.test(r) && !/google\./.test(hostOf(r))) return r;
+  }catch(e){}
+  return '';
+}
+function nwApplyImage(a, im){
+  if(!im || S.article !== a || a.image) return;
+  a.image = im; a.imageFromAi = false; setLeadImage(); try{ saveRecent(); }catch(e){}
+  if(C.src === 'none' || C.src === 'orig'){ C.src = 'orig'; if(C.labelAuto){ C.fields.label = autoLabel('orig'); syncFields(); } if(C.pending) updateSrcUi(); else setSource('orig', true); }
+}
+async function nwPick(o){
+  nwClose();
+  if(S.editing) toggleEdit(false);
+  $('fetchBtn').disabled = true; $('rescuePanel').classList.add('hidden');
+  status(t('nwOpening')); toast(t('nwOpening'));
+  let url = o.link;
+  if(o.src && o.src.gn){ const r = await nwResolve(o.link); if(r) url = normalizeUrl(r) || r; }
+  $('urlInput').value = url;
+  let ok = false, partial = false;
+  try{
+    const art = await fetchArticle(url);
+    if(!art.title) art.title = o.title;
+    if(!art.published && o.date) art.published = o.date.toISOString();
+    if(!art.image && o.img){ art.image = o.img; art.imageFromAi = false; }
+    ok = showArticle(art);
+  }catch(e){}
+  if(!ok){
+    const text = o.desc && o.desc.length > 30 ? o.desc : o.title;
+    let blocks = blocksFromText(text);
+    if(!blocks.length) blocks = blocksFromText(o.title);
+    const art = { title: o.title, blocks, image: o.img || '', imageCaption: '', byline: '', site: nwSrcName(o), published: o.date ? o.date.toISOString() : '', url: /news\.google\./.test(url) ? '' : url };
+    if(!art.url && o.src && !o.src.gn) art.url = 'https://' + o.src.d.split('/')[0] + '/';
+    ok = showArticle(art); partial = ok;
+  }
+  $('fetchBtn').disabled = false; status('');
+  if(!ok) return;
+  if(o.img && S.article && !S.article.image) nwApplyImage(S.article, o.img);
+  showTab('card');
+  setTimeout(() => { const tw = $('tabsWrap'); if(tw) tw.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 120);
+  toast(partial ? t('nwPartial') : t('nwReady'));
+}
+function nwInit(){
+  if(!$('newsSheet')) return;
+  $('liveNewsBtn').addEventListener('click', nwOpen);
+  $('nwClose').addEventListener('click', () => nwClose());
+  $('nwRefresh').addEventListener('click', () => nwRefresh(true));
+  $('nwMore').addEventListener('click', () => { NW.shown += 40; nwRender(); });
+  $('nwSearch').addEventListener('input', () => { NW.shown = 40; nwSchedule(); });
+  $('nwChips').addEventListener('click', e => {
+    const b = e.target.closest('[data-src]'); if(!b) return;
+    NW.src = b.dataset.src; store.set('nwSrc', NW.src);
+    $('nwChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
+    $('nwList').scrollTop = 0; nwRefresh(false);
+  });
+  $('nwList').addEventListener('click', e => { const b = e.target.closest('.nwitem'); if(!b) return; const o = NW.list[+b.dataset.i]; if(o) nwPick(o); });
+  $('newsSheet').addEventListener('click', e => { if(e.target.id === 'newsSheet') nwClose(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && NW.open) nwClose(); });
+  window.addEventListener('popstate', () => { if(NW.open) nwClose(true); });
+  document.addEventListener('visibilitychange', () => { if(!document.hidden && NW.open) nwRefresh(false); });
+  const saved = store.get('nwSrc', 'all');
+  if(saved === 'all' || saved === 'google' || NEWS_SRC.some(s => s.id === saved)) NW.src = saved;
+  $('nwSearch').placeholder = t('nwSearch');
+  const langBtns = document.querySelectorAll('[data-lang], #langBtn');
+  langBtns.forEach(b => b.addEventListener('click', () => setTimeout(() => { $('nwSearch').placeholder = t('nwSearch'); if(NW.open){ nwChips(); nwRender(); } }, 0)));
+}
+
+window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', nwInit); else nwInit();
 })();
 </script>
 </body>

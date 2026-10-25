@@ -380,6 +380,15 @@ html[data-theme="dark"] .nwchip.on{color:#111}
 .nwtxt small{font-size:12.5px;color:var(--muted)}
 .nwtxt em{font-style:normal;background:#e02424;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px;font-size:11px;font-weight:700}
 #nwMore{display:block;margin:12px auto 0}
+.nwguide{margin:4px 14px 8px;padding:12px;border:1px solid var(--accent);border-radius:12px;background:var(--surface);flex:none;max-height:60vh;overflow-y:auto}
+.nwguide h4{display:flex;justify-content:space-between;align-items:center;margin:0 0 6px;font-size:15px}
+.nwguide p{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.nwguide ol{margin:0 0 8px 18px;padding:0;font-size:13.5px;line-height:1.75}
+.nwguide ol .btn{margin:4px 0}
+.nwguide textarea{width:100%;font-size:11px;font-family:monospace;margin-bottom:6px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px}
+.nwwrow{display:flex;gap:6px}
+.nwwrow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);font-size:14px}
+.nwwmsg{font-size:13px;margin-top:6px}
 .nwdiag{width:100%;font-size:11.5px;color:var(--faint);word-break:break-word;margin-top:4px}
 #nwProxyBtn{margin-top:6px}
 </style>
@@ -830,10 +839,22 @@ html[data-theme="dark"] .nwchip.on{color:#111}
 <div id="menuBackdrop" class="hidden no-print"></div>
 <div id="newsSheet" class="nsheet hidden no-print" role="dialog" aria-modal="true" aria-labelledby="nwTitleTxt">
   <div class="nsbox">
-    <div class="nshead"><b id="nwTitleTxt" data-i18n="nwTitle">📰 লাইভ নিউজ</b><span id="nwUpd" class="nwupd"></span><button type="button" class="btn" id="nwRefresh" title="refresh">🔄</button><button type="button" class="x" id="nwClose" aria-label="close">×</button></div>
+    <div class="nshead"><b id="nwTitleTxt" data-i18n="nwTitle">📰 লাইভ নিউজ</b><span id="nwUpd" class="nwupd"></span><button type="button" class="btn hidden" id="nwGuideBtn" data-i18n="nwGuideBtn">⚙️ প্রক্সি</button><button type="button" class="btn" id="nwRefresh" title="refresh">🔄</button><button type="button" class="x" id="nwClose" aria-label="close">×</button></div>
     <div id="nwChips" class="nwchips"></div>
     <div class="nwtools"><input type="search" id="nwSearch" autocomplete="off" placeholder="শিরোনামে খুঁজুন…"></div>
     <p class="nwhint"><span data-i18n="nwHint">যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।</span> · <span data-i18n="nwAuto">প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়</span></p>
+    <div id="nwGuide" class="nwguide hidden">
+      <h4><span data-i18n="nwGTitle"></span><button type="button" class="x" id="nwGuideClose" aria-label="close">×</button></h4>
+      <p data-i18n="nwGWhy"></p>
+      <ol>
+        <li data-i18n="nwG1"></li><li data-i18n="nwG2"></li><li data-i18n="nwG3"></li><li data-i18n="nwG4"></li>
+        <li><span data-i18n="nwG5"></span><br><button type="button" class="btn primary" id="nwCopyCode" data-i18n="nwCopyBtn"></button></li>
+        <li data-i18n="nwG6"></li>
+      </ol>
+      <textarea id="nwCodeBox" class="hidden" readonly rows="4"></textarea>
+      <div class="nwwrow"><input type="url" id="nwWorkerIn" placeholder="https://tf-news.yourname.workers.dev" autocomplete="off" spellcheck="false"><button type="button" class="btn primary" id="nwWorkerSave" data-i18n="nwSaveTest"></button></div>
+      <div id="nwWorkerMsg" class="nwwmsg"></div>
+    </div>
     <div id="nwState" class="nwstate"></div>
     <div id="nwList" class="nwlist"></div>
     <div style="padding:0 10px 14px;flex:none"><button type="button" class="btn hidden" id="nwMore" data-i18n="nwMore">আরও খবর দেখান</button></div>
@@ -2554,6 +2575,16 @@ function loadImg(src, cors){ return new Promise((res, rej) => { const im = new I
 async function loadExportable(url){
   if(/^(data|blob):/.test(url)) return { img: await loadImg(url, false), tainted: false };
   const enc = encodeURIComponent(url);
+  // 0) your own proxy (Cloudflare Worker) — most reliable for blocked photos
+  if(S.worker){
+    try{
+      const w = S.worker.trim(), to = withTimeout(12000);
+      try{
+        const res = await fetch(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc, { signal: to.signal });
+        if(res.ok){ let bl = await res.blob(); if(bl.size > 600 && /^image\/|octet-stream/.test(bl.type || 'image/')){ if(!/^image\//.test(bl.type)) bl = new Blob([bl], { type: 'image/jpeg' }); return { img: await loadImg(URL.createObjectURL(bl), false), tainted: false }; } }
+      }finally{ to.done(); }
+    }catch(e){}
+  }
   // 1) image CDNs that allow export (fast, run in parallel)
   try{
     const bare = url.replace(/^https?:\/\//, '');
@@ -3456,7 +3487,7 @@ Object.assign(T.bn, {
   nwOpening:'খবর ও ছবি আনা হচ্ছে…', nwPartial:'পুরো খবর আনা যায়নি — শিরোনাম, সারাংশ ও ছবি দিয়ে কার্ড তৈরি হয়েছে',
   nwReady:'✅ কার্ড তৈরি হয়েছে', nwHint:'যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।',
   nwMore:'আরও খবর দেখান', nwSome:'সাড়া দেয়নি: ', nwCount:'টি খবর', nwFailOne:'এই পত্রিকা থেকে এখন খবর আনা যাচ্ছে না — একটু পরে 🔄 চাপুন, অথবা লিংক পেস্ট করুন।',
-  nwAuto:'প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়', nwSec:'সেকেন্ড', nwPapers:'পত্রিকা লোড হয়েছে', nwGem:'✨ Gemini দিয়ে খবর আনার চেষ্টা চলছে (২০–৪০ সেকেন্ড)…', nwDiag:'সংযোগ পরীক্ষা:', nwProxyBtn:'⚙️ নিজের ফ্রি প্রক্সি যোগ করুন',
+  nwAuto:'প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়', nwCopied:'✅ কোড কপি হয়েছে — এখন Cloudflare-এ পেস্ট করুন', nwTesting:'পরীক্ষা চলছে…', nwWorkerOk:'✅ আপনার প্রক্সি কাজ করছে! এখন সব পত্রিকার খবর আসবে।', nwWorkerBad:'❌ কাজ করছে না — ঠিকানাটা ঠিক আছে কিনা আর কোড পেস্ট করে Deploy চেপেছেন কিনা দেখুন।', nwGuideBtn:'⚙️ প্রক্সি', nwSec:'সেকেন্ড', nwPapers:'পত্রিকা লোড হয়েছে', nwGem:'✨ Gemini দিয়ে খবর আনার চেষ্টা চলছে (২০–৪০ সেকেন্ড)…', nwDiag:'সংযোগ পরীক্ষা:', nwProxyBtn:'⚙️ নিজের ফ্রি প্রক্সি যোগ করুন',
   tCardTaint:'⚠️ পত্রিকার সার্ভার এই ছবিটি সরাসরি ডাউনলোড করতে দিচ্ছে না। সমাধান: পাশের "ছবিটি খুলুন" চাপুন → ছবিতে আঙুল চেপে ধরে "ছবি ডাউনলোড" করুন → তারপর এখানে "আপলোড" দিয়ে ছবিটি দিন। এখন আপলোড করা ছবি দিয়ে কার্ড ঠিকমতো ডাউনলোড হবে।'
 });
 Object.assign(T.en, {
@@ -3466,7 +3497,7 @@ Object.assign(T.en, {
   nwOpening:'Fetching article and photo…', nwPartial:'Full article unavailable — card made from the headline, summary and photo',
   nwReady:'✅ Card ready', nwHint:'Tap any headline — the article, photo and source go straight into a photo card.',
   nwMore:'Show more', nwSome:'No response: ', nwCount:' stories', nwFailOne:'Cannot fetch this paper right now — tap 🔄 a little later, or paste a link.',
-  nwAuto:'Refreshes on its own every 3 minutes', nwSec:'s', nwPapers:'papers loaded', nwGem:'✨ Trying Gemini to fetch the news (20–40 s)…', nwDiag:'Connection check:', nwProxyBtn:'⚙️ Add your own free proxy',
+  nwAuto:'Refreshes on its own every 3 minutes', nwCopied:'✅ Code copied — now paste it in Cloudflare', nwTesting:'Testing…', nwWorkerOk:'✅ Your proxy works! All papers will load now.', nwWorkerBad:'❌ Not working — check the address and that you pasted the code and pressed Deploy.', nwGuideBtn:'⚙️ Proxy', nwSec:'s', nwPapers:'papers loaded', nwGem:'✨ Trying Gemini to fetch the news (20–40 s)…', nwDiag:'Connection check:', nwProxyBtn:'⚙️ Add your own free proxy',
   tCardTaint:'⚠️ The news site does not allow this photo to be downloaded directly. Fix: tap "Open photo" → long-press the photo → "Download image" → then add it here with "Upload". Cards made with an uploaded photo now download normally.'
 });
 
@@ -3591,6 +3622,7 @@ function nwGate(){ const p = nwCtGate.then(() => new Promise(r => setTimeout(r, 
 function nwRoutes(u){
   const enc = encodeURIComponent(u), r = [{ n: 'direct', u }];
   if(S.worker){ const w = S.worker.trim(); r.push({ n: 'worker', u: w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc }); }
+  if(S.worker && !NW.workerBad) return r.concat([{ n: 'codetabs', u: 'https://api.codetabs.com/v1/proxy/?quest=' + enc, gate: 1 }]);
   r.push({ n: 'codetabs', u: 'https://api.codetabs.com/v1/proxy/?quest=' + enc, gate: 1 },
          { n: 'allorigins', u: 'https://api.allorigins.win/raw?url=' + enc },
          { n: 'allorigins-json', u: 'https://api.allorigins.win/get?url=' + enc, get: 1 },
@@ -3702,6 +3734,7 @@ async function nwGemini(srcs){
       tools: [{ url_context: {} }], generationConfig: { temperature: 0 }
     }, 90000);
     const o = parseAiJson(r.text), list = Array.isArray(o.items) ? o.items : [];
+    if(!list.length) throw new Error('no items');
     const bySrc = {};
     list.forEach(x => {
       const link = String(x.link || ''); if(!/^https?:/.test(link) || !x.title) return;
@@ -3718,16 +3751,38 @@ async function nwGemini(srcs){
 }
 const NW_GOOGLE = { id:'google', bn:'গুগল নিউজ', en:'Google News', d:'news.google.com', f:[], gn:'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn' };
 function nwSources(){ return NW.src === 'all' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
-function nwRefresh(force){
+/* news.json — collected every 15 minutes by GitHub on its own servers (see .github/workflows/live-news.yml) */
+NW.json = null; NW.jsonAt = 0;
+async function nwJson(force){
+  if(!force && NW.json && Date.now() - NW.jsonAt < 60000) return NW.json;
+  try{ const j = JSON.parse(await getText('./news.json?t=' + Date.now(), 8000)); if(j && j.sources){ NW.json = j; NW.jsonAt = Date.now(); } }catch(e){}
+  return NW.json;
+}
+function nwFromJson(src){
+  const j = NW.json, e = j && j.sources && j.sources[src.id];
+  if(!e || !Array.isArray(e.items) || !e.items.length) return false;
+  const gsrc = Object.assign({}, src, { gn: src.gn || 'json' });
+  NW.items[src.id] = e.items.map(x => ({ title: x.title, link: x.link, date: parseDate(x.date), img: x.img || '', desc: x.desc || '', gsrc: x.gsrc,
+    src: /news\.google\./.test(x.link) ? gsrc : src })).filter(o => o.title && /^https?:/.test(o.link));
+  NW.fail[src.id] = false; NW.at[src.id] = Date.parse(j.updated) || Date.now();
+  return NW.items[src.id].length > 0;
+}
+function nwRefresh(force, auto){
   const tok = ++NW.tok; NW.shown = 40; NW.started = Date.now();
   const srcs = nwSources();
   nwSchedule();
-  // after 12 s, papers still empty → try Gemini (only if an API key is saved)
-  setTimeout(() => { if(tok !== NW.tok || !NW.open) return; const empty = srcs.filter(s => !(NW.items[s.id] || []).length); if(empty.length) nwGemini(empty); }, 12000);
   const tick = setInterval(() => { if(tok !== NW.tok || !NW.open){ clearInterval(tick); return; } nwSchedule(); }, 1000);
-  Promise.allSettled(srcs.map(s => nwLoad(s, force))).then(() => { if(tok === NW.tok) nwSchedule(); });
+  nwJson(force).then(j => {
+    if(tok !== NW.tok) return;
+    const fresh = j && Date.now() - (Date.parse(j.updated) || 0) < 3 * 3600000;
+    const live = srcs.filter(s => !(nwFromJson(s) && fresh));     // only papers missing from a fresh news.json are fetched live
+    NW.jsonFresh = !!fresh; nwSchedule();
+    if(!live.length) return;
+    // after 12 s, papers still empty → try Gemini (only if an API key is saved)
+    setTimeout(() => { if(tok !== NW.tok || !NW.open) return; const empty = live.filter(s => !(NW.items[s.id] || []).length); if(empty.length && !auto) nwGemini(empty); }, 12000);
+    Promise.allSettled(live.map(s => nwLoad(s, force))).then(() => { if(tok === NW.tok) nwSchedule(); });
+  });
 }
-
 /* ---------- UI ---------- */
 let nwRaf = 0;
 function nwSchedule(){ if(nwRaf) return; nwRaf = requestAnimationFrame(() => { nwRaf = 0; nwRender(); }); }
@@ -3753,7 +3808,7 @@ function nwRender(){
     const secs = NW.started ? Math.round((Date.now() - NW.started) / 1000) : 0;
     st.innerHTML = (busy ? '<span class="spin"></span> ' + esc(t('nwLoading') + (secs ? ' (' + nwNum(secs) + ' ' + t('nwSec') + ')' : '')) : esc(srcs.length === 1 && failed.length ? t('nwFailOne') : t('nwEmpty'))) +
       (NW.gemBusy ? '<br>' + esc(t('nwGem')) : '') +
-      (secs >= 15 || !busy ? '<div class="nwdiag">' + esc(t('nwDiag')) + ' ' + esc(nwDiagText()) + '</div>' + (S.worker ? '' : '<button type="button" class="btn" id="nwProxyBtn">' + esc(t('nwProxyBtn')) + '</button>') : '');
+      (!NW.jsonFresh && (secs >= 15 || !busy) ? '<div class="nwdiag">' + esc(t('nwDiag')) + ' ' + esc(nwDiagText()) + '</div>' + (S.worker ? '' : '<button type="button" class="btn" id="nwProxyBtn">' + esc(t('nwProxyBtn')) + '</button>') : '');
   } else {
     st.innerHTML = (busy ? '<span class="spin"></span> ' : '') + esc(nwNum(all.length) + t('nwCount')) + (srcs.length > 1 ? esc(' · ' + nwNum(doneN) + '/' + nwNum(srcs.length) + ' ' + t('nwPapers')) : '') +
       (failed.length ? ' · <span class="nwfail">' + esc(t('nwSome') + failed.join(', ')) + '</span>' : '');
@@ -3795,7 +3850,7 @@ function nwOpen(){
   try{ if(!(history.state && history.state.nw)) history.pushState({ nw: 1 }, ''); }catch(e){}
   const on = $('nwChips').querySelector('.on'); if(on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
   nwRefresh(false);
-  clearInterval(NW.timer); NW.timer = setInterval(() => { if(NW.open && !document.hidden) nwRefresh(true); }, NW_REFRESH);
+  clearInterval(NW.timer); NW.timer = setInterval(() => { if(NW.open && !document.hidden) nwRefresh(true, true); }, NW_REFRESH);
 }
 function nwClose(fromPop){
   if(!NW.open) return;
@@ -3832,11 +3887,12 @@ async function nwPick(o){
   $('fetchBtn').disabled = true; $('rescuePanel').classList.add('hidden');
   status(t('nwOpening')); toast(t('nwOpening'));
   let url = o.link;
-  if(o.src && o.src.gn){ const r = await nwResolve(o.link); if(r) url = normalizeUrl(r) || r; }
+  if(/news\.google\./.test(o.link)){ const r = await nwResolve(o.link); if(r) url = normalizeUrl(r) || r; }
   $('urlInput').value = url;
   let ok = false, partial = false;
   try{
-    const art = await fetchArticle(url);
+    // full article if it comes within 10 s; otherwise the card is made from the headline, summary and photo
+    const art = await Promise.race([fetchArticle(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), o.desc && o.desc.length > 40 ? 10000 : 20000))]);
     if(!art.title) art.title = o.title;
     if(!art.published && o.date) art.published = o.date.toISOString();
     if(!art.image && o.img){ art.image = o.img; art.imageFromAi = false; }
@@ -3857,6 +3913,25 @@ async function nwPick(o){
   setTimeout(() => { const tw = $('tabsWrap'); if(tw) tw.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 120);
   toast(partial ? t('nwPartial') : t('nwReady'));
 }
+const NW_WORKER_CODE = "// TF News Proxy — your own free Cloudflare Worker for TF Post Card Studio\n// Fetches Bangladeshi news feeds, article pages and photos for your app.\n// Only the news sites listed below are allowed, so nobody can misuse it.\n\nconst ALLOWED = [\n  'prothomalo.com', 'bdnews24.com', 'jamuna.tv', 'kalbela.com', 'jugantor.com', 'kalerkantho.com',\n  'samakal.com', 'somoynews.tv', 'jagonews24.com', 'thedailystar.net', 'ittefaq.com.bd', 'bd-pratidin.com',\n  'rtvonline.com', 'channel24bd.tv', 'ekattor.tv', 'ntvbd.com', 'channelionline.com', 'dhakapost.com',\n  'banglatribune.com', 'banglanews24.com', 'risingbd.com', 'ajkerpatrika.com', 'deshrupantor.com',\n  'dailynayadiganta.com', 'mzamin.com', 'manabzamin.com', 'dailyinqilab.com', 'bbc.com', 'bbci.co.uk',\n  'news.google.com', 'tbsnews.net', 'dhakatribune.com', 'bonikbarta.com', 'independent24.com',\n  'dbcnews.tv', 'atnnewstv.com', 'news24bd.tv', 'banglavision.tv', 'dailyjanakantha.com', 'bhorerkagoj.com'\n];\n\nconst CORS = {\n  'Access-Control-Allow-Origin': '*',\n  'Access-Control-Allow-Methods': 'GET, OPTIONS',\n  'Access-Control-Allow-Headers': '*'\n};\n\nexport default {\n  async fetch(request) {\n    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });\n    const target = new URL(request.url).searchParams.get('url');\n    if (!target) return new Response('TF News Proxy is running ✅', { headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8' } });\n\n    let u;\n    try { u = new URL(target); } catch (e) { return new Response('bad url', { status: 400, headers: CORS }); }\n    const host = u.hostname.toLowerCase();\n    if (!/^https?:$/.test(u.protocol) || !ALLOWED.some(d => host === d || host.endsWith('.' + d))) {\n      return new Response('site not allowed', { status: 403, headers: CORS });\n    }\n\n    const res = await fetch(u.href, {\n      redirect: 'follow',\n      headers: {\n        'User-Agent': 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36',\n        'Accept': 'text/html,application/xhtml+xml,application/xml,application/rss+xml,image/avif,image/webp,image/*,*/*;q=0.8',\n        'Accept-Language': 'bn-BD,bn;q=0.9,en;q=0.8',\n        'Referer': u.origin + '/'\n      },\n      cf: { cacheTtl: 60, cacheEverything: true }\n    });\n\n    const out = new Response(res.body, res);\n    Object.entries(CORS).forEach(([k, v]) => out.headers.set(k, v));\n    out.headers.set('X-Final-Url', res.url || u.href);\n    out.headers.delete('Set-Cookie');\n    out.headers.delete('Content-Security-Policy');\n    return out;\n  }\n};\n";
+function nwGuide(on){
+  $('nwGuide').classList.toggle('hidden', !on);
+  if(on){ $('nwWorkerIn').value = S.worker || ''; $('nwGuide').scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+}
+async function nwTestWorker(){
+  let v = $('nwWorkerIn').value.trim();
+  if(v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+  if(!/^https:\/\/[^\s]+\.[^\s]+/.test(v)){ toast(t('tBadUrl')); return; }
+  v = v.replace(/[?#].*$/, '');
+  const out = $('nwWorkerMsg'); out.textContent = t('nwTesting');
+  try{
+    const txt = await getText(v + (v.endsWith('/') ? '' : '/') + '?url=' + encodeURIComponent('https://www.prothomalo.com/feed/'), 15000);
+    if(!looksFeed(txt)) throw new Error('not feed');
+    S.worker = v; store.set('worker', v); NW.workerBad = false; if($('workerInput')) $('workerInput').value = v;
+    out.textContent = t('nwWorkerOk'); toast(t('nwWorkerOk'));
+    NW.diag = {}; NW.at = {}; NW.busy = {}; NW.fail = {}; setTimeout(() => { nwGuide(false); nwRefresh(true); }, 900);
+  }catch(e){ out.textContent = t('nwWorkerBad'); }
+}
 function nwInit(){
   if(!$('newsSheet')) return;
   $('liveNewsBtn').addEventListener('click', nwOpen);
@@ -3870,7 +3945,14 @@ function nwInit(){
     $('nwChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
     $('nwList').scrollTop = 0; nwRefresh(false);
   });
-  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn'){ nwClose(); setTimeout(() => { openSettings(); const w = $('workerInput'); if(w){ w.scrollIntoView({ block: 'center' }); w.focus(); } }, 150); } });
+  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn') nwGuide(true); });
+  $('nwGuideBtn').addEventListener('click', () => nwGuide($('nwGuide').classList.contains('hidden')));
+  $('nwGuideClose').addEventListener('click', () => nwGuide(false));
+  $('nwCopyCode').addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(NW_WORKER_CODE); toast(t('nwCopied')); }
+    catch(e){ const ta = $('nwCodeBox'); ta.classList.remove('hidden'); ta.value = NW_WORKER_CODE; ta.focus(); ta.select(); try{ document.execCommand('copy'); toast(t('nwCopied')); }catch(e2){} }
+  });
+  $('nwWorkerSave').addEventListener('click', nwTestWorker);
   $('nwList').addEventListener('click', e => { const b = e.target.closest('.nwitem'); if(!b) return; const o = NW.list[+b.dataset.i]; if(o) nwPick(o); });
   $('newsSheet').addEventListener('click', e => { if(e.target.id === 'newsSheet') nwClose(); });
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && NW.open) nwClose(); });
@@ -3882,6 +3964,28 @@ function nwInit(){
   const langBtns = document.querySelectorAll('[data-lang], #langBtn');
   langBtns.forEach(b => b.addEventListener('click', () => setTimeout(() => { $('nwSearch').placeholder = t('nwSearch'); if(NW.open){ nwChips(); nwRender(); } }, 0)));
 }
+Object.assign(T.bn, {
+  nwGTitle:'⚙️ নিজের ফ্রি প্রক্সি — একবার সেটআপ, সব পত্রিকা চলবে',
+  nwGWhy:'আপনার মোবাইল ইন্টারনেটে বিনামূল্যের পাবলিক সেতুগুলো বন্ধ, তাই অনেক পত্রিকা আসছে না। Cloudflare-এ নিজের একটি ফ্রি প্রক্সি বানালে (দিনে ১ লাখ বার পর্যন্ত ফ্রি) সব পত্রিকার খবর আর আটকে থাকা ছবিও চলে আসবে। কম্পিউটারে করা সহজ, ৫–১০ মিনিট লাগে:',
+  nwG1:'কম্পিউটারে dash.cloudflare.com খুলে ইমেইল দিয়ে ফ্রি অ্যাকাউন্ট খুলুন (ইমেইলে আসা লিংকে চেপে যাচাই করুন)।',
+  nwG2:'বাম মেনুতে "Workers & Pages" চাপুন (কোথাও "Compute" এর ভেতরে থাকতে পারে)।',
+  nwG3:'"Create" চাপুন → "Start with Hello World!" বেছে নিন।',
+  nwG4:'নামের ঘরে tf-news লিখে "Deploy" চাপুন।',
+  nwG5:'এরপর "Edit code" চাপুন। বাম পাশের সব লেখা মুছে (Ctrl+A তারপর Delete) নিচের বাটনে কপি করা কোড পেস্ট করুন (Ctrl+V), তারপর উপরে ডানে "Deploy" চাপুন।',
+  nwG6:'উপরে যে ঠিকানা দেখাবে (…workers.dev দিয়ে শেষ) সেটা কপি করে নিচের ঘরে পেস্ট করুন, তারপর "সংরক্ষণ ও পরীক্ষা" চাপুন। এক ফোনে সেট করলেই হবে না — যে ফোন/কম্পিউটারে অ্যাপ চালাবেন সেখানে একবার ঠিকানাটা দিতে হবে।',
+  nwCopyBtn:'📋 কোড কপি করুন', nwSaveTest:'সংরক্ষণ ও পরীক্ষা'
+});
+Object.assign(T.en, {
+  nwGTitle:'⚙️ Your own free proxy — set up once, every paper works',
+  nwGWhy:'Free public relays are blocked on your mobile network, so many papers do not load. Your own free Cloudflare proxy (free up to 100,000 requests a day) brings every paper and blocked photos too. Easiest on a computer, 5–10 minutes:',
+  nwG1:'On a computer open dash.cloudflare.com and create a free account with your email (confirm the email link).',
+  nwG2:'In the left menu click "Workers & Pages" (it may be inside "Compute").',
+  nwG3:'Click "Create" → choose "Start with Hello World!".',
+  nwG4:'Type tf-news as the name and click "Deploy".',
+  nwG5:'Click "Edit code". Delete everything on the left (Ctrl+A, Delete), paste the code copied with the button below (Ctrl+V), then click "Deploy" at top right.',
+  nwG6:'Copy the address shown at the top (ends in workers.dev), paste it in the box below and tap "Save & test". Do this once on each phone or computer where you use the app.',
+  nwCopyBtn:'📋 Copy code', nwSaveTest:'Save & test'
+});
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

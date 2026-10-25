@@ -642,6 +642,82 @@ body.v6drag{user-select:none;-webkit-user-select:none}
 body.v6railon #studioWrap,body.v6railon #tabsWrap{padding-right:30px}
 body.v6unpin .cardleft{position:static!important;box-shadow:none!important}
 #v6pin{position:fixed;right:40px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:43;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;padding:10px 16px;box-shadow:0 6px 18px rgba(24,119,242,.4);font-size:14px}
+/* ===== v6.2: compact, polished controls ===== */
+/* compact action row */
+.v6acts{display:flex!important;flex-wrap:nowrap!important;gap:6px!important;overflow-x:auto;scrollbar-width:none;margin:6px 0 0!important}
+.v6acts::-webkit-scrollbar{display:none}
+.v6acts .btn{flex:1 0 auto!important;min-height:34px!important;height:34px;padding:0 11px!important;font-size:12.5px!important;gap:5px;border-radius:999px!important;white-space:nowrap}
+.v6acts .btn svg{width:15px;height:15px;flex:none}
+.v6acts #cardDlBtn{background:var(--accent);border-color:var(--accent);color:#fff}
+.v6pinch{margin:4px 2px 0;font-size:11.5px;color:var(--muted);text-align:center}
+/* quick area at the top of the options */
+.v6quickarea{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.v6quickarea .v6tog{padding:2px 0}
+.v6tog .tg{min-height:32px!important;padding:4px 10px 4px 6px!important;font-size:12.5px!important;gap:5px!important}
+.v6tog .tg .ck{width:16px;height:16px}
+.v6tog .tg.on .ck::after{left:4px;top:1px;width:4px;height:7px}
+.v6starinfo{padding:0 2px!important;font-size:11.5px!important}
+/* design strip */
+.v6ds{background:var(--surface-2);border-radius:12px;padding:8px 0 6px}
+.dshead{display:flex;align-items:center;justify-content:space-between;padding:0 10px 6px}
+.dshead b{font-size:13px}
+.dsrow{display:flex;gap:8px;overflow-x:auto;padding:2px 10px 4px;scrollbar-width:none;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;align-items:flex-start}
+.dsrow::-webkit-scrollbar{display:none}
+.dsep{flex:none;writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:700;color:var(--muted);padding:4px 2px;border-left:2px solid var(--line);align-self:stretch;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.dtile{flex:none;scroll-snap-align:start;width:76px;border:0;background:transparent;padding:0;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text);cursor:pointer}
+.dtile .dc{position:relative;display:block;width:76px;border-radius:9px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.18);outline:2.5px solid transparent;outline-offset:1px;transition:outline-color .15s,transform .1s;background:var(--surface)}
+.dtile canvas{display:block;width:100%;height:auto}
+.dtile .ok{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#1e8e3e;color:#fff;font-size:10px;font-style:normal;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.dtile .dl{font-size:11px;font-weight:600;line-height:1.25;text-align:center;color:var(--muted);max-width:76px}
+.dtile.on .dc{outline-color:var(--accent)}
+.dtile.on .dl{color:var(--accent);font-weight:700}
+.dtile:active .dc{transform:scale(.96)}
+/* monetization check */
+.v6mz{border-radius:12px;padding:0 10px;background:var(--surface-2)}
+.v6mz > summary{list-style:none;display:flex;align-items:center;gap:8px;padding:9px 0;cursor:pointer;font-size:13px}
+.v6mz > summary::-webkit-details-marker{display:none}
+.v6mz > summary::after{content:'▾';margin-left:auto;color:var(--muted)}
+.v6mz[open] > summary::after{content:'▴'}
+.mzscore{font-weight:700;border-radius:999px;padding:1px 9px;font-size:12px}
+.v6mz.good .mzscore{background:#e6f4ea;color:#1e7e34}
+.v6mz.warn .mzscore{background:#fef3e0;color:#b45309}
+html[data-theme="dark"] .v6mz.good .mzscore{background:#183d24;color:#7ee2a0}
+html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
+.mzsum{margin:0 0 6px;font-size:12.5px;font-weight:600}
+.v6mz.good .mzsum{color:var(--ok)}
+.mzlist{display:flex;flex-direction:column;gap:4px;padding-bottom:10px}
+.mzi{display:flex;align-items:center;gap:8px;font-size:12.5px;line-height:1.35}
+.mzi .mk{width:18px;height:18px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.mzi.ok .mk{background:#1e8e3e}.mzi.ok .mk::before{content:'✓'}
+.mzi.bad .mk{background:#e37400}.mzi.bad .mk::before{content:'!'}
+.mzi.soft .mk{background:#bcc0c4}.mzi.soft .mk::before{content:'·'}
+.mzi .mt{flex:1;min-width:0}
+.mzfix{flex:none;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;font-size:11.5px;padding:4px 10px}
+/* modal zoom */
+#cardModalImg{touch-action:none;transform-origin:center center;transition:transform .05s linear;cursor:zoom-in;user-select:none;-webkit-user-drag:none}
+#cardModal .modal-box{overflow:hidden}
+.v6modalhint{margin:0;text-align:center;font-size:12px;color:var(--muted)}
+@media (max-width:760px){
+  /* slimmer chrome so more of the options show */
+  #tabsWrap .tabs{margin:8px 0 0}
+  .tabacts .btn{min-height:36px!important;height:36px;font-size:12.5px!important;border-radius:999px}
+  .tabpanel{margin:8px 0 30px}
+  #tp-card .scard{padding:10px 10px 14px}
+  #tp-card .scard > h3{display:none}
+  .cardgrid{margin-top:0}
+  .cardleft{padding:4px 0 6px!important}
+  .canvasbox{padding:6px;border-radius:10px}
+  #cardCanvas{max-height:31vh}
+  .cardright *{scroll-margin-top:calc(31vh + 120px)}
+  .v6sec{margin:0 0 10px;padding:3px}
+  .v6sec button{min-height:40px;flex-direction:row;gap:5px;font-size:12.5px;padding:6px 2px}
+  .v6sec button svg{width:16px;height:16px}
+  .tab{min-height:50px;font-size:11px}
+  .tab .ti svg{width:22px;height:22px}
+  body.has-article{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+  .dbody{gap:8px}
+  .scard input[type=text],.scard input[type=url],.scard select,.scard textarea{padding:9px 11px}
+}
 </style>
 </head>
 <body>
@@ -2997,11 +3073,17 @@ function focusCardField(k){
 
 /* canvas pointer: click text → edit field; drag photo / logo / text */
 function wireCanvas(){
-  const cv = $('cardCanvas'); let drag = null;
+  const cv = $('cardCanvas'); let drag = null; const ptrs = new Map(); let pinch = null;
+  const pdist = () => { const [a, b] = Array.from(ptrs.values()); return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
   const pt = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; };
   const hit = p => { for(let i = C.regions.length - 1; i >= 0; i--){ const g = C.regions[i]; if(p.x >= g.x && p.x <= g.x + g.w && p.y >= g.y && p.y <= g.y + g.h) return g; } return null; };
-  cv.addEventListener('pointerdown', e => { const p = pt(e); drag = { last: p, start: p, hit: hit(p), moved: false }; try{ cv.setPointerCapture(e.pointerId); }catch(er){} cv.classList.add('dragging'); });
+  cv.addEventListener('pointerdown', e => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); try{ cv.setPointerCapture(e.pointerId); }catch(er){}
+    if(ptrs.size >= 2){ drag = null; cv.classList.remove('dragging'); if(ptrs.size === 2) pinch = { d: pdist(), z: C.zoom }; return; }
+    const p = pt(e); drag = { last: p, start: p, hit: hit(p), moved: false }; try{ cv.setPointerCapture(e.pointerId); }catch(er){} cv.classList.add('dragging'); });
   cv.addEventListener('pointermove', e => {
+    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if(pinch){ if(ptrs.size >= 2){ C.zoom = clamp(Math.round(pinch.z * pdist() / pinch.d), 100, 300); $('cZoom').value = C.zoom; scheduleRender(); } return; }
     const p = pt(e);
     if(!drag){ const h = hit(p); cv.style.cursor = h && h.k !== 'photo' && h.k !== 'logo' ? 'text' : 'grab'; return; }
     const dx = p.x - drag.last.x, dy = p.y - drag.last.y; drag.last = p;
@@ -3014,7 +3096,9 @@ function wireCanvas(){
     else { if(C.pmax.x > 0) C.panX = clamp(C.panX + dx / C.pmax.x, -1, 1); if(C.pmax.y > 0) C.panY = clamp(C.panY + dy / C.pmax.y, -1, 1); }
     scheduleRender();
   });
-  const end = () => {
+  const end = e => {
+    if(e && e.pointerId != null) ptrs.delete(e.pointerId);
+    if(pinch){ if(!ptrs.size) pinch = null; return; }
     if(!drag) return; cv.classList.remove('dragging');
     if(!drag.moved && drag.hit && drag.hit.k !== 'photo' && drag.hit.k !== 'logo') focusCardField(drag.hit.k);
     if(drag.moved && drag.hit && drag.hit.k === 'logo') saveCardDesign();
@@ -3165,7 +3249,7 @@ function initStudio(){
   $('cCenter').addEventListener('click', () => { C.panX = C.panY = 0; C.zoom = 100; $('cZoom').value = 100; scheduleRender(); });
   $('cardPreviewBtn').addEventListener('click', previewCard);
   $('cardDlBtn').addEventListener('click', downloadCard);
-  $('cardNextBtn').addEventListener('click', nextDesign);
+  $('cardNextBtn').addEventListener('click', () => nextDesign());
   $('cardResetBtn').addEventListener('click', resetCard);
   $('modalBackBtn').addEventListener('click', () => { closeModal(); focusCardField('headline'); });
   $('modalDlBtn').addEventListener('click', () => { closeModal(); downloadCard(); });
@@ -4308,7 +4392,9 @@ function numOf(F){
   for(const s of [F.headline, F.sub, F.desc, F.points]){ const m = String(s || '').replace(/\*/g, '').match(NUM_RE); if(m) return { n: m[0].trim(), label }; }
   return { n: '', label };
 }
-function fitFlow(build, avail){ let s = 1.2, r = build(s); for(let i = 0; i < 9 && r.h > avail; i++){ s *= 0.92; r = build(s); } return r; }
+/* taller cards (4:5, 9:16 story) get bigger text so the design fills the space instead of leaving an empty bottom */
+function tallBoost(){ return C.ratio === '9:16' ? 1.5 : C.ratio === '4:5' ? 1.14 : 1; }
+function fitFlow(build, avail){ let s = 1.2 * tallBoost(), r = build(s); for(let i = 0; i < 16 && r.h > avail; i++){ s *= 0.93; r = build(s); } return r; }
 function stripText(ctx, text, x, cy, size, color, k){
   ctx.font = fontStr(size, 600, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = color;
   ctx.fillText(text, x, cy + size * 0.04); const w = ctx.measureText(text).width;
@@ -4409,7 +4495,7 @@ function tplBignum(ctx, W, H, u, land){
   ctx.beginPath(); ctx.arc(W * 0.04, H * 0.97, m * 0.24, 0, Math.PI * 2); ctx.fill();
   let hx = pad; const cw0 = catPill(ctx, F, pad, pad, u, C.hl, '#111'); if(cw0) hx += cw0 + 20 * u;
   if(nz(F.date)) stripText(ctx, F.date, hx, pad + 23 * u, 25 * u, hexA(ink, 0.8), 'date');
-  const d = Math.round(m * (land ? 0.36 : 0.3)), x0 = pad, y0 = pad + 88 * u;
+  const tb = tallBoost(), d = Math.round(m * (land ? 0.36 : 0.3) * (tb > 1.3 ? 1.3 : tb)), x0 = pad, y0 = pad + 88 * u;
   ctx.fillStyle = C.hl; ctx.beginPath(); ctx.arc(x0 + d / 2, y0 + d / 2, d / 2 + 9 * u, 0, Math.PI * 2); ctx.fill();
   drawPhoto(ctx, x0, y0, d, d, d / 2);
   const capH = nz(F.label) ? drawCredit(ctx, F.label, x0 - 30 * u, y0 + d + 20 * u, d + 60 * u, 20 * u, hexA(ink, 0.7), 'center') : 0;
@@ -4426,11 +4512,11 @@ function tplBignum(ctx, W, H, u, land){
   if(lab) drawItem(ctx, lab, nx, ny + ns * 1.12 + 26 * u, nw, 'left');
   const foot = 64 * u, take = nz(F.take), fw = W - 2 * pad;
   const y = Math.max(y0 + d + capH, ny + blockH) + 40 * u;
-  const tk = take ? measureItem(ctx, { k: 'take', text: '💬 ' + take, size: 30 * u, weight: 700, fam: BFAM, color: boxText(C.hl), lh: 1.42, maxLines: 3, min: 18 * u }, fw - 56 * u, u) : null;
+  const tk = take ? measureItem(ctx, { k: 'take', text: '💬 ' + take, size: 30 * u * tb, weight: 700, fam: BFAM, color: boxText(C.hl), lh: 1.42, maxLines: 3, min: 18 * u }, fw - 56 * u, u) : null;
   const tkH = tk ? tk.h + 44 * u : 0, availH = H - foot - (tk ? tkH + 30 * u : 0) - y - 10 * u;
   const st = layoutStack(ctx, [
-    { k: 'headline', text: F.headline, size: 66 * u * hs, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, lh: 1.36, maxH: availH * (take ? 0.98 : 0.7), min: 24 * u },
-    { k: 'desc', text: take ? '' : F.desc, size: 29 * u, weight: 400, fam: BFAM, color: hexA(ink, 0.85), lh: 1.45, maxH: availH * 0.26, min: 18 * u }
+    { k: 'headline', text: F.headline, size: 66 * u * hs * tb, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, lh: 1.36, maxH: availH * (take ? 0.98 : 0.7), min: 24 * u },
+    { k: 'desc', text: take ? '' : F.desc, size: 29 * u * tb, weight: 400, fam: BFAM, color: hexA(ink, 0.85), lh: 1.45, maxH: availH * 0.26, min: 18 * u }
   ], fw, u);
   drawStack(ctx, st, pad, y + Math.max(0, (availH - st.total) * 0.5) + C.textY * u, fw, C.align);
   if(tk){ const by = H - foot - tkH - 16 * u; ctx.fillStyle = C.hl; rr(ctx, pad, by, fw, tkH, 12 * u); ctx.fill(); drawItem(ctx, tk, pad + 28 * u, by + 22 * u, fw - 56 * u, 'left'); }
@@ -4480,7 +4566,7 @@ function tplPolaroid(ctx, W, H, u, land){
   ctx.fillStyle = '#fbf3df'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(120,90,40,.11)';
   for(let y = 30 * u; y < H; y += 38 * u) for(let x = 30 * u; x < W; x += 38 * u){ ctx.beginPath(); ctx.arc(x, y, 2 * u, 0, Math.PI * 2); ctx.fill(); }
-  const foot = 68 * u, pw = Math.round(land ? H * 0.44 : W * 0.38), fr = 18 * u, pin = pw - 2 * fr, ph = pin + fr + 80 * u;
+  const tb = tallBoost(), foot = 68 * u, pw = Math.round(land ? H * 0.44 : W * 0.38 * (tb > 1.3 ? 1.22 : 1)), fr = 18 * u, pin = pw - 2 * fr, ph = pin + fr + 80 * u;
   const px = pad, py = land ? (H - foot - ph) / 2 : pad + 30 * u;
   ctx.save(); ctx.translate(px + pw / 2, py + ph / 2); ctx.rotate(-0.05);
   ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 28 * u; ctx.shadowOffsetY = 10 * u; ctx.fillStyle = '#ffffff'; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
@@ -4494,12 +4580,12 @@ function tplPolaroid(ctx, W, H, u, land){
   if(nz(F.label)) C.regions.push({ k: 'label', x: px, y: py + ph - 72 * u, w: pw, h: 60 * u });
   const cx = px + pw + 48 * u, cw = W - cx - pad, take = nz(F.take), noteTxt = take || nz(F.desc), noteLbl = take ? t('takeLbl') : t('whatLbl');
   const noteW = land ? cw : W - 2 * pad;
-  const note = noteTxt ? measureItem(ctx, { k: take ? 'take' : 'desc', text: noteTxt, size: 36 * u, weight: 600, fam: BFAM, color: boxText(C.hl), lh: 1.45, maxLines: land ? 5 : 4, min: 18 * u }, noteW - 64 * u, u) : null;
+  const note = noteTxt ? measureItem(ctx, { k: take ? 'take' : 'desc', text: noteTxt, size: 36 * u * tb, weight: 600, fam: BFAM, color: boxText(C.hl), lh: 1.45, maxLines: land ? 5 : tb > 1.3 ? 6 : 4, min: 18 * u }, noteW - 64 * u, u) : null;
   const noteH = note ? note.h + 104 * u : 0;
   const colTop = land ? pad + 20 * u : py - 6 * u, colH = land ? H - foot - colTop - (note ? noteH + 34 * u : 0) - 10 * u : ph + 10 * u;
   const st = layoutStack(ctx, [
     nz(F.cat) ? { type: 'pill', k: 'cat', text: F.cat, size: 26 * u, bg: C.accent, color: '#fff' } : null,
-    { k: 'headline', text: F.headline, size: 64 * u * hs, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, hlMode: 'box', hlText: boxText(C.hl), lh: 1.38, maxH: colH * 0.8, min: 24 * u, gap: 18 * u },
+    { k: 'headline', text: F.headline, size: 64 * u * hs * tb, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, hlMode: 'box', hlText: boxText(C.hl), lh: 1.38, maxH: colH * 0.8, min: 24 * u, gap: 18 * u },
     { k: 'sub', text: F.sub, size: 27 * u, weight: 600, fam: BFAM, color: C.accent, lh: 1.4, maxH: colH * 0.14, min: 18 * u },
     { k: 'date', text: F.date, size: 23 * u, weight: 500, fam: BFAM, color: hexA(ink, 0.6), maxLines: 1, gap: 10 * u }
   ], cw, u);
@@ -5004,7 +5090,11 @@ function drawDateBadge(cv, text){
   const tw = Math.min(ctx.measureText(text).width, W * 0.6), w = padX * 2 + ic + gap + tw;
   const lp = C.logoImg ? (C.logoPos || 'tr') : '';
   const low = typeof isQuoteTpl === 'function' && isQuoteTpl(C.template); // quote designs keep the top for the quote mark
-  const x = (low ? lp === 'bl' : lp === 'tl') ? W - m - w : m, y = low ? H - m - h : m;
+  // designs that keep a category pill / ribbon on the top-left get the badge on the right
+  const wantR = low || ['insight', 'bignum', 'explain', 'glance'].includes(C.template);
+  const busy = low ? (wantR ? 'br' : 'bl') : (wantR ? 'tr' : 'tl');
+  const right = lp === busy ? !wantR : wantR;
+  const x = right ? W - m - w : m, y = low ? H - m - h : C.template === 'insight' ? (96 * u - h) / 2 : m;
   const bg = C.hl || '#ffd200', fg = lum(bg) > 0.55 ? '#111111' : '#ffffff';
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14 * u; ctx.shadowOffsetY = 4 * u;
   ctx.fillStyle = bg; rr(ctx, x, y, w, h, h / 2); ctx.fill();
@@ -5165,6 +5255,181 @@ const showTab61 = showTab;
 showTab = function(name){ setUnpin(false); showTab61(name); railTick(); };
 const v61Start = () => setTimeout(() => setTimeout(() => { try{ v61Build(); }catch(e){ console.error('v6.1', e); } }, 0), 0);
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v61Start); else v61Start();
+
+/* ===== v6.2: all designs in one thumbnail strip · compact controls · monetization check · pinch zoom ===== */
+Object.assign(T.bn, {
+  dsNews:'📰 খবরের ডিজাইন', dsQuote:'❝ কে কী বললেন', dsTitle:'🎨 ডিজাইন বেছে নিন',
+  dn_band:'ক্লাসিক ব্যান্ড', dn_split:'স্প্লিট', dn_quote:'উক্তি বক্স', dn_overlay:'গ্রেডিয়েন্ট', dn_frame:'রঙিন ফ্রেম', dn_insight:'বিশ্লেষণ', dn_bignum:'বড় সংখ্যা', dn_explain:'কী ঘটেছে', dn_polaroid:'পোলারয়েড', dn_glance:'এক নজরে', dn_qgrid:'গ্রিড পেপার', dn_qbig:'বড় হাইলাইট', dn_qdark:'ডার্ক',
+  aDl:'ডাউনলোড', aShare:'শেয়ার', aView:'বড় করে', aNext:'নতুন ডিজাইন', aReset:'রিসেট',
+  pinchHint:'💡 দুই আঙুলে ছবি ছোট-বড় করুন, এক আঙুলে সরান', modalHint:'দুই আঙুলে জুম করুন · দুইবার চাপলে আগের মতো',
+  mzTitle:'💰 মনিটাইজেশন চেক', mzOk:'সব ঠিক আছে — মনিটাইজেশনের জন্য উপযুক্ত', mzFix:'আরও নিরাপদ করতে:',
+  mz_text:'শিরোনাম লেখা আছে', mz_words:'সংবেদনশীল শব্দ নেই / স্টার দেওয়া', mz_credit:'ছবি থাকলে ছবির সূত্র চালু', mz_src:'খবরের সূত্র দেখানো', mz_orig:'নিজস্ব ধাঁচের ডিজাইন (খবরের ছবি ছোট) বা নিজের/AI ছবি', mz_brand:'নিজের লোগো যুক্ত',
+  mzFixWords:'স্টার চালু করুন', mzFixCredit:'ছবির সূত্র চালু করুন', mzFixSrc:'সূত্র চালু করুন', mzFixOrig:'✅ ডিজাইন বেছে নিন', mzFixOrigQ:'নিজের/AI ছবি দিন', mzFixBrand:'লোগো দিন',
+  tMzFixed:'ঠিক করা হয়েছে'
+});
+Object.assign(T.en, {
+  dsNews:'📰 News designs', dsQuote:'❝ Who said what', dsTitle:'🎨 Pick a design',
+  dn_band:'Classic band', dn_split:'Split', dn_quote:'Quote box', dn_overlay:'Gradient', dn_frame:'Color frame', dn_insight:'Insight', dn_bignum:'Big number', dn_explain:'What happened', dn_polaroid:'Polaroid', dn_glance:'At a glance', dn_qgrid:'Grid paper', dn_qbig:'Big highlight', dn_qdark:'Dark',
+  aDl:'Download', aShare:'Share', aView:'View', aNext:'Next design', aReset:'Reset',
+  pinchHint:'💡 Pinch with two fingers to zoom the photo, drag with one to move it', modalHint:'Pinch to zoom · double-tap to reset',
+  mzTitle:'💰 Monetization check', mzOk:'All good — suitable for monetization', mzFix:'To make it safer:',
+  mz_text:'Headline written', mz_words:'No sensitive words / stars on', mz_credit:'Photo credit on (when a photo is used)', mz_src:'News source shown', mz_orig:'Original-style design (small news photo) or your own/AI photo', mz_brand:'Your logo added',
+  mzFixWords:'Turn on stars', mzFixCredit:'Turn on photo credit', mzFixSrc:'Turn on source', mzFixOrig:'Pick a ✅ design', mzFixOrigQ:'Use your own/AI photo', mzFixBrand:'Add logo',
+  tMzFixed:'Fixed'
+});
+
+const SAFE_TPL = ['insight', 'bignum', 'explain', 'polaroid', 'glance'];
+const DS_KEYS = ['template', 'font', 'tc', 'accent', 'hl', 'align', 'overlay'];
+
+/* ---- thumbnails: every design painted with the current text & photo ---- */
+let dsKey = '', dsTimer = 0, dsJob = 0;
+function dsState(){ return JSON.stringify([C.fields, C.ratio, C.src, C.img ? C.img.src.slice(-40) : '', C.zoom, C.panX, C.panY, C.textY, S.cardStars, S.dateBadge, S.showNewsSrc, S.showPhotoSrc, S.marker, S.takeOn, C.logoImg ? 1 : 0, C.logoPos, C.logoSize, C.hSize]); }
+function paintTpl(k, off){
+  const keep = {}; DS_KEYS.forEach(x => keep[x] = C[x]); const regions = C.regions, pmax = C.pmax;
+  if(k !== C.template){ const d = TPL[k] || TPL.band; C.template = k; if(d.font) C.font = d.font; C.tc = d.tc; C.accent = d.accent; C.hl = d.hl; C.align = d.align; C.overlay = d.overlay; }
+  try{ paintCard(off); }finally{ DS_KEYS.forEach(x => C[x] = keep[x]); C.regions = regions; C.pmax = pmax; }
+}
+function dsRefresh(force){
+  const key = dsState(); if(!force && key === dsKey) return; dsKey = key;
+  const job = ++dsJob, tiles = Array.from(document.querySelectorAll('.v6ds .dtile')), off = document.createElement('canvas');
+  let i = 0;
+  const step = () => {
+    if(job !== dsJob || i >= tiles.length) return;
+    const tile = tiles[i++], k = tile.dataset.k, tc = tile.querySelector('canvas');
+    try{
+      paintTpl(k, off);
+      const tw = 132, th = Math.round(tw * off.height / off.width);
+      if(tc.width !== tw) tc.width = tw; if(tc.height !== th) tc.height = th;
+      const x = tc.getContext('2d'); x.imageSmoothingQuality = 'high'; x.clearRect(0, 0, tw, th); x.drawImage(off, 0, 0, tw, th);
+    }catch(e){ console.error(e); }
+    setTimeout(step, 16);
+  };
+  step();
+}
+function dsSchedule(){ clearTimeout(dsTimer); dsTimer = setTimeout(() => dsRefresh(false), 700); }
+function dsMark(){
+  document.querySelectorAll('.v6ds .dtile').forEach(b => { const on = b.dataset.k === C.template; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  const on = document.querySelector('.v6ds .dtile.on'); const sc = document.querySelector('.v6ds .dsrow');
+  if(on && sc){ const l = on.offsetLeft - 16; if(l < sc.scrollLeft || l + on.offsetWidth > sc.scrollLeft + sc.clientWidth) sc.scrollTo({ left: Math.max(0, l), behavior: 'smooth' }); }
+}
+const renderCard62 = renderCard;
+renderCard = function(){ renderCard62(); dsSchedule(); mzSchedule(); };
+const applyTemplate62 = applyTemplate;
+applyTemplate = function(name){ applyTemplate62(name); dsMark(); };
+const nextDesign62 = nextDesign;
+nextDesign = function(){ // walk through ALL designs in strip order, not just one family
+  const order = dsOrder(), i = order.indexOf(C.template); applyTemplate(order[(i + 1) % order.length]);
+};
+function dsOrder(){
+  const all = TPL_ORDER.filter(k => TPL[k]);
+  const news = all.filter(k => !isQuoteTpl(k)), q = all.filter(k => isQuoteTpl(k));
+  news.sort((a, b) => SAFE_TPL.includes(b) - SAFE_TPL.includes(a));
+  return news.concat(q);
+}
+
+/* ---- monetization check (live) ---- */
+let mzTimer = 0;
+function mzSchedule(){ clearTimeout(mzTimer); mzTimer = setTimeout(mzUpdate, 400); }
+function mzItems(){
+  const F = C.fields, photo = C.src !== 'none' && !!C.img, newsPhoto = C.src === 'orig' && photo;
+  const sens = starCache.found.length > 0;
+  return [
+    { k: 'text', ok: !!norm(String(F.headline || '').replace(/\*/g, '')) },
+    { k: 'words', ok: !sens || S.cardStars, fix: 'mzFixWords', act: () => setStars(true, true) },
+    { k: 'credit', ok: !photo || C.src !== 'orig' || (S.showPhotoSrc && !!norm(F.label)), fix: 'mzFixCredit', act: () => { S.showPhotoSrc = true; store.set('showPhotoSrc', true); if(!norm(F.label)){ F.label = autoLabel(C.src); C.labelAuto = true; syncFields(); } } },
+    { k: 'src', ok: !norm(F.source) || S.showNewsSrc, fix: 'mzFixSrc', act: () => { S.showNewsSrc = true; store.set('showNewsSrc', true); } },
+    isQuoteTpl(C.template)
+      ? { k: 'orig', ok: !newsPhoto || !!C.spkImg, fix: 'mzFixOrigQ', act: () => setSource('upload') }
+      : { k: 'orig', ok: !newsPhoto || SAFE_TPL.includes(C.template), fix: 'mzFixOrig', act: () => applyTemplate('insight') },
+    { k: 'brand', ok: !!C.logoImg, soft: true, fix: 'mzFixBrand', act: () => { $('logoUpBtn').click(); } }
+  ];
+}
+function mzUpdate(){
+  const box = $('v6mz'); if(!box) return;
+  const items = mzItems(), hard = items.filter(x => !x.soft), okN = items.filter(x => x.ok).length, allHard = hard.every(x => x.ok);
+  const n = v => S.lang === 'bn' ? bnNum(v) : v;
+  box.classList.toggle('good', allHard); box.classList.toggle('warn', !allHard);
+  box.querySelector('.mzhead b').textContent = t('mzTitle');
+  box.querySelector('.mzscore').textContent = n(okN) + '/' + n(items.length);
+  const list = box.querySelector('.mzlist'); list.innerHTML = '';
+  items.forEach(x => {
+    const li = mk('div', 'mzi' + (x.ok ? ' ok' : x.soft ? ' soft' : ' bad'), '<span class="mk"></span><span class="mt"></span>');
+    li.querySelector('.mt').textContent = t('mz_' + x.k);
+    if(!x.ok && x.fix){ const b = mk('button', 'mzfix'); b.type = 'button'; b.textContent = t(x.fix); b.addEventListener('click', e => { e.stopPropagation(); x.act(); updateTogs(); ensureFonts().then(renderCard); toast(t('tMzFixed')); }); li.appendChild(b); }
+    list.appendChild(li);
+  });
+  box.querySelector('.mzsum').textContent = allHard ? t('mzOk') : t('mzFix');
+  updateTogs();
+}
+
+/* ---- pinch zoom in the big preview ---- */
+function wireModalZoom(){
+  const im = $('cardModalImg'); if(!im) return;
+  let s = 1, tx = 0, ty = 0; const P = new Map(); let g = null, lastTap = 0;
+  const apply = () => { im.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')'; };
+  const reset = () => { s = 1; tx = ty = 0; apply(); };
+  const mid = () => { const [a, b] = Array.from(P.values()); return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  im.addEventListener('pointerdown', e => {
+    e.preventDefault(); im.setPointerCapture(e.pointerId); P.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if(P.size === 1){ const now = Date.now(); if(now - lastTap < 300){ reset(); lastTap = 0; } else lastTap = now; }
+    g = P.size === 2 ? Object.assign(mid(), { s, tx, ty, mode: 'pinch' }) : { x: e.clientX, y: e.clientY, s, tx, ty, mode: 'pan' };
+  });
+  im.addEventListener('pointermove', e => {
+    if(!P.has(e.pointerId) || !g) return; P.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if(g.mode === 'pinch' && P.size >= 2){ const m = mid(); s = clamp(g.s * m.d / g.d, 1, 5); tx = g.tx + (m.x - g.x); ty = g.ty + (m.y - g.y); apply(); }
+    else if(g.mode === 'pan' && s > 1){ tx = g.tx + (e.clientX - g.x); ty = g.ty + (e.clientY - g.y); apply(); }
+  });
+  const up = e => { P.delete(e.pointerId); if(P.size === 1){ const [p] = Array.from(P.values()); g = { x: p.x, y: p.y, s, tx, ty, mode: 'pan' }; } else if(!P.size){ g = null; if(s <= 1.02) reset(); } };
+  im.addEventListener('pointerup', up); im.addEventListener('pointercancel', up);
+  im.addEventListener('wheel', e => { e.preventDefault(); s = clamp(s * (e.deltaY < 0 ? 1.12 : 0.89), 1, 5); if(s === 1){ tx = ty = 0; } apply(); }, { passive: false });
+  new MutationObserver(() => { if($('cardModal').classList.contains('hidden')) reset(); }).observe($('cardModal'), { attributes: true, attributeFilter: ['class'] });
+}
+
+/* ---- build ---- */
+function v62Build(){
+  if($('v62Built') || !$('v61Built')) return;
+  document.body.appendChild(mk('i', 'hidden')).id = 'v62Built';
+  const left = document.querySelector('.cardleft'), right = document.querySelector('.cardright');
+
+  /* compact action row with icons */
+  const row = $('cardDlBtn').closest('.srow'); row.classList.add('v6acts');
+  const A = [['cardDlBtn', 'aDl', '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'], ['v6CardShare', 'aShare', IC.share], ['cardPreviewBtn', 'aView', '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'], ['cardNextBtn', 'aNext', '<path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/>'], ['cardResetBtn', 'aReset', '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>']];
+  A.forEach(([id, k, p]) => { const b = $(id); if(!b) return; b.removeAttribute('data-i18n'); b.innerHTML = ic(p) + '<span data-i18n="' + k + '"></span>'; row.appendChild(b); });
+
+  /* pinch hint under the preview */
+  const hint = mk('p', 'v6pinch'); hint.setAttribute('data-i18n', 'pinchHint'); left.querySelector('.canvasbox').after(hint);
+
+  /* quick area at the top of the options: toggles · design strip · monetization check */
+  const quick = mk('div', 'v6quickarea');
+  quick.appendChild(document.querySelector('.v6tog')); quick.appendChild($('starInfo'));
+  const ds = mk('div', 'v6ds', '<div class="dshead"><b data-i18n="dsTitle"></b></div><div class="dsrow" role="listbox"></div>');
+  const dsrow = ds.querySelector('.dsrow');
+  const order = dsOrder(); let lastQuote = null;
+  order.forEach(k => {
+    const q = isQuoteTpl(k);
+    if(q !== lastQuote){ const sep = mk('div', 'dsep'); sep.setAttribute('data-i18n', q ? 'dsQuote' : 'dsNews'); dsrow.appendChild(sep); lastQuote = q; }
+    const b = mk('button', 'dtile' + (SAFE_TPL.includes(k) ? ' safe' : ''), '<span class="dc"><canvas width="132" height="132"></canvas>' + (SAFE_TPL.includes(k) ? '<i class="ok">✓</i>' : '') + '</span><span class="dl" data-i18n="dn_' + k + '"></span>');
+    b.type = 'button'; b.dataset.k = k; b.setAttribute('role', 'option');
+    b.addEventListener('click', () => { if(k !== C.template) applyTemplate(k); else dsMark(); });
+    dsrow.appendChild(b);
+  });
+  quick.appendChild(ds);
+  const mz = mk('details', 'v6mz', '<summary class="mzhead"><b></b><span class="mzscore"></span></summary><p class="mzsum"></p><div class="mzlist"></div>'); mz.id = 'v6mz';
+  quick.appendChild(mz);
+  right.insertBefore(quick, right.firstChild);
+
+  /* the old design chips/select are replaced by the strip */
+  const oldChips = $('tplChips'); if(oldChips) oldChips.classList.add('hidden');
+
+  wireModalZoom();
+  const mh = mk('p', 'v6modalhint'); mh.setAttribute('data-i18n', 'modalHint'); document.querySelector('#cardModal .modal-box').insertBefore(mh, document.querySelector('#cardModal .modal-box .srow'));
+
+  applyI18n(); dsMark(); dsRefresh(true); mzUpdate();
+}
+const studioI18n62 = studioI18n;
+studioI18n = function(){ studioI18n62(); if($('v62Built')){ mzUpdate(); } };
+const v62Start = () => setTimeout(() => setTimeout(() => setTimeout(() => { try{ v62Build(); }catch(e){ console.error('v6.2', e); } }, 0), 0), 0);
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v62Start); else v62Start();
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

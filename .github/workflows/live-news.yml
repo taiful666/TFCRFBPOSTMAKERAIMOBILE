@@ -1,0 +1,177 @@
+# Collects the latest Bangladeshi news every 15 minutes on GitHub's servers
+# and saves it as news.json next to the app. Nothing to set up — upload and done.
+name: Live news for TF app
+
+on:
+  schedule:
+    - cron: '4,19,34,49 * * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/live-news.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-news
+  cancel-in-progress: false
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect the latest news
+        run: |
+          cat > /tmp/fetch-news.mjs <<'EOF'
+          // Collects the latest Bangladeshi news on GitHub's servers and writes news.json for the app.
+          import { writeFileSync } from 'node:fs';
+
+          const SOURCES = [
+            ['prothomalo', 'prothomalo.com', ['https://www.prothomalo.com/feed/'], { q: 'https://www.prothomalo.com', qi: 'https://images.prothomalo.com/' }],
+            ['jamuna', 'jamuna.tv', ['https://jamuna.tv/feed', 'https://jamuna.tv/rss.xml', 'https://jamuna.tv/feed/rss.xml']],
+            ['kalbela', 'kalbela.com', ['https://www.kalbela.com/rss.xml', 'https://www.kalbela.com/feed', 'https://www.kalbela.com/feed/rss.xml']],
+            ['bdnews24', 'bangla.bdnews24.com', ['https://bangla.bdnews24.com/feed'], { q: 'https://bangla.bdnews24.com' }],
+            ['jugantor', 'jugantor.com', ['https://www.jugantor.com/feed/rss.xml', 'https://www.jugantor.com/rss.xml']],
+            ['kalerkantho', 'kalerkantho.com', ['https://www.kalerkantho.com/rss.xml', 'https://www.kalerkantho.com/feed/rss.xml']],
+            ['samakal', 'samakal.com', ['https://samakal.com/feed', 'https://samakal.com/rss.xml', 'https://samakal.com/feed/rss.xml']],
+            ['somoy', 'somoynews.tv', ['https://www.somoynews.tv/rss.xml', 'https://www.somoynews.tv/feed', 'https://www.somoynews.tv/rss']],
+            ['jagonews', 'jagonews24.com', ['https://www.jagonews24.com/rss/rss.xml']],
+            ['dailystarbn', 'bangla.thedailystar.net', ['https://bangla.thedailystar.net/rss.xml', 'https://bangla.thedailystar.net/feed']],
+            ['ittefaq', 'ittefaq.com.bd', ['https://www.ittefaq.com.bd/feed/', 'https://www.ittefaq.com.bd/rss.xml']],
+            ['bdpratidin', 'bd-pratidin.com', ['https://www.bd-pratidin.com/rss.xml', 'https://www.bd-pratidin.com/feed']],
+            ['rtv', 'rtvonline.com', ['https://www.rtvonline.com/rss/rss.xml', 'https://www.rtvonline.com/rss.xml', 'https://www.rtvonline.com/feed']],
+            ['channel24', 'channel24bd.tv', ['https://www.channel24bd.tv/rss.xml', 'https://www.channel24bd.tv/rss/rss.xml', 'https://www.channel24bd.tv/feed']],
+            ['ekattor', 'ekattor.tv', ['https://ekattor.tv/rss.xml', 'https://ekattor.tv/feed']],
+            ['ntv', 'ntvbd.com', ['https://www.ntvbd.com/rss.xml', 'https://www.ntvbd.com/feed']],
+            ['channeli', 'channelionline.com', ['https://www.channelionline.com/feed/']],
+            ['dhakapost', 'dhakapost.com', ['https://www.dhakapost.com/rss/rss.xml', 'https://www.dhakapost.com/rss.xml', 'https://www.dhakapost.com/feed']],
+            ['banglatribune', 'banglatribune.com', ['https://www.banglatribune.com/feed/']],
+            ['banglanews24', 'banglanews24.com', ['https://www.banglanews24.com/rss/rss.xml', 'https://www.banglanews24.com/rss.xml']],
+            ['risingbd', 'risingbd.com', ['https://www.risingbd.com/rss/rss.xml']],
+            ['ajkerpatrika', 'ajkerpatrika.com', ['https://www.ajkerpatrika.com/feed', 'https://www.ajkerpatrika.com/rss.xml']],
+            ['deshrupantor', 'deshrupantor.com', ['https://www.deshrupantor.com/rss.xml', 'https://www.deshrupantor.com/feed']],
+            ['nayadiganta', 'dailynayadiganta.com', ['https://www.dailynayadiganta.com/rss.xml', 'https://www.dailynayadiganta.com/feed']],
+            ['manabzamin', 'mzamin.com', ['https://mzamin.com/rss.xml', 'https://mzamin.com/feed']],
+            ['inqilab', 'dailyinqilab.com', ['https://dailyinqilab.com/rss.xml', 'https://www.dailyinqilab.com/rss.xml']],
+            ['bbcbangla', 'bbc.com/bengali', ['https://feeds.bbci.co.uk/bengali/rss.xml']],
+            ['dailystar', 'thedailystar.net', ['https://www.thedailystar.net/frontpage/rss.xml', 'https://www.thedailystar.net/rss.xml']]
+          ];
+          const GOOGLE_TOP = 'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn';
+          const gnSite = d => 'https://news.google.com/rss/search?q=' + encodeURIComponent('site:' + d + ' when:2d') + '&hl=bn&gl=BD&ceid=BD:bn';
+          const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
+          const PER_SOURCE = 25, DETAIL_PER_SOURCE = 10;
+
+          async function get(url, ms = 15000) {
+            const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+            try {
+              const r = await fetch(url, { signal: c.signal, redirect: 'follow', headers: { 'User-Agent': UA, 'Accept': '*/*', 'Accept-Language': 'bn-BD,bn;q=0.9,en;q=0.8' } });
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return await r.text();
+            } finally { clearTimeout(t); }
+          }
+          const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+          const decode = s => String(s || '').replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENT[e.toLowerCase()] ?? m));
+          const cdata = s => String(s || '').replace(/^\s*<!\[CDATA\[/, '').replace(/\]\]>\s*$/, '').trim();
+          const strip = s => decode(String(s || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+          const abs = (u, base) => { try { return new URL(decode(u).trim(), base).href; } catch { return ''; } };
+          const badImg = u => !u || /\.(svg|gif)(\?|$)|logo|placeholder|default[-_]?image|blank\./i.test(u);
+          const isoDate = s => { const d = new Date(s); return isNaN(d) ? '' : d.toISOString(); };
+
+          function parseFeed(xml, base, gn) {
+            const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || xml.match(/<entry[\s>][\s\S]*?<\/entry>/gi) || [];
+            const tag = (b, n) => { const m = b.match(new RegExp('<' + n + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + n + '>', 'i')); return m ? cdata(m[1]) : ''; };
+            const out = [];
+            for (const b of blocks) {
+              let link = tag(b, 'link');
+              if (!link) { const m = b.match(/<link[^>]+href=["']([^"']+)/i); link = m ? m[1] : ''; }
+              if (!link) { const g = tag(b, 'guid'); if (/^https?:/.test(g)) link = g; }
+              const body = tag(b, 'content:encoded') || tag(b, 'description') || tag(b, 'summary') || tag(b, 'content');
+              const bodyHtml = decode(body);
+              const im = b.match(/<(?:media:content|media:thumbnail|enclosure)[^>]+url=["']([^"']+)/i) || bodyHtml.match(/<img[^>]+(?:data-src|src)=["']([^"']+)/i);
+              let title = strip(cdata(tag(b, 'title'))), src = '';
+              if (gn) { const i = title.lastIndexOf(' - '); if (i > 10) { src = title.slice(i + 3).trim(); title = title.slice(0, i).trim(); } }
+              const o = { title, link: abs(cdata(link), base), date: isoDate(tag(b, 'pubDate') || tag(b, 'dc:date') || tag(b, 'published') || tag(b, 'updated')),
+                img: im ? abs(im[1], base) : '', desc: gn ? '' : strip(bodyHtml).slice(0, 600) };
+              if (badImg(o.img)) o.img = '';
+              if (src) o.gsrc = src;
+              if (o.title && /^https?:/.test(o.link)) out.push(o);
+            }
+            return out;
+          }
+          async function quintype(q, qi) {
+            const j = JSON.parse(await get(q + '/api/v1/stories?limit=30&fields=headline,url,slug,hero-image-s3-key,last-published-at,published-at,summary,subheadline'));
+            return (j.stories || []).map(st => {
+              const key = st['hero-image-s3-key'];
+              return { title: String(st.headline || '').trim(), link: st.url || (st.slug ? q + '/' + st.slug : ''), date: isoDate(st['last-published-at'] || st['published-at']),
+                img: key && qi ? qi + key.split('/').map(encodeURIComponent).join('/') : '', desc: strip(st.summary || st.subheadline || '').slice(0, 600) };
+            }).filter(o => o.title && /^https?:/.test(o.link));
+          }
+          /* article page → photo and short description (used when the feed has none) */
+          async function details(o) {
+            try {
+              const html = (await get(o.link, 12000)).slice(0, 400000);
+              const meta = n => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
+              if (!o.img) { const im = meta('og:image') || meta('twitter:image'); if (im && !badImg(im)) o.img = abs(im, o.link); }
+              if (!o.desc || o.desc.length < 60) { const d = meta('og:description') || meta('description'); if (d) o.desc = d.trim().slice(0, 600); }
+            } catch {}
+          }
+          /* Google News link → the newspaper's own link (so the app can open the real article) */
+          async function gnDecode(o) {
+            try {
+              const id = (o.link.match(/\/articles\/([^?#/]+)/) || [])[1]; if (!id) return;
+              const html = await get('https://news.google.com/rss/articles/' + id, 12000);
+              const sg = (html.match(/data-n-a-sg="([^"]+)"/) || [])[1], ts = (html.match(/data-n-a-ts="([^"]+)"/) || [])[1];
+              if (!sg || !ts) return;
+              const inner = JSON.stringify(['garturlreq', [['X', 'X', ['X', 'X'], null, null, 1, 1, 'US:en', null, 1, null, null, null, null, null, 0, 1], 'X', 'X', 1, [1, 1, 1], 1, 1, null, 0, 0, null, 0], id, +ts, sg]);
+              const body = 'f.req=' + encodeURIComponent(JSON.stringify([[['Fbv4je', inner, null, 'generic']]]));
+              const c = new AbortController(); const t = setTimeout(() => c.abort(), 12000);
+              try {
+                const r = await fetch('https://news.google.com/_/DotsSplashUi/data/batchexecute', { method: 'POST', signal: c.signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', 'User-Agent': UA }, body });
+                const txt = await r.text();
+                const part = txt.split('\n\n')[1]; if (!part) return;
+                const arr = JSON.parse(part); const url = JSON.parse(arr[0][2])[1];
+                if (/^https?:/.test(url) && !/google\./.test(new URL(url).hostname)) o.link = url;
+              } finally { clearTimeout(t); }
+            } catch {}
+          }
+          async function pool(list, n, fn) { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < list.length) { const k = i++; await fn(list[k]); } })); }
+
+          const result = { updated: new Date().toISOString(), sources: {} };
+          const report = [];
+          await pool(SOURCES, 6, async ([id, d, feeds, opt = {}]) => {
+            let items = [], how = '';
+            if (opt.q) { try { items = await quintype(opt.q, opt.qi); how = 'api'; } catch {} }
+            for (const f of feeds) { if (items.length) break; try { items = parseFeed(await get(f), f); if (items.length) how = f; } catch {} }
+            let viaGoogle = false;
+            if (!items.length) { try { items = parseFeed(await get(gnSite(d)), 'https://news.google.com/', true); how = 'google'; viaGoogle = true; } catch {} }
+            items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            items = items.slice(0, PER_SOURCE);
+            if (viaGoogle) { await pool(items.slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link)), 4, details); }
+            else await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !o.img || !o.desc || o.desc.length < 60), 4, details);
+            if (items.length) result.sources[id] = { via: viaGoogle ? 'google' : 'site', items };
+            report.push(id + ': ' + items.length + ' (' + (how || 'failed') + ')');
+          });
+          try {
+            const g = parseFeed(await get(GOOGLE_TOP), 'https://news.google.com/', true).slice(0, 40);
+            await pool(g.slice(0, 15), 3, gnDecode); await pool(g.slice(0, 15).filter(o => !/news\.google\./.test(o.link)), 4, details);
+            result.sources.google = { via: 'google', items: g }; report.push('google: ' + result.sources.google.items.length); } catch { report.push('google: failed'); }
+
+          writeFileSync('news.json', JSON.stringify(result));
+          console.log(report.sort().join('\n'));
+          console.log('total items:', Object.values(result.sources).reduce((n, s) => n + s.items.length, 0));
+          EOF
+          node /tmp/fetch-news.mjs
+
+      - name: Save news.json
+        run: |
+          git config user.name "TF news bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Update live news"
+          git pull -q --rebase || true
+          git push -q

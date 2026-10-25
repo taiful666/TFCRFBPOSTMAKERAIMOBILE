@@ -609,6 +609,39 @@ html[data-theme="dark"] .v6sec button.on{background:var(--bg)}
   #status{top:64px}
 }
 @media (max-width:380px){.brand span{display:none!important}.qtile small{display:none}}
+/* ===== v6.1 ===== */
+/* quick toggles under the card preview */
+.v6tog{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.v6tog::-webkit-scrollbar{display:none}
+.v6tog .tg{flex:none;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--text);border-radius:999px;padding:7px 12px 7px 8px;font-size:13.5px;font-weight:600;min-height:38px;white-space:nowrap;transition:background .15s,border-color .15s}
+.v6tog .tg .ti{font-size:14px;line-height:1}
+.v6tog .tg .ck{width:18px;height:18px;border-radius:50%;border:2px solid #bcc0c4;flex:none;position:relative;transition:all .15s}
+.v6tog .tg.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.v6tog .tg.on .ck{background:var(--accent);border-color:var(--accent)}
+.v6tog .tg.on .ck::after{content:'';position:absolute;left:5px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.v6starinfo{display:block;font-size:12px;color:var(--muted);padding:4px 2px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* highlighter */
+.v6hlbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 -2px}
+.v6hlbar .btn{min-height:40px;border-radius:999px}
+.v6hlbar .hlbtn{background:#fff3a3;border-color:#f2d64b;color:#5c4400}
+html[data-theme="dark"] .v6hlbar .hlbtn{background:#4a4012;border-color:#8a7420;color:#ffe680}
+.v6hlbar .tiny{flex-basis:100%;margin:0}
+/* dates stand out */
+#metaDate,.nwdate{display:inline-flex;align-items:center;gap:4px;background:#fff3c4;color:#7a5200;border-radius:999px;padding:1px 9px;font-weight:700;font-size:12px;white-space:nowrap}
+html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:#4a3c10;color:#ffd666}
+.nwtxt small{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+/* right-edge scroll rail */
+#v6rail{position:fixed;right:2px;width:30px;z-index:41;pointer-events:none}
+#v6rail .trk{position:absolute;right:13px;top:0;bottom:0;width:3px;border-radius:2px;background:color-mix(in srgb,var(--muted) 22%,transparent);opacity:0;transition:opacity .2s}
+#v6rail .thumb{position:absolute;right:0;top:0;width:30px;height:64px;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;cursor:grab}
+#v6rail .thumb i{width:10px;height:52px;border-radius:999px;background:var(--accent);opacity:.55;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:width .15s,opacity .15s;position:relative}
+#v6rail .thumb i::before{content:'';position:absolute;left:3px;right:3px;top:22px;height:8px;border-top:1.5px solid rgba(255,255,255,.9);border-bottom:1.5px solid rgba(255,255,255,.9)}
+body.v6drag #v6rail .trk,body.v6unpin #v6rail .trk{opacity:1}
+body.v6drag #v6rail .thumb i{width:14px;opacity:1}
+body.v6drag{user-select:none;-webkit-user-select:none}
+body.v6railon #studioWrap,body.v6railon #tabsWrap{padding-right:30px}
+body.v6unpin .cardleft{position:static!important;box-shadow:none!important}
+#v6pin{position:fixed;right:40px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:43;border:0;border-radius:999px;background:var(--accent);color:#fff;font-weight:700;padding:10px 16px;box-shadow:0 6px 18px rgba(24,119,242,.4);font-size:14px}
 </style>
 </head>
 <body>
@@ -2583,11 +2616,17 @@ function drawItem(ctx, it, boxX, y, boxW, align){
     const cy = y + it.padY + i * it.lhpx + it.lhpx / 2 + it.fs * 0.04;
     ln.words.forEach((wd, j) => {
       const next = ln.words[j + 1];
+      const mkr = wd.hl && it.hl && it.hlMode !== 'box' && S.marker;
       if(wd.hl && it.hlMode === 'box'){
         ctx.fillStyle = it.hl; ctx.fillRect(lx - it.fs * 0.12, cy - it.lhpx * 0.46, wd.ww + it.fs * 0.24 + (next && next.hl ? gap - it.fs * 0.24 : 0), it.lhpx * 0.88);
         ctx.fillStyle = it.hlText || '#111111';
+      } else if(mkr){
+        /* yellow highlighter-pen band behind the word */
+        if(!(j > 0 && ln.words[j - 1].hl)){ let rw = wd.ww; for(let q = j + 1; q < ln.words.length && ln.words[q].hl; q++) rw += gap + ln.words[q].ww;
+          ctx.save(); ctx.fillStyle = it.hl; rr(ctx, lx - it.fs * 0.14, cy - it.fs * 0.5, rw + it.fs * 0.28, it.fs * 1.02, it.fs * 0.14); ctx.fill(); ctx.restore(); }
+        ctx.fillStyle = lum(it.hl) > 0.55 ? '#111111' : '#ffffff';
       } else ctx.fillStyle = wd.hl && it.hl ? it.hl : it.color;
-      if(it.shadow){ ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = it.fs * 0.18; ctx.shadowOffsetY = it.fs * 0.04; }
+      if(it.shadow && !mkr){ ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = it.fs * 0.18; ctx.shadowOffsetY = it.fs * 0.04; }
       ctx.fillText(wd.w, lx, cy);
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
       lx += wd.ww + gap;
@@ -3012,8 +3051,8 @@ async function prepareFacebook(){
   let post = trimToWords(cleanAiText(data.post || title), fbWordLimit());
   let maskFound = [];
   if(S.mask){ tags = tags.filter(h => !hasSensitive(h.slice(1))); const mk = maskText(post, S.maskCh); post = mk.text; maskFound = mk.found; }
-  if(tags.length) post += '\n\n' + tags.join(' ');
   if($('fbSrcChk').checked) post += '\n\n' + fbSourceLine();
+  if(tags.length) post += '\n\n' + tags.join(' ');
   $('fbText').value = post;
   const fres = AI.results.facebook || (AI.results.facebook = { cur: '', prev: [] });
   if(fres.cur) fres.prev.push(fres.cur); fres.cur = post; renderChips(); if(AI.mode === 'facebook') renderStudioResult();
@@ -4066,7 +4105,7 @@ function nwRender(){
     const fresh = o.date && now - o.date.getTime() < 30 * 60000;
     const host = o.src && o.src.d && !o.src.gn ? o.src.d.split('/')[0] : '';
     b.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : (host ? '<img class="fav" alt="" src="' + esc(proxImg('www.google.com/s2/favicons?domain=' + host + '&sz=64')) + '">' : '📰')) + '</span>' +
-      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' · ' + esc(nwAgo(o.date)) : '') + '</small></span>';
+      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
     const fav = b.querySelector('img.fav'); if(fav) fav.onerror = () => { fav.parentNode.textContent = '📰'; };
     if(o.img){
       const im = b.querySelector('img'); im.dataset.f = '0';
@@ -4933,6 +4972,199 @@ const studioI18n60 = studioI18n;
 studioI18n = function(){ studioI18n60(); if($('v6Built')){ updateStarUi(); renderFbPost(); const tb = $('v6Theme'); if(tb) tb.title = t('themeT'); } };
 const v6Start = () => setTimeout(() => { try{ v6Build(); }catch(e){ console.error('v6', e); } }, 0);
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v6Start); else v6Start();
+
+/* ===== v6.1: scroll rail · quick toggles (stars, date badge, sources, marker) · highlighter · polished captions ===== */
+Object.assign(T.bn, {
+  tgStars:'স্টার', tgDate:'তারিখ হাইলাইট', tgNews:'খবরের সূত্র', tgPhoto:'ছবির সূত্র', tgMarker:'মার্কার হাইলাইট',
+  tgOn:' — চালু', tgOff:' — বন্ধ',
+  hlAdd:'🖍️ হাইলাইট করুন', hlClear:'✕ হাইলাইট মুছুন', hlHelp:'শিরোনামের যে শব্দগুলো হাইলাইট করতে চান, আঙুল দিয়ে সিলেক্ট করে "হাইলাইট করুন" চাপুন।',
+  tHlSel:'আগে শিরোনামের কিছু শব্দ সিলেক্ট করুন', tHlDone:'🖍️ হাইলাইট যোগ হয়েছে', tHlCleared:'সব হাইলাইট মুছে গেছে',
+  railPin:'🖼️ কার্ড দেখুন', fbSrc:'সূত্র ও তারিখ যুক্ত করুন'
+});
+Object.assign(T.en, {
+  tgStars:'Stars', tgDate:'Date badge', tgNews:'News source', tgPhoto:'Photo credit', tgMarker:'Marker highlight',
+  tgOn:' — on', tgOff:' — off',
+  hlAdd:'🖍️ Highlight', hlClear:'✕ Clear highlights', hlHelp:'Select the words in the headline you want to stand out, then tap "Highlight".',
+  tHlSel:'Select some words in the headline first', tHlDone:'🖍️ Highlight added', tHlCleared:'All highlights removed',
+  railPin:'🖼️ Show card', fbSrc:'Add source & date'
+});
+
+/* ---- quick toggles state ---- */
+S.dateBadge = store.get('dateBadge', true);
+S.showNewsSrc = store.get('showNewsSrc', true);
+S.showPhotoSrc = store.get('showPhotoSrc', true);
+S.marker = store.get('hlMarker', true);
+
+/* date badge drawn on top of the finished card */
+function drawDateBadge(cv, text){
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, u = Math.min(W, H) / 1080;
+  const size = 30 * u, padX = size * 0.7, ic = size * 0.95, gap = size * 0.45, h = size * 1.9, m = 34 * u;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = fontStr(size, 700, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const tw = Math.min(ctx.measureText(text).width, W * 0.6), w = padX * 2 + ic + gap + tw;
+  const lp = C.logoImg ? (C.logoPos || 'tr') : '';
+  const low = typeof isQuoteTpl === 'function' && isQuoteTpl(C.template); // quote designs keep the top for the quote mark
+  const x = (low ? lp === 'bl' : lp === 'tl') ? W - m - w : m, y = low ? H - m - h : m;
+  const bg = C.hl || '#ffd200', fg = lum(bg) > 0.55 ? '#111111' : '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14 * u; ctx.shadowOffsetY = 4 * u;
+  ctx.fillStyle = bg; rr(ctx, x, y, w, h, h / 2); ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  // little calendar icon
+  const ix = x + padX, iy = y + (h - ic) / 2, lw = Math.max(2, 3 * u);
+  ctx.strokeStyle = fg; ctx.fillStyle = fg; ctx.lineWidth = lw;
+  rr(ctx, ix, iy + ic * 0.12, ic, ic * 0.88, ic * 0.16); ctx.stroke();
+  ctx.fillRect(ix, iy + ic * 0.12, ic, ic * 0.26);
+  ctx.fillRect(ix + ic * 0.22, iy, lw, ic * 0.24); ctx.fillRect(ix + ic * 0.78 - lw, iy, lw, ic * 0.24);
+  ctx.fillText(fitOne(ctx, text, W * 0.6), ix + ic + gap, y + h / 2 + size * 0.05);
+  ctx.restore();
+  C.regions.push({ k: 'date', x, y, w, h });
+}
+const paintCard61 = paintCard;
+paintCard = function(cv){
+  const F = C.fields, keep = { label: F.label, source: F.source, url: F.url, date: F.date };
+  const badge = S.dateBadge && nz(F.date);
+  if(!S.showPhotoSrc) F.label = '';
+  if(!S.showNewsSrc){ F.source = ''; F.url = ''; }
+  if(badge) F.date = '';
+  let r;
+  try{ r = paintCard61(cv); }finally{ Object.assign(F, keep); }
+  if(badge){ try{ drawDateBadge(cv, keep.date); }catch(e){ console.error(e); } }
+  return r;
+};
+
+/* ---- toggle chips row (replaces the single star switch) ---- */
+const TOGS = [
+  { k: 'stars', i18n: 'tgStars', icon: '✱', get: () => S.cardStars, set: v => setStars(v, true) },
+  { k: 'date', i18n: 'tgDate', icon: '📅', get: () => S.dateBadge, set: v => { S.dateBadge = v; store.set('dateBadge', v); } },
+  { k: 'news', i18n: 'tgNews', icon: '📰', get: () => S.showNewsSrc, set: v => { S.showNewsSrc = v; store.set('showNewsSrc', v); } },
+  { k: 'photo', i18n: 'tgPhoto', icon: '📷', get: () => S.showPhotoSrc, set: v => { S.showPhotoSrc = v; store.set('showPhotoSrc', v); } },
+  { k: 'marker', i18n: 'tgMarker', icon: '🖍️', get: () => S.marker, set: v => { S.marker = v; store.set('hlMarker', v); } }
+];
+function updateTogs(){
+  document.querySelectorAll('.v6tog .tg').forEach(b => { const d = TOGS.find(x => x.k === b.dataset.tg); const on = !!d.get(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+}
+const updateStarUi61 = updateStarUi;
+updateStarUi = function(){ updateStarUi61(); updateTogs(); };
+
+/* ---- highlighter for the headline ---- */
+function hlAdd(){
+  const ta = $('cf-headline'); let s = ta.selectionStart, e = ta.selectionEnd, v = ta.value;
+  if(s === e){ toast(t('tHlSel')); ta.focus(); return; }
+  while(s < e && /\s/.test(v[s])) s++;
+  while(e > s && /\s/.test(v[e - 1])) e--;
+  if(s === e){ toast(t('tHlSel')); return; }
+  const sel = v.slice(s, e).replace(/\*/g, '');
+  // if the selection sits inside an existing highlight, close it around the new one cleanly
+  const before = v.slice(0, s), inside = (before.match(/\*/g) || []).length % 2 === 1;
+  ta.value = inside ? before + '*' + sel + '*' + v.slice(e) : before + '*' + sel + '*' + v.slice(e);
+  ta.value = ta.value.replace(/\*\*/g, '');
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+  if(!S.marker){ S.marker = true; store.set('hlMarker', true); updateTogs(); }
+  toast(t('tHlDone'));
+}
+function hlClear(){ const ta = $('cf-headline'); if(!/\*/.test(ta.value)) return; ta.value = ta.value.replace(/\*/g, ''); ta.dispatchEvent(new Event('input', { bubbles: true })); toast(t('tHlCleared')); }
+
+/* ---- polished Facebook captions ---- */
+const postSpec61 = postSpec;
+postSpec = function(){
+  return postSpec61() + '. STRUCTURE (use real line breaks, \\n\\n between blocks): ' +
+    '(1) one short scroll-stopping first line, at most about 12 words, stating the most striking real fact; it may start with ONE fitting emoji such as 📌 🔴 ⚡ 📢 (never a graphic or violent emoji). ' +
+    '(2) 2–3 very short paragraphs of 1–2 sentences each with who, what, where and when — mention the date or day of the event clearly if the article gives it. ' +
+    '(3) only if the article has several numbers or points, add up to 3 short lines starting with "▪️". ' +
+    '(4) end with one gentle, non-political question that invites comments, related to everyday life (not about the government or any party). ' +
+    'At most 3 emojis in the whole post, no ALL CAPS, no clickbait phrases like "you won\'t believe", no exclamation marks in a row, no hashtags, no links';
+};
+fbSourceLine = function(){
+  const a = S.article, prof = paperProfile(a.url, a.site), d = norm(C.fields.date || '') || (parseDate(a.published) ? fmtDate(parseDate(a.published)) : '');
+  return '📰 ' + t('source') + ': ' + prof.name + (d ? '  •  📅 ' + d : '');
+};
+const localFb61 = localFb;
+localFb = function(title, body){ const d = localFb61(title, body); d.post = '📌 ' + String(d.post || '').replace(/\n{3,}/g, '\n\n'); return d; };
+const cleanAiText61 = cleanAiText;
+cleanAiText = function(s){ return cleanAiText61(s).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/!{2,}/g, '!').trim(); };
+
+/* ---- right-edge scroll rail: drag it and the card scrolls away; a normal swipe keeps the card frozen on top ---- */
+let railDrag = null, railRaf = 0, touchY = null;
+function railGeom(){
+  const top = 64, nav = document.querySelector('#tabsWrap .tabrow'), navH = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
+  const bottom = window.innerHeight - navH - 10, th = 64;
+  return { top, th, track: Math.max(80, bottom - top) };
+}
+function updateRail(){
+  railRaf = 0;
+  const rail = $('v6rail'); if(!rail) return;
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const show = document.body.classList.contains('has-article') && window.innerWidth <= 760 && max > 240 && $('newsSheet').classList.contains('hidden');
+  rail.classList.toggle('hidden', !show); document.body.classList.toggle('v6railon', show);
+  if(!show) return;
+  const g = railGeom(), ratio = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+  rail.style.top = g.top + 'px'; rail.style.height = g.track + 'px';
+  rail.querySelector('.thumb').style.transform = 'translateY(' + Math.round(ratio * (g.track - g.th)) + 'px)';
+  const pin = $('v6pin'), cl = document.querySelector('.cardleft');
+  const out = cl && cl.getBoundingClientRect().bottom < 56;
+  pin.classList.toggle('hidden', !(document.body.classList.contains('v6unpin') && AI.tab === 'card' && out));
+}
+const railTick = () => { if(!railRaf) railRaf = requestAnimationFrame(updateRail); };
+function setUnpin(on){ document.body.classList.toggle('v6unpin', !!on); railTick(); }
+function railBuild(){
+  const rail = mk('div', 'hidden no-print', '<div class="trk"></div><div class="thumb" role="scrollbar" aria-label="scroll"><i></i></div>'); rail.id = 'v6rail';
+  const pin = mk('button', 'hidden no-print'); pin.id = 'v6pin'; pin.type = 'button'; pin.setAttribute('data-i18n', 'railPin');
+  document.body.appendChild(rail); document.body.appendChild(pin);
+  const thumb = rail.querySelector('.thumb');
+  thumb.addEventListener('pointerdown', e => {
+    e.preventDefault(); thumb.setPointerCapture(e.pointerId);
+    const g = railGeom(), cur = new DOMMatrix(getComputedStyle(thumb).transform).m42;
+    railDrag = { off: e.clientY - (g.top + cur) }; setUnpin(true); document.body.classList.add('v6drag');
+  });
+  thumb.addEventListener('pointermove', e => {
+    if(!railDrag) return;
+    const g = railGeom(), max = document.documentElement.scrollHeight - window.innerHeight;
+    const ratio = Math.min(1, Math.max(0, (e.clientY - railDrag.off - g.top) / (g.track - g.th)));
+    window.scrollTo({ top: ratio * max, behavior: 'instant' });
+  });
+  const end = () => { railDrag = null; document.body.classList.remove('v6drag'); railTick(); };
+  thumb.addEventListener('pointerup', end); thumb.addEventListener('pointercancel', end);
+  pin.addEventListener('click', () => { setUnpin(false); const c = $('tp-card'); window.scrollTo({ top: c.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' }); });
+  // a normal finger swipe on the page brings the frozen card back
+  document.addEventListener('touchstart', e => { touchY = e.target.closest('#v6rail') ? null : e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', e => { if(touchY === null || !document.body.classList.contains('v6unpin')) return; if(Math.abs(e.touches[0].clientY - touchY) > 14){ setUnpin(false); touchY = null; } }, { passive: true });
+  document.addEventListener('wheel', () => { if(document.body.classList.contains('v6unpin') && !railDrag) setUnpin(false); }, { passive: true });
+  window.addEventListener('scroll', railTick, { passive: true });
+  window.addEventListener('resize', railTick);
+  new MutationObserver(railTick).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  setInterval(railTick, 1500);
+  railTick();
+}
+
+/* ---- build ---- */
+function v61Build(){
+  if($('v61Built') || !$('v6Built')) return;
+  document.body.appendChild(mk('i', 'hidden')).id = 'v61Built';
+
+  /* toggle chips under the preview; the star info line stays below them */
+  const star = $('v6Star'), row = mk('div', 'v6tog');
+  TOGS.forEach(d => {
+    const b = mk('button', 'tg', '<span class="ck"></span><span class="ti">' + d.icon + '</span><span data-i18n="' + d.i18n + '"></span>'); b.type = 'button'; b.dataset.tg = d.k;
+    b.addEventListener('click', () => { const v = !d.get(); d.set(v); updateTogs(); ensureFonts().then(renderCard); toast(t(d.i18n) + t(v ? 'tgOn' : 'tgOff')); });
+    row.appendChild(b);
+  });
+  star.parentNode.insertBefore(row, star);
+  const info = $('starInfo'); info.classList.add('v6starinfo'); row.after(info); star.classList.add('hidden');
+
+  /* highlighter bar above the headline */
+  const hl = $('cf-headline').closest('label');
+  const bar = mk('div', 'v6hlbar', '<button type="button" class="btn hlbtn" id="hlAddBtn" data-i18n="hlAdd"></button><button type="button" class="btn" id="hlClearBtn" data-i18n="hlClear"></button><p class="tiny" data-i18n="hlHelp"></p>');
+  hl.parentNode.insertBefore(bar, hl);
+  ['hlAddBtn', 'hlClearBtn'].forEach(id => $(id).addEventListener('pointerdown', e => e.preventDefault())); // keep the text selection
+  $('hlAddBtn').addEventListener('click', hlAdd); $('hlClearBtn').addEventListener('click', hlClear);
+
+  railBuild();
+  applyI18n(); updateTogs(); renderCard();
+}
+const showTab61 = showTab;
+showTab = function(name){ setUnpin(false); showTab61(name); railTick(); };
+const v61Start = () => setTimeout(() => setTimeout(() => { try{ v61Build(); }catch(e){ console.error('v6.1', e); } }, 0), 0);
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v61Start); else v61Start();
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

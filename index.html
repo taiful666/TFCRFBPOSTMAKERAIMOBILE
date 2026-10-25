@@ -753,6 +753,7 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
 /* connector line between the steps */
 .v6flow::before{content:'';position:absolute;left:25px;top:30px;bottom:30px;width:2px;background:var(--line);z-index:0}
 .v6stepc{z-index:1}
+.v6fade{animation:v6fade .35s}
 </style>
 </head>
 <body>
@@ -4297,7 +4298,7 @@ async function nwPick(o){
     // papers that block outside access: Gemini (your API key) reads the page and finds the photo
     let art = null;
     if(S.gkey && (!o.img || !o.desc || o.desc.length < 40) && !/news\.google\./.test(url)){
-      try{ art = await Promise.race([fetchWithGemini(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 45000))]); }catch(e){ art = null; }
+      try{ art = await Promise.race([fetchWithGemini(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 20000))]); }catch(e){ art = null; }
     }
     // full article if it comes within 10 s; otherwise the card is made from the headline, summary and photo
     if(!art) art = await Promise.race([fetchArticle(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), o.desc && o.desc.length > 40 ? 10000 : 20000))]);
@@ -5124,13 +5125,22 @@ function drawDateBadge(cv, text){
   ctx.font = fontStr(size, 700, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
   const tw = Math.min(ctx.measureText(text).width, W * 0.6), w = padX * 2 + ic + gap + tw;
   const lp = C.logoImg ? (C.logoPos || 'tr') : '';
-  const low = typeof isQuoteTpl === 'function' && isQuoteTpl(C.template); // quote designs keep the top for the quote mark
-  // designs that keep a category pill / ribbon on the top-left get the badge on the right
-  const wantR = low || ['insight', 'bignum', 'explain', 'glance'].includes(C.template);
-  const busy = low ? (wantR ? 'br' : 'bl') : (wantR ? 'tr' : 'tl');
-  const right = lp === busy ? !wantR : wantR;
-  const x = right ? W - m - w : m, y = low ? H - m - h : C.template === 'insight' ? (96 * u - h) / 2 : m;
-  const bg = C.hl || '#ffd200', fg = lum(bg) > 0.55 ? '#111111' : '#ffffff';
+  /* each design gets the spot where the date looks best */
+  const ph = (C.regions || []).find(g => g.k === 'photo');
+  const T = C.template, q = typeof isQuoteTpl === 'function' && isQuoteTpl(T);
+  const corner = (side, top) => { let r = side === 'r'; const c = (top ? 't' : 'b') + (r ? 'r' : 'l'); if(lp === c) r = !r; return { x: r ? W - m - w : m, y: top != null && !top ? H - m - h : top }; };
+  let pos, rot = 0, style = 'hl';
+  if(q && ph) pos = { x: W - m - w, y: ph.y - h / 2 };                                   // sits on the line between quote and photo
+  else if((T === 'split' || T === 'explain') && ph) pos = { x: W - m - w, y: ph.y + ph.h - h / 2 };   // on the seam under the photo
+  else if(T === 'frame' && ph) pos = { x: ph.x + ph.w - w - 22 * u, y: ph.y + ph.h - h / 2 };        // clipped to the photo frame
+  else if(T === 'polaroid' && ph){ pos = { x: ph.x + ph.w - w * 0.72, y: ph.y + ph.h * 0.82 }; rot = -0.06; style = 'accent'; }  // a sticker on the polaroid
+  else if(T === 'insight') pos = { x: W - m - w, y: (96 * u - h) / 2 };                   // inside the colour header
+  else if(T === 'glance'){ pos = { x: W - m - w, y: 0.85 * 56 * u + 35 * u - h / 2 }; style = 'dark'; }  // level with the ribbon
+  else if(T === 'bignum') pos = corner('r', m);
+  else pos = corner('l', m);                                                                // band / overlay: clean top-left of the photo
+  const x = clamp(pos.x, 8 * u, W - w - 8 * u), y = clamp(pos.y, 8 * u, H - h - 8 * u);
+  if(rot){ ctx.translate(x + w / 2, y + h / 2); ctx.rotate(rot); ctx.translate(-(x + w / 2), -(y + h / 2)); }
+  const bg = style === 'dark' ? '#111111' : style === 'accent' ? C.accent : (C.hl || '#ffd200'), fg = lum(bg) > 0.55 ? '#111111' : '#ffffff';
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 14 * u; ctx.shadowOffsetY = 4 * u;
   ctx.fillStyle = bg; rr(ctx, x, y, w, h, h / 2); ctx.fill();
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
@@ -5579,6 +5589,70 @@ showTab = function(name){ showTab63(name); if(name === 'card') updateFlow(); };
 const v63Start = () => setTimeout(() => setTimeout(() => setTimeout(() => setTimeout(() => { try{ v63Build(); }catch(e){ console.error('v6.3', e); } }, 0), 0), 0), 0);
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v63Start); else v63Start();
 
+/* ===== v6.4: no stuck "Gemini" message · photos for live-news items without one ===== */
+/* 1) a status message only shows while a fetch is really running; late messages from abandoned background attempts are ignored */
+let stTimer = 0;
+const status64 = status;
+status = function(msg){
+  clearTimeout(stTimer);
+  if(msg && !$('fetchBtn').disabled) return status64('');
+  status64(msg);
+  if(msg) stTimer = setTimeout(() => status64(''), 50000);   // never spin forever
+};
+
+/* 2) news items without a photo: find the article's main photo in the background (only for items on screen) */
+const NWIMG_KEY = 'nwImgCache', nwImgMem = (() => { try{ return store.get(NWIMG_KEY, {}) || {}; }catch(e){ return {}; } })();
+const nwImgQueue = [], nwImgBusy = new Set(); let nwImgRunning = 0, nwImgSaveT = 0;
+function nwImgSave(){ clearTimeout(nwImgSaveT); nwImgSaveT = setTimeout(() => { try{ const k = Object.keys(nwImgMem); if(k.length > 400) k.slice(0, k.length - 400).forEach(x => delete nwImgMem[x]); store.set(NWIMG_KEY, nwImgMem); }catch(e){} }, 800); }
+function ogFrom(html, base){
+  const meta = n => { const m = html.match(new RegExp('<meta[^>]+(?:property|name|itemprop)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name|itemprop)=["\']' + n + '["\']', 'i')); return m ? m[1].replace(/&amp;/g, '&').trim() : ''; };
+  for(const c of [meta('og:image'), meta('og:image:url'), meta('twitter:image'), meta('twitter:image:src'), meta('image')]){
+    if(!c) continue; try{ const u = new URL(c, base).href; if(!/\.(svg|gif)(\?|$)|logo|placeholder|default[-_]?image/i.test(u)) return u; }catch(e){}
+  }
+  return '';
+}
+async function nwFindImg(link){
+  if(nwImgMem[link] !== undefined) return nwImgMem[link];
+  const enc = encodeURIComponent(link), routes = [];
+  if(S.worker){ const w = S.worker.trim(); routes.push(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc); }
+  routes.push('https://api.allorigins.win/raw?url=' + enc, 'https://api.codetabs.com/v1/proxy/?quest=' + enc, 'https://corsproxy.io/?url=' + enc);
+  let im = '';
+  try{
+    im = await Promise.any(routes.map(async r => {
+      const to = withTimeout(12000);
+      try{ const res = await fetch(r, { signal: to.signal }); if(!res.ok) throw 0; const html = (await res.text()).slice(0, 300000); const u = ogFrom(html, link); if(!u) throw 0; return u; }
+      finally{ to.done(); }
+    }));
+  }catch(e){ im = ''; }
+  nwImgMem[link] = im; nwImgSave();
+  return im;
+}
+function nwThumb(b, im){
+  if(!b || !b.isConnected) return; const th = b.querySelector('.nwthumb'); if(!th) return;
+  th.innerHTML = '<img alt="" referrerpolicy="no-referrer">'; const i = th.querySelector('img');
+  i.onerror = () => { if(i.dataset.f !== '1'){ i.dataset.f = '1'; i.src = im; } else th.textContent = '📰'; };
+  i.src = proxImg(im, 240); th.classList.add('v6fade');
+}
+function nwImgPump(){
+  while(nwImgRunning < 3 && nwImgQueue.length){
+    const { o, b } = nwImgQueue.shift(); if(o.img || nwImgBusy.has(o.link)) continue;
+    nwImgBusy.add(o.link); nwImgRunning++;
+    nwFindImg(o.link).then(im => { if(im && !o.img){ o.img = im; nwThumb(b, im); } }).finally(() => { nwImgBusy.delete(o.link); nwImgRunning--; nwImgPump(); });
+  }
+}
+const nwIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if(!e.isIntersecting) return; nwIO.unobserve(e.target);
+  const b = e.target, o = NW.list && NW.list[+b.dataset.i]; if(!o || o.img || /news\.google\./.test(o.link)) return;
+  if(nwImgMem[o.link]){ o.img = nwImgMem[o.link]; nwThumb(b, o.img); return; }
+  nwImgQueue.push({ o, b }); nwImgPump();
+}), { root: null, rootMargin: '200px' }) : null;
+function nwWatchImgs(){
+  if(!nwIO) return;
+  document.querySelectorAll('#nwList .nwitem').forEach(b => { const o = NW.list && NW.list[+b.dataset.i]; if(o && !o.img) nwIO.observe(b); });
+}
+new MutationObserver(() => setTimeout(nwWatchImgs, 30)).observe($('nwList'), { childList: true });
+
+/* 3) opening a story: wait at most ~20 s for Gemini, then build the card from what is there */
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', nwInit); else nwInit();

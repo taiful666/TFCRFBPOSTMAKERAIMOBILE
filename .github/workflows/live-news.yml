@@ -67,7 +67,7 @@ jobs:
           const GOOGLE_TOP = 'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn';
           const gnSite = d => 'https://news.google.com/rss/search?q=' + encodeURIComponent('site:' + (d === 'thedailystar.net' ? 'www.thedailystar.net' : d) + ' when:2d') + '&hl=bn&gl=BD&ceid=BD:bn';
           const UA = 'Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
-          const PER_SOURCE = 25, DETAIL_PER_SOURCE = 10, MAX_AGE = 3 * 86400000;
+          const PER_SOURCE = 25, DETAIL_PER_SOURCE = 25, MAX_AGE = 3 * 86400000;
           const JUNK = /ই-পেপার|e-?paper|পৃষ্ঠা-\d|epaper/i;
           const keep = list => list.filter(o => !JUNK.test(o.title) && (!o.date || Date.now() - Date.parse(o.date) < MAX_AGE));   // drop e-paper pages and old items
 
@@ -117,13 +117,48 @@ jobs:
             }).filter(o => o.title && /^https?:/.test(o.link));
           }
           /* article page → photo and short description (used when the feed has none) */
+          const PAGE_HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8', 'Accept-Language': 'bn-BD,bn;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Referer': 'https://www.google.com/', 'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'cross-site' };
+          async function page(url, ms = 12000) {
+            const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+            try { const r = await fetch(url, { signal: c.signal, redirect: 'follow', headers: PAGE_HEADERS }); if (!r.ok) throw new Error('HTTP ' + r.status); return (await r.text()).slice(0, 600000); }
+            finally { clearTimeout(t); }
+          }
+          function pickImage(html, base) {
+            const meta = n => { const m = html.match(new RegExp('<meta[^>]+(?:property|name|itemprop)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name|itemprop)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]).trim() : ''; };
+            const cands = [meta('og:image'), meta('og:image:url'), meta('og:image:secure_url'), meta('twitter:image'), meta('twitter:image:src'), meta('image'), meta('thumbnailUrl')];
+            const lk = html.match(/<link[^>]+rel=["']image_src["'][^>]*href=["']([^"']+)/i); if (lk) cands.push(decode(lk[1]));
+            for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+              const im = m[1].match(/"image"\s*:\s*(?:\{[^}]*?"url"\s*:\s*"([^"]+)"|\[\s*(?:\{[^}]*?"url"\s*:\s*)?"([^"]+)"|"([^"]+)")/);
+              if (im) cands.push((im[1] || im[2] || im[3] || '').replace(/\\\//g, '/'));
+            }
+            const art = html.match(/<(?:article|main)[\s\S]{0,20000}?<img[^>]+(?:data-src|data-original|src)=["']([^"']+\.(?:jpe?g|png|webp)[^"']*)/i); if (art) cands.push(decode(art[1]));
+            for (const c of cands) { const u = c && abs(c, base); if (u && /^https?:/.test(u) && !badImg(u)) return u; }
+            return '';
+          }
+          const meta2 = (html, n) => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
+          let jinaLeft = 18;   // free reader service as a last resort (it has a small rate limit)
           async function details(o) {
-            try {
-              const html = (await get(o.link, 12000)).slice(0, 400000);
-              const meta = n => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
-              if (!o.img) { const im = meta('og:image') || meta('twitter:image'); if (im && !badImg(im)) o.img = abs(im, o.link); }
-              if (!o.desc || o.desc.length < 60) { const d = meta('og:description') || meta('description'); if (d) o.desc = d.trim().slice(0, 320); }
-            } catch {}
+            if (CACHE.has(o.link)) { const c = CACHE.get(o.link); if (!o.img && c.img) o.img = c.img; if ((!o.desc || o.desc.length < 60) && c.desc) o.desc = c.desc; if (o.img) return; }
+            let html = '';
+            try { html = await page(o.link); } catch {}
+            if (html) {
+              if (!o.img) o.img = pickImage(html, o.link);
+              if (!o.desc || o.desc.length < 60) { const d = meta2(html, 'og:description') || meta2(html, 'description'); if (d) o.desc = d.trim().slice(0, 320); }
+            }
+            if (!o.img && jinaLeft > 0) {
+              jinaLeft--;
+              try {
+                const c = new AbortController(); const t = setTimeout(() => c.abort(), 20000);
+                try {
+                  const r = await fetch('https://r.jina.ai/' + o.link, { signal: c.signal, headers: { 'Accept': 'application/json', 'X-Return-Format': 'html', 'X-Timeout': '15' } });
+                  const j = await r.json(); const h2 = (j && j.data && (j.data.html || j.data.content)) || '';
+                  if (h2) o.img = pickImage(h2, o.link);
+                } finally { clearTimeout(t); }
+              } catch {}
+            }
+            if (o.img) STATS.found++; else STATS.missed++;
           }
           /* Google News link → the newspaper's own link (so the app can open the real article) */
           async function gnDecode(o) {
@@ -146,6 +181,12 @@ jobs:
           }
           async function pool(list, n, fn) { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < list.length) { const k = i++; await fn(list[k]); } })); }
 
+          /* photos already found in earlier runs are reused, so each run only opens new articles */
+          const CACHE = new Map(), STATS = { found: 0, missed: 0 };
+          try {
+            const prev = JSON.parse(await get('https://raw.githubusercontent.com/' + process.env.GITHUB_REPOSITORY + '/live-news/news.json?t=' + Date.now(), 15000));
+            for (const s of Object.values(prev.sources || {})) for (const o of s.items || []) if (o.link && (o.img || o.desc)) CACHE.set(o.link, { img: o.img || '', desc: o.desc || '' });
+          } catch {}
           const result = { updated: new Date().toISOString(), sources: {} };
           const report = [];
           await pool(SOURCES, 6, async ([id, d, feeds, opt = {}]) => {
@@ -167,7 +208,7 @@ jobs:
             if (viaGoogle) { await pool(items.slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link)), 4, details); }
             else { await pool(items.filter(o => /news\.google\./.test(o.link)).slice(0, DETAIL_PER_SOURCE), 3, gnDecode); await pool(items.slice(0, DETAIL_PER_SOURCE).filter(o => !/news\.google\./.test(o.link) && (!o.img || !o.desc || o.desc.length < 60)), 4, details); }
             if (items.length) result.sources[id] = { via: viaGoogle ? 'google' : 'site', items };
-            report.push(id + ': ' + items.length + ' (' + (how || 'failed') + ')');
+            report.push(id + ': ' + items.length + ' (' + (how || 'failed') + ') photos ' + items.filter(o => o.img).length);
           });
           try {
             const g = parseFeed(await get(GOOGLE_TOP), 'https://news.google.com/', true).slice(0, 40);
@@ -176,6 +217,7 @@ jobs:
 
           writeFileSync('news.json', JSON.stringify(result));
           console.log(report.sort().join('\n'));
+          console.log('photos found this run:', STATS.found, 'still missing:', STATS.missed, 'cached links:', CACHE.size);
           console.log('total items:', Object.values(result.sources).reduce((n, s) => n + s.items.length, 0));
           EOF
           node fetch-news.mjs

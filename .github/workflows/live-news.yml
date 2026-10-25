@@ -5,7 +5,7 @@ name: Live news for TF app
 
 on:
   schedule:
-    - cron: '4,19,34,49 * * * *'
+    - cron: '2,12,22,32,42,52 * * * *'
   workflow_dispatch:
   push:
     paths:
@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: live-news
@@ -21,7 +22,7 @@ concurrency:
 jobs:
   news:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Collect the latest news
         working-directory: ${{ runner.temp }}
@@ -188,3 +189,21 @@ jobs:
           git add news.json
           git commit -q -m "Live news $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" live-news
+
+      # GitHub's own timer is sometimes late or silent for hours. If no timed run has
+      # happened in the last 25 minutes, wait 10 minutes and start the next collection
+      # ourselves, so the news never goes stale.
+      - name: Keep the news fresh if GitHub's timer is late
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh run list -R "$GITHUB_REPOSITORY" -w live-news.yml -e schedule -L 1 --json createdAt -q '.[0].createdAt' 2>/dev/null || true)
+          age=999999
+          if [ -n "$last" ]; then age=$(( $(date +%s) - $(date -d "$last" +%s) )); fi
+          if [ "$age" -lt 1500 ]; then echo "Timer is working (last timed run ${age}s ago)"; exit 0; fi
+          others=$(gh run list -R "$GITHUB_REPOSITORY" -w live-news.yml -s queued --json databaseId -q 'length' 2>/dev/null || echo 0)
+          if [ "${others:-0}" -gt 0 ]; then echo "Another run is already waiting"; exit 0; fi
+          echo "Timer is late — next collection in 10 minutes"
+          sleep 600
+          gh workflow run live-news.yml -R "$GITHUB_REPOSITORY" --ref main

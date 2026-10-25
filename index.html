@@ -380,6 +380,8 @@ html[data-theme="dark"] .nwchip.on{color:#111}
 .nwtxt small{font-size:12.5px;color:var(--muted)}
 .nwtxt em{font-style:normal;background:#e02424;color:#fff;border-radius:4px;padding:0 5px;margin-right:6px;font-size:11px;font-weight:700}
 #nwMore{display:block;margin:12px auto 0}
+.nwdiag{width:100%;font-size:11.5px;color:var(--faint);word-break:break-word;margin-top:4px}
+#nwProxyBtn{margin-top:6px}
 </style>
 </head>
 <body>
@@ -3454,7 +3456,7 @@ Object.assign(T.bn, {
   nwOpening:'খবর ও ছবি আনা হচ্ছে…', nwPartial:'পুরো খবর আনা যায়নি — শিরোনাম, সারাংশ ও ছবি দিয়ে কার্ড তৈরি হয়েছে',
   nwReady:'✅ কার্ড তৈরি হয়েছে', nwHint:'যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।',
   nwMore:'আরও খবর দেখান', nwSome:'সাড়া দেয়নি: ', nwCount:'টি খবর', nwFailOne:'এই পত্রিকা থেকে এখন খবর আনা যাচ্ছে না — একটু পরে 🔄 চাপুন, অথবা লিংক পেস্ট করুন।',
-  nwAuto:'প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়',
+  nwAuto:'প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়', nwSec:'সেকেন্ড', nwPapers:'পত্রিকা লোড হয়েছে', nwGem:'✨ Gemini দিয়ে খবর আনার চেষ্টা চলছে (২০–৪০ সেকেন্ড)…', nwDiag:'সংযোগ পরীক্ষা:', nwProxyBtn:'⚙️ নিজের ফ্রি প্রক্সি যোগ করুন',
   tCardTaint:'⚠️ পত্রিকার সার্ভার এই ছবিটি সরাসরি ডাউনলোড করতে দিচ্ছে না। সমাধান: পাশের "ছবিটি খুলুন" চাপুন → ছবিতে আঙুল চেপে ধরে "ছবি ডাউনলোড" করুন → তারপর এখানে "আপলোড" দিয়ে ছবিটি দিন। এখন আপলোড করা ছবি দিয়ে কার্ড ঠিকমতো ডাউনলোড হবে।'
 });
 Object.assign(T.en, {
@@ -3464,17 +3466,17 @@ Object.assign(T.en, {
   nwOpening:'Fetching article and photo…', nwPartial:'Full article unavailable — card made from the headline, summary and photo',
   nwReady:'✅ Card ready', nwHint:'Tap any headline — the article, photo and source go straight into a photo card.',
   nwMore:'Show more', nwSome:'No response: ', nwCount:' stories', nwFailOne:'Cannot fetch this paper right now — tap 🔄 a little later, or paste a link.',
-  nwAuto:'Refreshes on its own every 3 minutes',
+  nwAuto:'Refreshes on its own every 3 minutes', nwSec:'s', nwPapers:'papers loaded', nwGem:'✨ Trying Gemini to fetch the news (20–40 s)…', nwDiag:'Connection check:', nwProxyBtn:'⚙️ Add your own free proxy',
   tCardTaint:'⚠️ The news site does not allow this photo to be downloaded directly. Fix: tap "Open photo" → long-press the photo → "Download image" → then add it here with "Upload". Cards made with an uploaded photo now download normally.'
 });
 
 /* sources: f = known feed addresses (tried in order); if none answer, the paper's
    home page is searched for its feed, and finally Google News (site:) is used */
 const NEWS_SRC = [
-  { id:'prothomalo', bn:'প্রথম আলো', en:'Prothom Alo', d:'prothomalo.com', f:['https://www.prothomalo.com/feed/', 'https://www.prothomalo.com/stories.rss'], main:1 },
+  { id:'prothomalo', bn:'প্রথম আলো', en:'Prothom Alo', d:'prothomalo.com', q:'https://www.prothomalo.com', qi:'https://images.prothomalo.com/', f:['https://www.prothomalo.com/feed/', 'https://www.prothomalo.com/stories.rss'], main:1 },
   { id:'jamuna', bn:'যমুনা টিভি', en:'Jamuna TV', d:'jamuna.tv', f:['https://jamuna.tv/feed', 'https://jamuna.tv/rss.xml', 'https://jamuna.tv/feed/rss.xml'], main:1 },
   { id:'kalbela', bn:'কালবেলা', en:'Kalbela', d:'kalbela.com', f:['https://www.kalbela.com/rss.xml', 'https://www.kalbela.com/feed', 'https://www.kalbela.com/feed/rss.xml'], main:1 },
-  { id:'bdnews24', bn:'বিডিনিউজ২৪', en:'bdnews24', d:'bangla.bdnews24.com', f:['https://bangla.bdnews24.com/feed', 'https://bangla.bdnews24.com/stories.rss', 'https://bdnews24.com/feed'], main:1 },
+  { id:'bdnews24', bn:'বিডিনিউজ২৪', en:'bdnews24', d:'bangla.bdnews24.com', q:'https://bangla.bdnews24.com', f:['https://bangla.bdnews24.com/feed', 'https://bangla.bdnews24.com/stories.rss', 'https://bdnews24.com/feed'], main:1 },
   { id:'jugantor', bn:'যুগান্তর', en:'Jugantor', d:'jugantor.com', f:['https://www.jugantor.com/feed/rss.xml', 'https://www.jugantor.com/rss.xml'], main:1 },
   { id:'kalerkantho', bn:'কালের কণ্ঠ', en:'Kaler Kantho', d:'kalerkantho.com', f:['https://www.kalerkantho.com/rss.xml', 'https://www.kalerkantho.com/feed/rss.xml'], main:1 },
   { id:'samakal', bn:'সমকাল', en:'Samakal', d:'samakal.com', f:['https://samakal.com/feed', 'https://samakal.com/rss.xml', 'https://samakal.com/feed/rss.xml'], main:1 },
@@ -3582,13 +3584,25 @@ function nwParse(xml, src, base){
 const looksFeed = s => !!s && /<(rss|feed|rdf:RDF)[\s>]/i.test(s.slice(0, 3000)) && /<(item|entry)[\s>]/i.test(s);
 
 /* fetch one feed address through free routes; every route that answers is merged in */
+NW.diag = {};
+function nwNote(name, ok, why){ const d = NW.diag[name] || (NW.diag[name] = { ok: 0, fail: 0, why: '' }); if(ok) d.ok++; else { d.fail++; d.why = why || d.why; } }
+let nwCtGate = Promise.resolve();
+function nwGate(){ const p = nwCtGate.then(() => new Promise(r => setTimeout(r, 260))); nwCtGate = p; return p; }   // codetabs allows ~4 requests a second
 function nwRoutes(u){
-  const enc = encodeURIComponent(u), r = [];
-  if(S.worker){ const w = S.worker.trim(); r.push({ u: w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc }); }
-  r.push({ u: 'https://api.codetabs.com/v1/proxy/?quest=' + enc }, { u: 'https://api.allorigins.win/raw?url=' + enc },
-         { u: 'https://corsproxy.io/?url=' + enc }, { u: 'https://api.allorigins.win/get?url=' + enc, get: 1 },
-         { u: 'https://api.rss2json.com/v1/api.json?rss_url=' + enc, json: 1 });
+  const enc = encodeURIComponent(u), r = [{ n: 'direct', u }];
+  if(S.worker){ const w = S.worker.trim(); r.push({ n: 'worker', u: w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc }); }
+  r.push({ n: 'codetabs', u: 'https://api.codetabs.com/v1/proxy/?quest=' + enc, gate: 1 },
+         { n: 'allorigins', u: 'https://api.allorigins.win/raw?url=' + enc },
+         { n: 'allorigins-json', u: 'https://api.allorigins.win/get?url=' + enc, get: 1 },
+         { n: 'whateverorigin', u: 'https://whateverorigin.org/get?url=' + enc, get: 1 },
+         { n: 'cors.lol', u: 'https://api.cors.lol/?url=' + enc },
+         { n: 'rss2json', u: 'https://api.rss2json.com/v1/api.json?rss_url=' + enc, json: 1 });
   return r;
+}
+async function nwGet(r, ms){
+  if(r.gate) await nwGate();
+  try{ const x = await getText(r.u, ms || 10000); return x; }
+  catch(e){ nwNote(r.n, false, e && e.name === 'AbortError' ? 'timeout' : (e && e.message || 'error').replace(/^Failed to fetch$/, 'blocked')); throw e; }
 }
 function nwFromRss2json(j, src){
   if(!j || j.status !== 'ok' || !Array.isArray(j.items)) return [];
@@ -3602,7 +3616,7 @@ function nwFeed(feedUrl, src, onItems){
     const done = () => { if(--left === 0 && !got) reject(new Error('none')); };
     nwRoutes(feedUrl).forEach(r => {
       left++;
-      getText(r.u, 13000).then(text => {
+      nwGet(r).then(text => {
         let items = [];
         if(r.json){ items = nwFromRss2json(JSON.parse(text), src); }
         else {
@@ -3610,8 +3624,8 @@ function nwFeed(feedUrl, src, onItems){
           if(!looksFeed(text)) throw new Error('not feed');
           items = nwParse(text, src, feedUrl);
         }
-        if(!items.length) throw new Error('empty');
-        onItems(items); if(!got){ got = true; resolve(feedUrl); }
+        if(!items.length){ nwNote(r.n, false, 'not a feed'); throw new Error('empty'); }
+        nwNote(r.n, true); onItems(items); if(!got){ got = true; resolve(feedUrl); }
         done();
       }).catch(done);
     });
@@ -3621,7 +3635,7 @@ function nwFeed(feedUrl, src, onItems){
 async function nwDiscover(src){
   const home = 'https://' + (src.d.includes('/') ? src.d : 'www.' + src.d.replace(/^www\./, '')) + '/';
   const html = await Promise.any(nwRoutes(home).filter(r => !r.json).map(async r => {
-    let h = await getText(r.u, 12000); if(r.get){ try{ h = JSON.parse(h).contents || ''; }catch(e){ h = ''; } }
+    let h = await nwGet(r); if(r.get){ try{ h = JSON.parse(h).contents || ''; }catch(e){ h = ''; } }
     if(!h || h.length < 500) throw new Error('thin'); return h;
   }));
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -3631,6 +3645,22 @@ async function nwDiscover(src){
 }
 function gnUrl(q){ return 'https://news.google.com/rss/search?q=' + encodeURIComponent(q) + '&hl=bn&gl=BD&ceid=BD:bn'; }
 
+/* Quintype sites (Prothom Alo, bdnews24): their own JSON list of latest stories, usually readable directly */
+async function nwQuintype(src, onItems){
+  const api = src.q + '/api/v1/stories?limit=30&fields=headline,url,slug,hero-image-s3-key,last-published-at,published-at,summary,subheadline';
+  const routes = nwRoutes(api).filter(r => !r.json);
+  return Promise.any(routes.map(async r => {
+    let txt = await nwGet(r); if(r.get){ txt = JSON.parse(txt).contents || ''; }
+    const j = JSON.parse(txt), list = (j && j.stories) || [];
+    const items = list.map(st => {
+      const key = st['hero-image-s3-key'];
+      return { title: norm(st.headline || ''), link: st.url || (st.slug ? src.q + '/' + st.slug : ''), date: new Date(st['last-published-at'] || st['published-at'] || 0),
+        img: key && src.qi ? src.qi + key.split('/').map(encodeURIComponent).join('/') : '', desc: norm(String(st.summary || st.subheadline || '').replace(/<[^>]+>/g, '')).slice(0, 900), src };
+    }).filter(o => o.title && /^https?:/.test(o.link)).map(o => { if(!o.date.getTime()) o.date = null; return o; });
+    if(!items.length){ nwNote(r.n, false, 'empty'); throw new Error('empty'); }
+    nwNote(r.n, true); onItems(items); return true;
+  }));
+}
 async function nwLoad(src, force){
   if(NW.busy[src.id]) return NW.busy[src.id];
   if(!force && NW.at[src.id] && Date.now() - NW.at[src.id] < 90000) return;
@@ -3639,26 +3669,63 @@ async function nwLoad(src, force){
     items.forEach(o => { const old = map.get(o.link); if(old){ if(!old.img && o.img) old.img = o.img; if(!old.date && o.date) old.date = o.date; } else map.set(o.link, o); });
     NW.items[src.id] = [...map.values()]; NW.fail[src.id] = false; NW.at[src.id] = Date.now(); nwSchedule();
   };
-  const job = (async () => {
+  const own = (async () => {
+    if(src.gn){ await nwFeed(src.gn, src, merge); return; }
+    if(src.q){ try{ await nwQuintype(src, merge); return; }catch(e){} }
     const ok = store.get('feedOk_' + src.id, '');
-    let list = src.gn ? [src.gn] : [...new Set([ok, ...src.f].filter(Boolean))];
-    for(const f of list){ try{ const w = await nwFeed(f, src, merge); if(!src.gn) store.set('feedOk_' + src.id, w); return; }catch(e){} }
-    if(src.gn) throw new Error('gn');
-    try{ const found = await nwDiscover(src); for(const f of found){ try{ const w = await nwFeed(f, src, merge); store.set('feedOk_' + src.id, w); return; }catch(e){} } }catch(e){}
-    // last resort: Google News for this site (always works for headlines)
+    for(const f of [...new Set([ok, ...src.f].filter(Boolean))]){ try{ const w = await nwFeed(f, src, merge); store.set('feedOk_' + src.id, w); return; }catch(e){} }
+    const found = await nwDiscover(src);
+    for(const f of found){ try{ const w = await nwFeed(f, src, merge); store.set('feedOk_' + src.id, w); return; }catch(e){} }
+    throw new Error('none');
+  })();
+  // if the paper's own list is slow, Google News headlines for that site start after 5 s
+  const google = src.gn ? Promise.reject(new Error('skip')) : (async () => {
+    await new Promise(r => setTimeout(r, 5000));
+    if((NW.items[src.id] || []).length) return;
     const gsrc = Object.assign({}, src, { gn: gnUrl('site:' + src.d + ' when:2d') });
     await nwFeed(gsrc.gn, gsrc, merge);
   })();
+  const job = Promise.any([own, google]);
   NW.busy[src.id] = job;
   try{ await job; }catch(e){ if(!(NW.items[src.id] || []).length) NW.fail[src.id] = true; }
   finally{ delete NW.busy[src.id]; nwSchedule(); }
 }
+/* last resort when the free routes are blocked on this network: Gemini (your API key) reads the feeds */
+async function nwGemini(srcs){
+  if(!S.gkey || !srcs.length || NW.gemBusy) return;
+  NW.gemBusy = true; nwSchedule();
+  try{
+    const urls = srcs.slice(0, 8).map(s => s.gn || (store.get('feedOk_' + s.id, '') || s.f[0]));
+    const r = await gemini({
+      contents: [{ role: 'user', parts: [{ text: 'Open each of these RSS feed URLs with the URL context tool:\n' + urls.join('\n') +
+        '\n\nFrom every feed take the 15 newest items. Copy titles exactly in their original language, do not translate. Return ONLY a JSON object, no markdown: {"items":[{"title":"","link":"absolute article URL","date":"ISO 8601 or empty","image":"absolute image URL or empty","summary":"first 1-2 sentences or empty"}]}' }] }],
+      tools: [{ url_context: {} }], generationConfig: { temperature: 0 }
+    }, 90000);
+    const o = parseAiJson(r.text), list = Array.isArray(o.items) ? o.items : [];
+    const bySrc = {};
+    list.forEach(x => {
+      const link = String(x.link || ''); if(!/^https?:/.test(link) || !x.title) return;
+      const h = hostOf(link), s = srcs.find(z => h === z.d.split('/')[0] || h.endsWith('.' + z.d.split('/')[0]) || (z.d.includes('bbc') && /bbc\./.test(h))) || srcs[0];
+      (bySrc[s.id] = bySrc[s.id] || []).push({ title: norm(x.title), link, date: parseDate(x.date), img: /^https?:/.test(x.image || '') ? x.image : '', desc: norm(x.summary || ''), src: s });
+    });
+    Object.keys(bySrc).forEach(id => {
+      const prev = NW.items[id] || [], seen = new Set(prev.map(z => z.link));
+      NW.items[id] = prev.concat(bySrc[id].filter(z => !seen.has(z.link))); NW.fail[id] = false; NW.at[id] = Date.now();
+    });
+    nwNote('gemini', true);
+  }catch(e){ nwNote('gemini', false, (e && e.message || 'error').slice(0, 40)); }
+  finally{ NW.gemBusy = false; nwSchedule(); }
+}
 const NW_GOOGLE = { id:'google', bn:'গুগল নিউজ', en:'Google News', d:'news.google.com', f:[], gn:'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn' };
 function nwSources(){ return NW.src === 'all' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
 function nwRefresh(force){
-  const tok = ++NW.tok; NW.shown = 40;
+  const tok = ++NW.tok; NW.shown = 40; NW.started = Date.now();
+  const srcs = nwSources();
   nwSchedule();
-  Promise.allSettled(nwSources().map(s => nwLoad(s, force))).then(() => { if(tok === NW.tok) nwSchedule(); });
+  // after 12 s, papers still empty → try Gemini (only if an API key is saved)
+  setTimeout(() => { if(tok !== NW.tok || !NW.open) return; const empty = srcs.filter(s => !(NW.items[s.id] || []).length); if(empty.length) nwGemini(empty); }, 12000);
+  const tick = setInterval(() => { if(tok !== NW.tok || !NW.open){ clearInterval(tick); return; } nwSchedule(); }, 1000);
+  Promise.allSettled(srcs.map(s => nwLoad(s, force))).then(() => { if(tok === NW.tok) nwSchedule(); });
 }
 
 /* ---------- UI ---------- */
@@ -3678,13 +3745,17 @@ function nwRender(){
   all.sort((a, b) => (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
   all = all.filter(o => !o.date || o.date.getTime() < now + 3600000);     // drop wrong future dates
   NW.list = all;
-  const busy = srcs.some(s => NW.busy[s.id]);
+  const busy = srcs.some(s => NW.busy[s.id]) || !!NW.gemBusy;
+  const doneN = srcs.filter(s => (NW.items[s.id] || []).length).length;
   const failed = srcs.filter(s => NW.fail[s.id]).map(s => S.lang === 'bn' ? s.bn : s.en);
   const st = $('nwState');
   if(!all.length){
-    st.innerHTML = busy ? '<span class="spin"></span> ' + esc(t('nwLoading')) : esc(srcs.length === 1 && failed.length ? t('nwFailOne') : t('nwEmpty'));
+    const secs = NW.started ? Math.round((Date.now() - NW.started) / 1000) : 0;
+    st.innerHTML = (busy ? '<span class="spin"></span> ' + esc(t('nwLoading') + (secs ? ' (' + nwNum(secs) + ' ' + t('nwSec') + ')' : '')) : esc(srcs.length === 1 && failed.length ? t('nwFailOne') : t('nwEmpty'))) +
+      (NW.gemBusy ? '<br>' + esc(t('nwGem')) : '') +
+      (secs >= 15 || !busy ? '<div class="nwdiag">' + esc(t('nwDiag')) + ' ' + esc(nwDiagText()) + '</div>' + (S.worker ? '' : '<button type="button" class="btn" id="nwProxyBtn">' + esc(t('nwProxyBtn')) + '</button>') : '');
   } else {
-    st.innerHTML = (busy ? '<span class="spin"></span> ' : '') + esc(nwNum(all.length) + t('nwCount')) +
+    st.innerHTML = (busy ? '<span class="spin"></span> ' : '') + esc(nwNum(all.length) + t('nwCount')) + (srcs.length > 1 ? esc(' · ' + nwNum(doneN) + '/' + nwNum(srcs.length) + ' ' + t('nwPapers')) : '') +
       (failed.length ? ' · <span class="nwfail">' + esc(t('nwSome') + failed.join(', ')) + '</span>' : '');
   }
   const last = Math.max(0, ...srcs.map(s => NW.at[s.id] || 0));
@@ -3706,6 +3777,11 @@ function nwRender(){
   });
   list.innerHTML = ''; list.appendChild(frag);
   $('nwMore').classList.toggle('hidden', all.length <= NW.shown);
+}
+function nwDiagText(){
+  const d = NW.diag, keys = Object.keys(d);
+  if(!keys.length) return '—';
+  return keys.map(k => k + (d[k].ok ? ' ✓' : ' ✗' + (d[k].why ? '(' + d[k].why + ')' : ''))).join(', ');
 }
 function nwChips(){
   const box = $('nwChips'); box.innerHTML = '';
@@ -3794,6 +3870,7 @@ function nwInit(){
     $('nwChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
     $('nwList').scrollTop = 0; nwRefresh(false);
   });
+  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn'){ nwClose(); setTimeout(() => { openSettings(); const w = $('workerInput'); if(w){ w.scrollIntoView({ block: 'center' }); w.focus(); } }, 150); } });
   $('nwList').addEventListener('click', e => { const b = e.target.closest('.nwitem'); if(!b) return; const o = NW.list[+b.dataset.i]; if(o) nwPick(o); });
   $('newsSheet').addEventListener('click', e => { if(e.target.id === 'newsSheet') nwClose(); });
   document.addEventListener('keydown', e => { if(e.key === 'Escape' && NW.open) nwClose(); });

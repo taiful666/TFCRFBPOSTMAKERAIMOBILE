@@ -1,4 +1,4 @@
-# Collects the latest Bangladeshi news every 15 minutes on GitHub's servers.
+# Collects the latest Bangladeshi news about every 10 minutes on GitHub's servers.
 # The result is kept as a single file (news.json) on a separate "live-news" branch,
 # replaced each time, so the repository never grows and the website is not rebuilt.
 name: Live news for TF app
@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Note the start time
+        run: echo "START=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Collect the latest news
         working-directory: ${{ runner.temp }}
         run: |
@@ -190,20 +193,20 @@ jobs:
           git commit -q -m "Live news $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" live-news
 
-      # GitHub's own timer is sometimes late or silent for hours. If no timed run has
-      # happened in the last 25 minutes, wait 10 minutes and start the next collection
-      # ourselves, so the news never goes stale.
-      - name: Keep the news fresh if GitHub's timer is late
+      # GitHub's own timer is unreliable (it can be late, cancelled or silent for hours),
+      # so every run starts the next one itself, about 10 minutes after it began.
+      # If another run is already running or waiting, that one carries on instead.
+      # The timer above stays only as a backup that restarts the chain if it ever stops.
+      - name: Start the next collection in about 10 minutes
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          last=$(gh run list -R "$GITHUB_REPOSITORY" -w live-news.yml -e schedule -L 1 --json createdAt -q '.[0].createdAt' 2>/dev/null || true)
-          age=999999
-          if [ -n "$last" ]; then age=$(( $(date +%s) - $(date -d "$last" +%s) )); fi
-          if [ "$age" -lt 1500 ]; then echo "Timer is working (last timed run ${age}s ago)"; exit 0; fi
-          others=$(gh run list -R "$GITHUB_REPOSITORY" -w live-news.yml -s queued --json databaseId -q 'length' 2>/dev/null || echo 0)
-          if [ "${others:-0}" -gt 0 ]; then echo "Another run is already waiting"; exit 0; fi
-          echo "Timer is late — next collection in 10 minutes"
-          sleep 600
-          gh workflow run live-news.yml -R "$GITHUB_REPOSITORY" --ref main
+          busy() { gh run list -R "$GITHUB_REPOSITORY" -w live-news.yml -L 15 --json databaseId,status \
+                     -q "[.[] | select(.status != \"completed\" and .databaseId != ${GITHUB_RUN_ID})] | length" 2>/dev/null || echo 0; }
+          if [ "$(busy)" -gt 0 ]; then echo "Another collection is already running or waiting"; exit 0; fi
+          wait=$(( 600 - ($(date +%s) - START) )); [ "$wait" -lt 30 ] && wait=30
+          echo "Next collection in ${wait}s"; sleep "$wait"
+          if [ "$(busy)" -gt 0 ]; then echo "Another collection started meanwhile"; exit 0; fi
+          for i in 1 2 3; do gh workflow run live-news.yml -R "$GITHUB_REPOSITORY" --ref main && exit 0; sleep 20; done
+          echo "Could not start the next run; the backup timer will restart it"; exit 1

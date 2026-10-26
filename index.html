@@ -758,6 +758,7 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
 .v6writer button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:4px 12px;font:inherit;cursor:pointer}
 .v6writer button.on{background:#d97757;border-color:#d97757;color:#fff;font-weight:700}
 .claudebox h4{margin-top:0}
+.nwitem em.nwq{background:#fff200;color:#111;font-style:normal;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
 </head>
 <body>
@@ -3991,7 +3992,7 @@ async function findAndSetImage(a){
    tap a headline → article + photo load → photo card opens
    ===================================================================== */
 Object.assign(T.bn, {
-  nwOpen:'📰 লাইভ নিউজ — সর্বশেষ খবর থেকে এক চাপে কার্ড', nwTitle:'📰 লাইভ নিউজ', nwAll:'⭐ সব পত্রিকা', nwGoogle:'🌐 গুগল নিউজ (শীর্ষ খবর)',
+  nwOpen:'📰 লাইভ নিউজ — সর্বশেষ খবর থেকে এক চাপে কার্ড', nwTitle:'📰 লাইভ নিউজ', nwAll:'⭐ সব পত্রিকা', nwQuotes:'❝ উক্তি ও মন্তব্য', nwQ:'❝ উক্তি',  nwGoogle:'🌐 গুগল নিউজ (শীর্ষ খবর)',
   nwSearch:'শিরোনামে খুঁজুন…', nwLoading:'সর্বশেষ খবর আনা হচ্ছে…', nwEmpty:'এই মুহূর্তে কোনো খবর পাওয়া যায়নি — 🔄 চেপে আবার চেষ্টা করুন।',
   nwUpd:'হালনাগাদ', nwNew:'নতুন', nwMin:'মিনিট আগে', nwHr:'ঘণ্টা আগে', nwDay:'দিন আগে', nwJust:'এইমাত্র',
   nwOpening:'খবর ও ছবি আনা হচ্ছে…', nwPartial:'পুরো খবর আনা যায়নি — শিরোনাম, সারাংশ ও ছবি দিয়ে কার্ড তৈরি হয়েছে',
@@ -4001,7 +4002,7 @@ Object.assign(T.bn, {
   tCardTaint:'⚠️ পত্রিকার সার্ভার এই ছবিটি সরাসরি ডাউনলোড করতে দিচ্ছে না। সমাধান: পাশের "ছবিটি খুলুন" চাপুন → ছবিতে আঙুল চেপে ধরে "ছবি ডাউনলোড" করুন → তারপর এখানে "আপলোড" দিয়ে ছবিটি দিন। এখন আপলোড করা ছবি দিয়ে কার্ড ঠিকমতো ডাউনলোড হবে।'
 });
 Object.assign(T.en, {
-  nwOpen:'📰 Live news — make a card from the latest news in one tap', nwTitle:'📰 Live news', nwAll:'⭐ All papers', nwGoogle:'🌐 Google News (top stories)',
+  nwOpen:'📰 Live news — make a card from the latest news in one tap', nwTitle:'📰 Live news', nwAll:'⭐ All papers', nwQuotes:'❝ Quotes & statements', nwQ:'❝ quote',  nwGoogle:'🌐 Google News (top stories)',
   nwSearch:'Search headlines…', nwLoading:'Fetching the latest news…', nwEmpty:'No news found right now — tap 🔄 to try again.',
   nwUpd:'Updated', nwNew:'New', nwMin:'min ago', nwHr:'h ago', nwDay:'d ago', nwJust:'just now',
   nwOpening:'Fetching article and photo…', nwPartial:'Full article unavailable — card made from the headline, summary and photo',
@@ -4260,7 +4261,7 @@ async function nwGemini(srcs){
   finally{ NW.gemBusy = false; nwSchedule(); }
 }
 const NW_GOOGLE = { id:'google', bn:'গুগল নিউজ', en:'Google News', d:'news.google.com', f:[], gn:'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn' };
-function nwSources(){ return NW.src === 'all' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
+function nwSources(){ return NW.src === 'all' || NW.src === 'quotes' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
 /* news.json — collected every 15 minutes by GitHub on its own servers (see .github/workflows/live-news.yml) */
 NW.json = null; NW.jsonAt = 0;
 function nwJsonUrls(){
@@ -4321,7 +4322,9 @@ function nwRender(){
   const now = Date.now();
   all = all.filter(o => !o.date || o.date.getTime() < now + 3600000);     // drop wrong future dates
   // দেশের খবর আগে: foreign stories are pushed back by 12 hours, so today's Bangladesh news leads the feed
-  const nwKey = o => (o.date ? o.date.getTime() : 0) - (nwIsForeign(o) ? 12 * 3600000 : 0);
+  if(NW.src === 'quotes') all = all.filter(o => nwHot(o) >= 2);
+  // statements ("কে কী বললেন") and political news come first; foreign news is pushed back
+  const nwKey = o => (o.date ? o.date.getTime() : 0) - (nwIsForeign(o) ? 12 * 3600000 : 0) + [0, 2, 6, 9][nwHot(o)] * 3600000;
   all.sort((a, b) => nwKey(b) - nwKey(a));
   NW.list = all;
   const busy = srcs.some(s => NW.busy[s.id]) || !!NW.gemBusy;
@@ -4345,7 +4348,7 @@ function nwRender(){
     const fresh = o.date && now - o.date.getTime() < 30 * 60000;
     const host = o.src && o.src.d && !o.src.gn ? o.src.d.split('/')[0] : '';
     b.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : (host ? '<img class="fav" alt="" src="' + esc(proxImg('www.google.com/s2/favicons?domain=' + host + '&sz=64')) + '">' : '📰')) + '</span>' +
-      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
+      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + (nwHot(o) >= 2 ? '<em class="nwq">' + esc(t('nwQ')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
     const fav = b.querySelector('img.fav'); if(fav) fav.onerror = () => { fav.parentNode.textContent = '📰'; };
     if(o.img){
       const im = b.querySelector('img'); im.dataset.f = '0';
@@ -4368,6 +4371,22 @@ function nwIsForeign(o){
   o._intl = !NW_BD_WORD.test(tt) && (NW_INTL_PATH.test(path) || NW_INTL_WORD.test(tt) || (o.src && o.src.id === 'bbcbangla' && !NW_BD_WORD.test(o.desc || '')));
   return o._intl;
 }
+/* how "hot" is a headline for a quote card? 0 = normal, 1 = political, 2 = statement, 3 = political statement */
+const NW_SAID = /বললেন|বলেছেন|বলেন\b|মন্তব্য|বক্তব্য|দাবি|অভিযোগ|নিন্দা|হুঁশিয়ারি|হুশিয়ারি|সমালোচনা|প্রশ্ন তুল|জবাব|পাল্টা|মুখ খুল|ক্ষোভ|কটাক্ষ|তোপ|ইঙ্গিত দিল|আহ্বান|সতর্ক কর|চ্যালেঞ্জ/;
+const NW_POL = /বিএনপি|জামায়াত|আওয়ামী|আ\.\s?লীগ|এনসিপি|ছাত্রদল|শিবির|ছাত্রলীগ|যুবদল|গণঅধিকার|জাতীয় পার্টি|জাপা|হেফাজত|ইসলামী আন্দোলন|উপদেষ্টা|প্রধানমন্ত্রী|মন্ত্রী|সংসদ|এমপি|আইজিপি|সেনাপ্রধান|নির্বাচন|তারেক|ইউনূস|হাসিনা|খালেদা|নাহিদ|হাসনাত|সারজিস|আখতার|নুর\b|কাদের|ফখরুল|রিজভী|সালাহউদ্দিন|পরওয়ার|শফিকুর|আসিফ|মাহফুজ|সাদিক কায়েম|রাষ্ট্রপতি/;
+function nwHot(o){
+  if(o._hot != null) return o._hot;
+  const tt = String(o.title || '').trim();
+  let q = 0;
+  if(!/আপনি কি|সারা দিনের খবর|আজকের খবর|নিয়োগ বিজ্ঞপ্তি|রাশিফল/.test(tt)){
+    if(/[:：]\s*[^:：]{2,40}$/.test(tt) && tt.split(/[:：]/).pop().trim().split(/\s+/).length <= 5) q = 2;        // "…কথা: বক্তা"
+    else if(/[‘“"']([^‘’“”"']{3,}\s[^‘’“”"']+)[’”"']/.test(tt) && NW_SAID.test(tt)) q = 2;                        // ‘উক্তি’ + বললেন
+    else if(NW_SAID.test(tt)) q = 2;
+  }
+  o._hot = q + (NW_POL.test(tt) && !nwIsForeign(o) ? 1 : 0);
+  if(q === 0 && o._hot === 1) o._hot = 1;
+  return o._hot;
+}
 function nwDiagText(){
   const d = NW.diag, keys = Object.keys(d);
   if(!keys.length) return '—';
@@ -4376,7 +4395,7 @@ function nwDiagText(){
 function nwChips(){
   const box = $('nwChips'); box.innerHTML = '';
   const mk = (id, label) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (NW.src === id ? ' on' : ''); b.dataset.src = id; b.textContent = label; box.appendChild(b); };
-  mk('all', t('nwAll')); mk('google', t('nwGoogle'));
+  mk('all', t('nwAll')); mk('quotes', t('nwQuotes')); mk('google', t('nwGoogle'));
   NEWS_SRC.forEach(s => mk(s.id, S.lang === 'bn' ? s.bn : s.en));
 }
 function nwOpen(){

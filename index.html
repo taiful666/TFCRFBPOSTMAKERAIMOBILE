@@ -1762,7 +1762,7 @@ S.ckey = store.get('ckey', ''); S.cmodel = store.get('cmodel', 'claude-sonnet-5-
 const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
 const useClaude = () => !!S.ckey && S.writer !== 'gemini';
 const canWrite = () => useClaude() || !!S.gkey;
-async function claude(system, prompt, ms, maxTokens){
+async function claude(system, prompt, ms, maxTokens, json){
   if(!S.ckey) throw new Error('NOKEY');
   const models = [S.cmodel].concat(CLAUDE_MODELS).filter((m, i, a) => m && a.indexOf(m) === i);
   let lastErr = null;
@@ -1772,7 +1772,8 @@ async function claude(system, prompt, ms, maxTokens){
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', signal: to.signal,
         headers: { 'content-type': 'application/json', 'x-api-key': S.ckey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: m, max_tokens: maxTokens || 3000, system, messages: [{ role: 'user', content: prompt }] })
+        body: JSON.stringify(Object.assign({ model: m, max_tokens: maxTokens || 8000, system, messages: [{ role: 'user', content: prompt }] },
+          json ? { tools: [{ name: 'submit', description: 'Submit the finished result as the JSON object described in the request.', input_schema: { type: 'object' } }], tool_choice: { type: 'tool', name: 'submit' } } : {}))
       });
       const j = await r.json().catch(() => ({}));
       if(!r.ok){
@@ -1781,7 +1782,13 @@ async function claude(system, prompt, ms, maxTokens){
         if(r.status === 404 || /model/i.test(msg) && /not.?found|invalid|does not exist/i.test(msg)) continue;   // try the next model
         throw lastErr;
       }
-      const text = (j.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+      let text = (j.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+      const tu = (j.content || []).find(c => c.type === 'tool_use');
+      if(tu && tu.input){
+        const inp = tu.input;   // sometimes nested lists arrive as JSON strings — unpack them
+        Object.keys(inp).forEach(k => { const v = inp[k]; if(typeof v === 'string' && /^\s*[\[{]/.test(v)){ try{ inp[k] = JSON.parse(v); }catch(e){} } });
+        text = JSON.stringify(inp);
+      }
       return { text, model: m, cand: { finishReason: j.stop_reason } };
     }finally{ to.done(); }
   }
@@ -1793,9 +1800,11 @@ const CLAUDE_STYLE = `You are the writer for a Bangladeshi Facebook news page th
 
 === QUOTE CARDS (উক্তি কার্ড — "কে কী বললেন") ===
 These cards show one big statement with a big “ mark, a yellow highlight band, and the speaker's name + identity in a dark box. Readers decide in one second, so:
+0. GOAL: the reader must STOP scrolling. Every option has to feel like a "bombshell" line — bold, surprising, emotional, a little provocative — while staying 100% true to what was said. A safe, boring, procedural line is a failure.
 1. PICK THE LINE PEOPLE WILL SCREENSHOT. Scan everything each person said and choose the most striking, surprising, emotional, ironic or bold line: a strong claim, a confession, a comparison, a warning, a rhetorical question, a personal memory. Skip routine, procedural or vague lines ("আমরা বিষয়টি খতিয়ে দেখছি").
 2. KEEP THE SPEAKER'S OWN VOICE. Use their actual words from the article, in spoken first-person Bengali exactly as they said it ("আমরা এটা মেনে নেব না", "তাহলে তো…", "আমার বড় ভাই কেন এই কাজগুলো করেছেন…"). Do not turn it into newspaper language. You may drop filler words and join two nearby sentences from the same speech. If the article reports the statement indirectly ("তিনি বলেন, …"), turn it into first person with exactly the same meaning. Never add a claim, number or opinion they did not express.
-3. LENGTH: 12–40 words, at most 3 short sentences, one complete thought that makes sense without reading the article. Short and sharp beats long.
+3. LENGTH: 10–30 words (never over 35), at most 2–3 short sentences, one complete thought that makes sense without reading the article. Short and sharp beats long — cut every word that does not add punch. Start with the hottest part, not with background ("সংশ্লিষ্ট মামলার প্রাথমিক তথ্য বিবরণীতে…" is a weak start).
+   Strong patterns: a direct claim ("আমি দাবি করছি, তিনি নির্দোষ!"), a contrast ("মামলায় নাম নেই, অথচ তিনিই আসামি!"), a rhetorical question ("তাহলে তাঁর অপরাধটা কী?"), a personal/emotional line, a surprising number.
 4. HIGHLIGHT: wrap exactly ONE continuous part in *asterisks* — the punchline that should hit first. Usually the second half / the final clause; sometimes the opening claim when that is the hook. 5–18 words. If the whole quote is 14 words or fewer, highlight all of it.
 5. END with the natural punctuation: । for statements, ? for questions, ! only when the speaker is truly exclaiming. No quotation marks (the design adds “), no emoji, no hashtags.
 6. SPEAKER = the name as Bangladeshi media write it, with the honorific/title they use (ডা., অ্যাডভোকেট, ব্যারিস্টার, অধ্যাপক, মাওলানা). ROLE = short identity in 2–6 words, "পদ, প্রতিষ্ঠান" form: "আমির, জামায়াতে ইসলামী", "সাবেক প্রতিমন্ত্রী", "জাতীয় দলের ক্রিকেটার", "ভুক্তভোগীর মা", "আইনজীবী".
@@ -1806,7 +1815,8 @@ These cards show one big statement with a big “ mark, a yellow highlight band,
 Short, punchy and conversational — 6–14 words, the most surprising true fact first, the way people retell news to friends ("গাজার শিশুদের জন্য ১২ লাখ টাকায় বিক্রি হলো হামজার জার্সি!"). Highlight the 1–3 key words with *asterisks*. No dry newspaper phrasing, no question-bait, nothing misleading.
 
 === CAPTIONS AND FACEBOOK POSTS ===
-Short and human. First line = a hook under 15 words (the most interesting fact or the essence of the statement; may start with one fitting emoji such as 📌 or 🗣️). Then 1–3 short lines with the context a reader needs: who, where, when, and why it matters to ordinary people. Simple spoken Bengali, short sentences, no long paragraphs, no "বিস্তারিত কমেন্টে", no "লাইক/শেয়ার/কমেন্ট করুন", no ALL-CAPS, no hashtags inside the text (hashtags go in their own field when asked). Respect the word limit you are given.
+The card is the hook; the caption is the TRUST. A reader who taps "see more" must not feel cheated: the caption must clearly tell what the story is really about, so they understand the full matter without opening the newspaper.
+Short and human. First line = a hook under 15 words (the most interesting fact or the essence of the statement; may start with one fitting emoji such as 📌 or 🗣️). Then 2–4 short lines that give an honest overview of the real story: who said or did what, where and when, the background/context, and what happens next — the key facts, not just more drama. For a quote card, explain the situation in which the statement was made and what it refers to. Simple spoken Bengali, short sentences, no long paragraphs, no "বিস্তারিত কমেন্টে", no "লাইক/শেয়ার/কমেন্ট করুন", no ALL-CAPS, no hashtags inside the text (hashtags go in their own field when asked). Respect the word limit you are given.
 
 === ALWAYS ===
 - Accuracy first: every name, number, date and statement must come from the article. Never invent quotes.
@@ -1818,7 +1828,13 @@ Short and human. First line = a hook under 15 words (the most interesting fact o
 async function writeAi(body, ms){
   if(!useClaude()) return gemini(body, ms);
   const prompt = (body.contents || []).map(c => (c.parts || []).map(p => p.text || '').join('\n')).join('\n\n');
-  try{ return await claude(CLAUDE_STYLE, prompt, ms); }
+  const wantJson = /JSON/.test(prompt);
+  const ok = r => { if(!wantJson) return !!norm(r.text); try{ const o = parseAiJson(r.text); const list = o.card_options || o.takes || o.options; return !Array.isArray(list) || list.length >= 3 || !/exactly 3/.test(prompt); }catch(e){ return false; } };
+  try{
+    let r = await claude(CLAUDE_STYLE, prompt, ms, 8000, wantJson);
+    if(!ok(r)) r = await claude(CLAUDE_STYLE, prompt + '\n\nIMPORTANT: give the complete result with exactly 3 options.', ms, 8000, wantJson);   // one retry
+    return r;
+  }
   catch(e){
     if(S.gkey && e.name !== 'AbortError' && e.status !== 400){ toast('Claude: ' + aiErrMsg(e) + ' — Gemini'); return gemini(body, ms); }
     throw e;
@@ -3573,7 +3589,7 @@ function setHooks(list){
 }
 function applyHook(i, silent){
   const h = (AI.hooks || [])[i]; if(!h) return;
-  if(h.quote && !isQuoteTpl(C.template)) applyTemplate('qgrid');
+  if(h.quote && !isQuoteTpl(C.template) && !/^insight/.test(C.template)) applyTemplate('qgrid');
   else if(!h.quote && isQuoteTpl(C.template)) applyTemplate('band');
   Object.assign(C.fields, h.quote ? { headline: h.headline, sub: h.sub, role: h.role, desc: '', cat: '' } : { headline: h.headline, sub: h.sub, desc: h.desc, cat: h.cat, role: '' });
   AI.hookSel = i; syncFields(); renderHooks(); scheduleRender();
@@ -3690,7 +3706,7 @@ function drawGridPaper(ctx, W, H, dark){
   const u = Math.min(W, H) / 1080;
   let g;
   if(dark){ g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, shade(C.accent, 0.1)); g.addColorStop(1, shade(C.accent, -0.35)); }
-  else { g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#f2f2f0'); g.addColorStop(1, '#e2e2df'); }
+  else { const pp = (TPL[C.template] || {}).paper; g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, pp || '#f2f2f0'); g.addColorStop(1, pp ? shade(pp, -0.07) : '#e2e2df'); }
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   const step = 54 * u;
   ctx.strokeStyle = dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.08)'; ctx.lineWidth = 1.6 * u;
@@ -3795,6 +3811,8 @@ function fillFbWords(){
 const fbWordLimit = () => +(($('fbWords') && $('fbWords').value) || 0);
 function postSpec(){
   const n = fbWordLimit();
+  const ov = ' — the first line hooks, the rest gives an honest overview of what the news is really about (who, what, where, when, background, what next) so a reader who opens it is never disappointed' + (AI.hookKind === 'quote' ? ', explaining the situation in which the quoted statement was made' : '');
+  if(useClaude()) return (n ? 'Facebook caption of about ' + n + ' words and NEVER more than ' + n + ' words (hashtags not counted)' : 'Facebook caption of 50–90 words') + ov + '; short lines, plain text, no hashtags, no links';
   return n ? 'Facebook post text of about ' + n + ' words and NEVER more than ' + n + ' words (hashtags not counted): an attention-grabbing first line, then the key facts in short paragraphs; plain text, no hashtags, no links'
            : 'Facebook post text: an attention-grabbing first line, then 2–4 short paragraphs with the key facts; plain text, no hashtags, no links';
 }
@@ -4590,7 +4608,7 @@ function catPill(ctx, F, x, y, u, bg, fg){
 /* 1) Insight card — headline + key facts + "my comment" box; photo is a small framed inset */
 function tplInsight(ctx, W, H, u, land){
   const F = C.fields, hs = C.hSize / 100, HF = CFONTS[C.font], ink = C.tc, pad = (land ? 72 : 56) * u;
-  ctx.fillStyle = '#f7f4ec'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = (TPL[C.template] || {}).paper || '#f7f4ec'; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(0,0,0,.035)'; ctx.lineWidth = 1.5 * u;
   for(let y = 150 * u; y < H; y += 46 * u){ ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
   const sh = 96 * u;
@@ -4602,7 +4620,8 @@ function tplInsight(ctx, W, H, u, land){
   const capH = nz(F.label) ? 40 * u : 0, colW = px - pad - 36 * u, fw = W - 2 * pad, pts = pointsOf(F), take = nz(F.take);
   const L = fitFlow(s => {
     const head = measureItem(ctx, { k: 'headline', text: F.headline, size: 62 * u * hs * s, weight: HF.w, fam: HF.fam, color: ink, hl: C.hl, hlMode: 'box', hlText: boxText(C.hl), lh: 1.38, maxLines: 5, min: 26 * u }, colW, u);
-    const sub = nz(F.sub) ? measureItem(ctx, { k: 'sub', text: F.sub, size: 28 * u * s, weight: 600, fam: BFAM, color: C.accent, lh: 1.4, maxLines: 2, min: 18 * u }, colW, u) : null;
+    const subT = [nz(F.sub), nz(F.role)].filter(Boolean).join(', ');
+    const sub = subT ? measureItem(ctx, { k: 'sub', text: (nz(F.role) ? '— ' : '') + subT, size: 28 * u * s, weight: 600, fam: BFAM, color: C.accent, lh: 1.4, maxLines: 2, min: 18 * u }, colW, u) : null;
     const topH = Math.max(head.h + (sub ? sub.h + 12 * u : 0), ph + capH);
     const rows = pts.length ? pts.map(p => measureItem(ctx, { k: 'points', text: p, size: 30 * u * s, weight: 500, fam: BFAM, color: ink, lh: 1.4, maxLines: 2, min: 18 * u }, fw - 60 * u, u))
       : nz(F.desc) ? [measureItem(ctx, { k: 'desc', text: F.desc, size: 30 * u * s, weight: 400, fam: BFAM, color: hexA(ink, 0.85), lh: 1.5, maxLines: 4, min: 18 * u }, fw, u)] : [];
@@ -5251,7 +5270,7 @@ function drawDateBadge(cv, text){
   else if((T === 'split' || T === 'explain') && ph) pos = { x: W - m - w, y: ph.y + ph.h - h / 2 };   // on the seam under the photo
   else if(T === 'frame' && ph) pos = { x: ph.x + ph.w - w - 22 * u, y: ph.y + ph.h - h / 2 };        // clipped to the photo frame
   else if(/^polaroid/.test(T) && ph){ pos = { x: ph.x + 16 * u, y: ph.y + ph.h - h - 18 * u }; rot = -0.05; style = 'accent'; }  // inside the polaroid photo, bottom-left — never over the headline
-  else if(T === 'insight') pos = { x: W - m - w, y: (96 * u - h) / 2 };                   // inside the colour header
+  else if(/^insight/.test(T)) pos = { x: W - m - w, y: (96 * u - h) / 2 };                   // inside the colour header
   else if(T === 'glance'){ pos = { x: W - m - w, y: 0.85 * 56 * u + 35 * u - h / 2 }; style = 'dark'; }  // level with the ribbon
   else if(T === 'bignum') pos = corner('r', m);
   else pos = corner('l', m);                                                                // band / overlay: clean top-left of the photo
@@ -5848,6 +5867,43 @@ const applyI18nCl = applyI18n;
 applyI18n = function(){ applyI18nCl(); refreshClaudeUi(); };
 const needKeyCl = needKey;
 needKey = function(){ needKeyCl(); setTimeout(() => { const b = $('claudeBox'); if(b && !S.gkey) b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 350); };
+
+/* ===== favourite designs: colour variants of "গ্রিড পেপার" (quote) and "বিশ্লেষণ" (insight), placed first ===== */
+isQuoteTpl = k => /^q(grid|big|dark)/.test(String(k || ''));
+const FAV_Q = [
+  ['qgrid_red',   'লাল',     'Red',    { accent: '#b91c1c', hl: '#fff200', paper: '#f5efe7' }],
+  ['qgrid_green', 'সবুজ',    'Green',  { accent: '#065f46', hl: '#fde047', paper: '#edf4ee' }],
+  ['qgrid_blue',  'নীল',     'Blue',   { accent: '#1e3a8a', hl: '#ffe14d', paper: '#eaf0f8' }],
+  ['qgrid_teal',  'টিল',     'Teal',   { accent: '#0b4f6c', hl: '#ffd200', paper: '#e9f2f3' }],
+  ['qgrid_plum',  'বেগুনি',   'Plum',   { accent: '#6b21a8', hl: '#fff200', paper: '#f2edf7' }],
+  ['qgrid_black', 'কালো',    'Black',  { accent: '#111111', hl: '#ffd400', paper: '#f4ecd8' }]
+];
+const FAV_I = [
+  ['insight_red',    'লাল',     'Red',    { accent: '#9f1239', hl: '#ffd200' }],
+  ['insight_green',  'সবুজ',    'Green',  { accent: '#14532d', hl: '#facc15', paper: '#f3f6ef' }],
+  ['insight_navy',   'নেভি',    'Navy',   { accent: '#1e293b', hl: '#fde047', paper: '#f4f5f8' }],
+  ['insight_purple', 'বেগুনি',   'Purple', { accent: '#4c1d95', hl: '#fcd34d', paper: '#f6f3fa' }],
+  ['insight_orange', 'কমলা',    'Orange', { accent: '#c2410c', hl: '#fff1a6', paper: '#fbf5ee' }],
+  ['insight_black',  'কালো',    'Black',  { accent: '#111827', hl: '#ffd200', paper: '#ffffff' }]
+];
+FAV_Q.forEach(([k, bn, en, c]) => {
+  TPL[k] = Object.assign({}, TPL.qgrid, { key: 'tpl_' + k }, c); TPLF[k] = TPLF.qgrid; TPL_ORDER.push(k);
+  T.bn['tpl_' + k] = '❝ উক্তি — গ্রিড · ' + bn; T.en['tpl_' + k] = '❝ Quote — grid · ' + en;
+  T.bn['dn_' + k] = 'গ্রিড · ' + bn; T.en['dn_' + k] = 'Grid · ' + en;
+});
+FAV_I.forEach(([k, bn, en, c]) => {
+  TPL[k] = Object.assign({}, TPL.insight, { key: 'tpl_' + k }, c); TPLF[k] = TPLF.insight; TPL_ORDER.push(k); SAFE_TPL.push(k);
+  T.bn['tpl_' + k] = '✅ বিশ্লেষণ · ' + bn; T.en['tpl_' + k] = '✅ Insight · ' + en;
+  T.bn['dn_' + k] = 'বিশ্লেষণ · ' + bn; T.en['dn_' + k] = 'Insight · ' + en;
+});
+const FAV_ORDER = ['qgrid'].concat(FAV_Q.map(x => x[0]), ['insight'], FAV_I.map(x => x[0]));
+dsOrder = function(){
+  const all = TPL_ORDER.filter(k => TPL[k] && !FAV_ORDER.includes(k));
+  const news = all.filter(k => !isQuoteTpl(k)), q = all.filter(k => isQuoteTpl(k));
+  news.sort((a, b) => SAFE_TPL.includes(b) - SAFE_TPL.includes(a));
+  return FAV_ORDER.concat(news, q);
+};
+(function(){ const saved = (store.get('card', {}) || {}).template; if(/_/.test(saved || '') && TPL[saved]) C.template = saved; })();
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook, claude, writeAi, CLAUDE_STYLE };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -754,6 +754,10 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
 .v6flow::before{content:'';position:absolute;left:25px;top:30px;bottom:30px;width:2px;background:var(--line);z-index:0}
 .v6stepc{z-index:1}
 .v6fade{animation:v6fade .35s}
+.v6writer{display:flex;align-items:center;gap:6px;margin:4px 0 8px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.v6writer button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:4px 12px;font:inherit;cursor:pointer}
+.v6writer button.on{background:#d97757;border-color:#d97757;color:#fff;font-weight:700}
+.claudebox h4{margin-top:0}
 </style>
 </head>
 <body>
@@ -856,6 +860,29 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
           <button type="button" class="btn" id="removeKeyBtn" data-i18n="remove">সরান</button>
           <button type="button" class="btn" id="testKeyBtn" data-i18n="test">পরীক্ষা</button>
           <button type="button" class="btn primary" id="saveKeyBtn" data-i18n="save">সংরক্ষণ</button>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 10px">
+        <div id="claudeBox" class="claudebox">
+          <h4><span data-i18n="clTitle">🤖 Claude API কী — ক্যাপশন ও কার্ডের লেখার জন্য (ঐচ্ছিক)</span></h4>
+          <p data-i18n="clDesc">Claude কী দিলে শুধু লেখার কাজগুলো — কার্ডের শিরোনাম/উক্তি, ছোট ক্যাপশন, ফেসবুক পোস্ট আর মন্তব্যের আইডিয়া — Claude লিখবে। খবর আনা, পুরো খবর লেখা আর AI ছবি আগের মতো Gemini দিয়েই হবে। কী শুধু এই ব্রাউজারেই থাকে।</p>
+          <div style="display:flex;gap:6px">
+            <input type="password" id="claudeKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" style="flex:1">
+            <button type="button" class="btn" id="claudeShowBtn" title="show">👁️</button>
+          </div>
+          <label class="fld" style="margin-top:8px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px"><span data-i18n="clModel">মডেল</span>
+            <select id="claudeModelSel">
+              <option value="claude-sonnet-5-5" data-i18n="clmSonnet">Claude Sonnet 5.5 — সেরা লেখা, কম খরচ (প্রস্তাবিত)</option>
+              <option value="claude-opus-5-5" data-i18n="clmOpus">Claude Opus 5.5 — সবচেয়ে ভালো লেখা, বেশি খরচ</option>
+              <option value="claude-haiku-5-5" data-i18n="clmHaiku">Claude Haiku 5.5 — দ্রুত ও সবচেয়ে সস্তা</option>
+            </select>
+          </label>
+          <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px"><input type="checkbox" id="claudeUseChk" checked> <span data-i18n="clUse">লেখার কাজে Claude ব্যবহার করুন (বন্ধ করলে Gemini লিখবে)</span></label>
+          <div class="row">
+            <span id="claudeState" style="margin-right:auto;font-size:12.5px;color:var(--muted);align-self:center"></span>
+            <button type="button" class="btn" id="claudeRemoveBtn" data-i18n="remove">সরান</button>
+            <button type="button" class="btn" id="claudeTestBtn" data-i18n="test">পরীক্ষা</button>
+            <button type="button" class="btn primary" id="claudeSaveBtn" data-i18n="save">সংরক্ষণ</button>
+          </div>
         </div>
         <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 10px">
         <h4><span data-i18n="proxyTitle">⚙️ নিজস্ব প্রক্সি / Cloudflare Worker (ঐচ্ছিক)</span></h4></h4>
@@ -1169,7 +1196,7 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
             <div class="srow" style="margin-top:0">
               <label class="chk"><input type="checkbox" id="maskChk"> <span data-i18n="maskOn"></span></label>
               <label class="chk"><input type="checkbox" id="maskCardChk"> <span data-i18n="maskCard"></span></label>
-              <label class="fld" style="flex:0 0 110px"><span data-i18n="maskChar"></span><select id="maskCharSel"><option value="*">*</option><option value="•">•</option><option value="-">-</option><option value=".">.</option></select></label>
+              <label class="fld" style="flex:0 0 110px"><span data-i18n="maskChar"></span><select id="maskCharSel"><option value="*">*</option><option value="•">•</option><option value="-">-</option><option value=".">.</option><option value="'">' (মা'দক)</option></select></label>
               <button type="button" class="btn" id="maskNowBtn" data-i18n="maskNow"></button>
             </div>
             <details><summary data-i18n="maskEdit"></summary>
@@ -1729,6 +1756,73 @@ async function gemini(body, ms){
     }finally{ to.done(); }
   }
   throw lastErr || new Error('Gemini error');
+}
+/* ---- Anthropic Claude — used only for writing: card text, captions, Facebook posts, comment ideas ---- */
+S.ckey = store.get('ckey', ''); S.cmodel = store.get('cmodel', 'claude-sonnet-5-5'); S.writer = store.get('writer', 'claude');
+const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
+const useClaude = () => !!S.ckey && S.writer !== 'gemini';
+const canWrite = () => useClaude() || !!S.gkey;
+async function claude(system, prompt, ms, maxTokens){
+  if(!S.ckey) throw new Error('NOKEY');
+  const models = [S.cmodel].concat(CLAUDE_MODELS).filter((m, i, a) => m && a.indexOf(m) === i);
+  let lastErr = null;
+  for(const m of models){
+    const to = withTimeout(ms || 90000);
+    try{
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST', signal: to.signal,
+        headers: { 'content-type': 'application/json', 'x-api-key': S.ckey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: m, max_tokens: maxTokens || 3000, system, messages: [{ role: 'user', content: prompt }] })
+      });
+      const j = await r.json().catch(() => ({}));
+      if(!r.ok){
+        const msg = (j.error && j.error.message) || ('HTTP ' + r.status);
+        lastErr = new Error(msg); lastErr.status = r.status; lastErr.claude = true;
+        if(r.status === 404 || /model/i.test(msg) && /not.?found|invalid|does not exist/i.test(msg)) continue;   // try the next model
+        throw lastErr;
+      }
+      const text = (j.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+      return { text, model: m, cand: { finishReason: j.stop_reason } };
+    }finally{ to.done(); }
+  }
+  throw lastErr || new Error('Claude error');
+}
+
+/* the writing style guide Claude follows (studied from popular Bangladeshi quote-card pages) */
+const CLAUDE_STYLE = `You are the writer for a Bangladeshi Facebook news page that turns newspaper stories into quote cards, photo cards and short captions. You write natural, lively Bangladeshi Bengali (standard Bangladesh spelling and vocabulary — পানি, গোসল, দাওয়াত) unless the article is in English. Follow the JSON shape the user message asks for exactly; this style guide wins over any other length or style instruction.
+
+=== QUOTE CARDS (উক্তি কার্ড — "কে কী বললেন") ===
+These cards show one big statement with a big “ mark, a yellow highlight band, and the speaker's name + identity in a dark box. Readers decide in one second, so:
+1. PICK THE LINE PEOPLE WILL SCREENSHOT. Scan everything each person said and choose the most striking, surprising, emotional, ironic or bold line: a strong claim, a confession, a comparison, a warning, a rhetorical question, a personal memory. Skip routine, procedural or vague lines ("আমরা বিষয়টি খতিয়ে দেখছি").
+2. KEEP THE SPEAKER'S OWN VOICE. Use their actual words from the article, in spoken first-person Bengali exactly as they said it ("আমরা এটা মেনে নেব না", "তাহলে তো…", "আমার বড় ভাই কেন এই কাজগুলো করেছেন…"). Do not turn it into newspaper language. You may drop filler words and join two nearby sentences from the same speech. If the article reports the statement indirectly ("তিনি বলেন, …"), turn it into first person with exactly the same meaning. Never add a claim, number or opinion they did not express.
+3. LENGTH: 12–40 words, at most 3 short sentences, one complete thought that makes sense without reading the article. Short and sharp beats long.
+4. HIGHLIGHT: wrap exactly ONE continuous part in *asterisks* — the punchline that should hit first. Usually the second half / the final clause; sometimes the opening claim when that is the hook. 5–18 words. If the whole quote is 14 words or fewer, highlight all of it.
+5. END with the natural punctuation: । for statements, ? for questions, ! only when the speaker is truly exclaiming. No quotation marks (the design adds “), no emoji, no hashtags.
+6. SPEAKER = the name as Bangladeshi media write it, with the honorific/title they use (ডা., অ্যাডভোকেট, ব্যারিস্টার, অধ্যাপক, মাওলানা). ROLE = short identity in 2–6 words, "পদ, প্রতিষ্ঠান" form: "আমির, জামায়াতে ইসলামী", "সাবেক প্রতিমন্ত্রী", "জাতীয় দলের ক্রিকেটার", "ভুক্তভোগীর মা", "আইনজীবী".
+7. THE 3 OPTIONS must be clearly different: different statements (different people if the article has several), e.g. (a) the boldest claim, (b) the most human/emotional line, (c) the sharpest question or irony. "style" = a 2–3 word Bengali label of that angle.
+8. If no named person says anything worth quoting, write the most striking finding of the report as one short, punchy news line (8–16 words) with speaker = the newspaper name and role = "প্রতিবেদন".
+
+=== PHOTO-CARD HEADLINES (সাধারণ শিরোনাম) ===
+Short, punchy and conversational — 6–14 words, the most surprising true fact first, the way people retell news to friends ("গাজার শিশুদের জন্য ১২ লাখ টাকায় বিক্রি হলো হামজার জার্সি!"). Highlight the 1–3 key words with *asterisks*. No dry newspaper phrasing, no question-bait, nothing misleading.
+
+=== CAPTIONS AND FACEBOOK POSTS ===
+Short and human. First line = a hook under 15 words (the most interesting fact or the essence of the statement; may start with one fitting emoji such as 📌 or 🗣️). Then 1–3 short lines with the context a reader needs: who, where, when, and why it matters to ordinary people. Simple spoken Bengali, short sentences, no long paragraphs, no "বিস্তারিত কমেন্টে", no "লাইক/শেয়ার/কমেন্ট করুন", no ALL-CAPS, no hashtags inside the text (hashtags go in their own field when asked). Respect the word limit you are given.
+
+=== ALWAYS ===
+- Accuracy first: every name, number, date and statement must come from the article. Never invent quotes.
+- Report, don't take sides: never add your own praise, blame or opinion about the government, any party, leader, religion or group. The page owner's safety matters more than drama.
+- Advertiser-friendly for Facebook monetization: no graphic or gory detail, no slurs, no fear-mongering. Write sensitive words normally — the app masks them itself.
+- Output only what is asked (JSON when JSON is asked, plain text otherwise) — no preface, no markdown.`;
+
+/* write with Claude when chosen, otherwise Gemini; if Claude fails and a Gemini key exists, Gemini takes over */
+async function writeAi(body, ms){
+  if(!useClaude()) return gemini(body, ms);
+  const prompt = (body.contents || []).map(c => (c.parts || []).map(p => p.text || '').join('\n')).join('\n\n');
+  try{ return await claude(CLAUDE_STYLE, prompt, ms); }
+  catch(e){
+    if(S.gkey && e.name !== 'AbortError' && e.status !== 400){ toast('Claude: ' + aiErrMsg(e) + ' — Gemini'); return gemini(body, ms); }
+    throw e;
+  }
 }
 const AI_RULES = 'Rules: Copy the article text EXACTLY as written, in its original language. Never summarize, shorten, translate, paraphrase or add anything. Include every paragraph of the main article body from first to last, and its in-article subheadings. Exclude everything that is not the article itself: advertisements, navigation/menus, "read more"/"আরও পড়ুন" lines, related/latest news lists, share/follow/subscribe prompts, tags, image captions and photo credits, comments, cookie notices, newsletter boxes, copyright lines. Remove hyperlinks (keep only their visible words when they are part of a sentence).';
 const AI_SHAPE = 'Return ONLY one JSON object, no markdown fences, with this shape: {"title":"headline","byline":"author or reporter, or empty","published":"publication date-time as ISO 8601 if known, else empty","site":"newspaper name, or empty","image":"absolute URL of the main lead photo, or empty","blocks":[{"t":"p","text":"paragraph"},{"t":"h","text":"subheading"}]}';
@@ -2341,6 +2435,11 @@ function aiErrMsg(e){
   if(e && e.friendly) return e.message;
   const m = String((e && e.message) || e || ''), st = e && e.status;
   if(m === 'NOKEY') return t('tNeedKey');
+  if(e && e.claude){
+    if(/credit balance|billing/i.test(m)) return t('clNoCredit');
+    if(st === 401 || /x-api-key|invalid.*key|authentication/i.test(m)) return t('clBadKey');
+    if(st === 429 || st === 529 || /rate.?limit|overloaded/i.test(m)) return t('clBusy');
+  }
   if(e && e.name === 'AbortError') return t('eTimeout');
   if(/API key not valid|API_KEY_INVALID|invalid api key/i.test(m) || st === 401) return t('eKey');
   if(st === 429 || /quota|RESOURCE_EXHAUSTED|rate.?limit/i.test(m)) return t('eQuota');
@@ -2379,6 +2478,7 @@ async function listModels(){
 const isAuthErr = e => e && (e.status === 400 || e.status === 401 || e.status === 403) && /key|permission|denied|unauth/i.test(e.message || '');
 /* verify the configured text model before the first request (does not change the saved setting) */
 async function checkTextModel(){
+  if(useClaude() && checkTextModel.forWriting) return;
   const sig = S.gkey + '|' + S.gmodel; if(AI.textChecked === sig) return;
   try{
     const models = await listModels(); AI.textChecked = sig;
@@ -2528,15 +2628,15 @@ function renderStudioResult(){
 }
 async function studioGenerate(){
   if(AI.busy.studio || !S.article) return;
-  if(!S.gkey){ needKey(); return; }
+  if(!(AI.mode === 'facebook' ? canWrite() : S.gkey)){ needKey(); return; }
   const m = modeById(AI.mode), mode = m.id;
   const custom = $('customInstr').value.trim();
   if(m.custom && !custom){ toast(t('tCustomEmpty')); $('customInstr').focus(); return; }
   const opt = $('modeOpt').value, lang = $('outLang').value;
   setBusy('studio', true);
   try{
-    await checkTextModel();
-    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: studioPrompt(mode, opt, lang, custom) }] }], generationConfig: { temperature: m.creative ? 0.9 : 0.4 } }, 90000);
+    checkTextModel.forWriting = mode === 'facebook'; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
+    const r = await (mode === 'facebook' ? writeAi : gemini)({ contents: [{ role: 'user', parts: [{ text: studioPrompt(mode, opt, lang, custom) }] }], generationConfig: { temperature: m.creative ? 0.9 : 0.4 } }, 90000);
     let txt = cleanAiText(r.text);
     if(!txt) throw new Error((r.cand && r.cand.finishReason) || 'Empty response');
     if(mode === 'facebook' && S.mask){ const mk = maskText(txt, S.maskCh); txt = mk.text; showMaskInfo(mk.found); }
@@ -3156,17 +3256,17 @@ async function prepareFacebook(){
   showTab('fb');
   const title = norm($('artTitle').textContent), body = bodyText();
   let data = null;
-  if(S.gkey){
+  if(canWrite()){
     setBusy('fb', true);
     try{
-      await checkTextModel();
+      checkTextModel.forWriting = true; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
       const prompt = 'Prepare Facebook-ready content for the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE + ' ' + hookRules() + ' Return ONLY one JSON object (no markdown fences) with this shape: {"card_options":' + hookShape() + ',"post":"' + postSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
-      const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.75, responseMimeType: 'application/json' } }, 90000);
+      const r = await writeAi({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.75, responseMimeType: 'application/json' } }, 90000);
       data = parseAiJson(r.text);
     }catch(e){ toast(aiErrMsg(e) + ' — ' + t('tFbLocal')); }
     finally{ setBusy('fb', false); }
   }
-  if(!data){ data = localFb(title, body); if(!S.gkey) toast(t('tFbLocal')); }
+  if(!data){ data = localFb(title, body); if(!canWrite()) toast(t('tFbLocal')); }
   let tags = (Array.isArray(data.hashtags) ? data.hashtags : []).map(h => '#' + String(h).replace(/^#+/, '').replace(/\s+/g, '')).filter(h => h.length > 1).slice(0, 6);
   let post = trimToWords(cleanAiText(data.post || title), fbWordLimit());
   let maskFound = [];
@@ -3505,15 +3605,15 @@ function setHookBusy(on){
 }
 async function genHooks(){
   if(!S.article || AI.busy.hook) return;
-  if(!S.gkey){ needKey(); return; }
+  if(!canWrite()){ needKey(); return; }
   setHookBusy(true);
   try{
-    await checkTextModel();
+    checkTextModel.forWriting = true; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
     const prev = (AI.hooks || []).map(h => h.headline).filter(Boolean);
     const prompt = 'Write fresh photo-card text for the news article below. ' + AD_SAFE + ' ' + hookRules() +
       (prev.length ? ' Make them clearly different from these earlier options (new wording and new angles): ' + prev.join(' | ') + '.' : '') +
       ' Return ONLY one JSON object (no markdown fences) with this shape: {"card_options":' + hookShape() + '}\n\n' + articleForAi(20000);
-    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.95, responseMimeType: 'application/json' } }, 90000);
+    const r = await writeAi({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.95, responseMimeType: 'application/json' } }, 90000);
     const o = parseAiJson(r.text);
     const hooks = normHooks(o.card_options || o.options || o, null);
     if(!hooks.length) throw friendly(t('tHookNone'));
@@ -3550,7 +3650,7 @@ function setHookKind(k){
   if((k === 'quote') !== isQuoteTpl(C.template)) applyTemplate(k === 'quote' ? 'qgrid' : 'band');
   AI.hooks = []; AI.hookSel = -1; renderHooks();
   if(AI.tab === 'fb') ensureFonts().then(updateFbPreview);
-  if(S.article && S.gkey) genHooks();
+  if(S.article && canWrite()) genHooks();
 }
 
 /* speaker photo */
@@ -3727,13 +3827,13 @@ function updateFbCount(){
 }
 async function rewritePost(){
   if(!S.article || AI.busy.fb) return;
-  if(!S.gkey){ needKey(); return; }
+  if(!canWrite()){ needKey(); return; }
   setBusy('fb', true);
   try{
-    await checkTextModel();
+    checkTextModel.forWriting = true; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
     const prompt = 'Write a Facebook post about the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE +
       ' Return ONLY one JSON object (no markdown fences) with this shape: {"post":"' + postSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
-    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: 'application/json' } }, 90000);
+    const r = await writeAi({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: 'application/json' } }, 90000);
     const data = parseAiJson(r.text);
     let tags = (Array.isArray(data.hashtags) ? data.hashtags : []).map(h => '#' + String(h).replace(/^#+/, '').replace(/\s+/g, '')).filter(h => h.length > 1).slice(0, 6);
     let post = trimToWords(cleanAiText(data.post || ''), fbWordLimit());
@@ -4758,15 +4858,15 @@ function renderTakes(){
 }
 async function genTakes(){
   if(!S.article){ toast(t('tNeedArticle')); return; }
-  if(!S.gkey){ needKey(); return; }
+  if(!canWrite()){ needKey(); return; }
   if(AI.busy.take) return;
   AI.busy.take = true; $('takeGenBtn').disabled = true; $('takeStatus').classList.remove('hidden');
   try{
-    await checkTextModel();
+    checkTextModel.forWriting = true; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
     const prev = (AI.takes || []).map(x => x.text);
     const prompt = TAKE_RULES + ' ' + AD_SAFE + (prev.length ? ' Make them clearly different from these earlier ideas: ' + prev.join(' | ') + '.' : '') +
       ' Return ONLY one JSON object (no markdown fences) with this shape: {"takes":[{"tone":"2–3 word label of the tone, in the article language","text":"the comment line"}, (exactly 3 items)]}\n\n' + articleForAi(16000);
-    const r = await gemini({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.9, responseMimeType: 'application/json' } }, 60000);
+    const r = await writeAi({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.9, responseMimeType: 'application/json' } }, 60000);
     const o = parseAiJson(r.text), arr = Array.isArray(o) ? o : (o.takes || o.options || []);
     const list = arr.map(x => typeof x === 'string' ? { tone: '', text: nz(x) } : { tone: nz(x && x.tone), text: nz(x && (x.text || x.take)) }).filter(x => x.text).slice(0, 3);
     if(!list.length) throw friendly(t('tTakeNone'));
@@ -5689,7 +5789,67 @@ function nwWatchImgs(){
 new MutationObserver(() => setTimeout(nwWatchImgs, 30)).observe($('nwList'), { childList: true });
 
 /* 3) opening a story: wait at most ~20 s for Gemini, then build the card from what is there */
-window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook };
+/* ===== Claude writer: settings + "who writes" switch next to the write button ===== */
+Object.assign(T.bn, {
+  clTitle:'🤖 Claude API কী — ক্যাপশন ও কার্ডের লেখার জন্য (ঐচ্ছিক)',
+  clDesc:'Claude কী দিলে শুধু লেখার কাজগুলো — কার্ডের শিরোনাম/উক্তি, ছোট ক্যাপশন, ফেসবুক পোস্ট আর মন্তব্যের আইডিয়া — Claude লিখবে। খবর আনা, পুরো খবর লেখা আর AI ছবি আগের মতো Gemini দিয়েই হবে। কী শুধু এই ব্রাউজারেই থাকে।',
+  clModel:'মডেল', clmSonnet:'Claude Sonnet 5.5 — সেরা লেখা, কম খরচ (প্রস্তাবিত)', clmOpus:'Claude Opus 5.5 — সবচেয়ে ভালো লেখা, বেশি খরচ', clmHaiku:'Claude Haiku 5.5 — দ্রুত ও সবচেয়ে সস্তা',
+  clUse:'লেখার কাজে Claude ব্যবহার করুন (বন্ধ করলে Gemini লিখবে)', clOn:'✅ Claude চালু', clOff:'Claude কী দেওয়া নেই', clPaused:'Claude কী আছে, কিন্তু এখন Gemini লিখছে',
+  clSaved:'✅ Claude কী সংরক্ষিত', clRemoved:'Claude কী সরানো হয়েছে', clNone:'আগে Claude কী লিখুন', clOk:'✅ Claude কাজ করছে', clFail:'❌ Claude কাজ করছে না',
+  clNoCredit:'Claude অ্যাকাউন্টে ক্রেডিট নেই — console.anthropic.com → Billing-এ টাকা যোগ করুন', clBadKey:'Claude কী সঠিক নয় — সেটিংসে আবার কপি-পেস্ট করুন', clBusy:'Claude এখন ব্যস্ত — একটু পরে আবার চাপুন',
+  wrWho:'✍️ লিখবে:', wrClaude:'Claude', wrGemini:'Gemini', tWrClaude:'এখন থেকে Claude লিখবে', tWrGemini:'এখন থেকে Gemini লিখবে'
+});
+Object.assign(T.en, {
+  clTitle:'🤖 Claude API key — for captions and card text (optional)',
+  clDesc:'With a Claude key, only the writing — card headline/quote, short caption, Facebook post and comment ideas — is done by Claude. Fetching news, full-article writing and AI images still use Gemini. The key stays in this browser only.',
+  clModel:'Model', clmSonnet:'Claude Sonnet 5.5 — great writing, low cost (recommended)', clmOpus:'Claude Opus 5.5 — best writing, higher cost', clmHaiku:'Claude Haiku 5.5 — fastest and cheapest',
+  clUse:'Use Claude for writing (off = Gemini writes)', clOn:'✅ Claude on', clOff:'No Claude key', clPaused:'Claude key saved, but Gemini is writing now',
+  clSaved:'✅ Claude key saved', clRemoved:'Claude key removed', clNone:'Enter a Claude key first', clOk:'✅ Claude works', clFail:'❌ Claude does not work',
+  clNoCredit:'No credit on the Claude account — add funds at console.anthropic.com → Billing', clBadKey:'Claude key is not valid — paste it again in Settings', clBusy:'Claude is busy — try again in a moment',
+  wrWho:'✍️ Writer:', wrClaude:'Claude', wrGemini:'Gemini', tWrClaude:'Claude will write from now on', tWrGemini:'Gemini will write from now on'
+});
+function refreshClaudeUi(){
+  const st = $('claudeState'); if(st) st.textContent = !S.ckey ? t('clOff') : useClaude() ? t('clOn') + ' · ' + S.cmodel.replace(/^claude-/, '') : t('clPaused');
+  if($('claudeUseChk')) $('claudeUseChk').checked = S.writer !== 'gemini';
+  const sw = $('v6Writer');
+  if(sw){ sw.classList.toggle('hidden', !S.ckey); sw.querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.w === 'claude') === useClaude())); }
+}
+function setWriter(w, silent){ S.writer = w; store.set('writer', w); refreshClaudeUi(); if(!silent) toast(t(w === 'gemini' ? 'tWrGemini' : 'tWrClaude')); }
+(function wireClaude(){
+  const key = $('claudeKeyInput'), sel = $('claudeModelSel'); if(!key) return;
+  key.value = S.ckey || ''; sel.value = CLAUDE_MODELS.includes(S.cmodel) ? S.cmodel : CLAUDE_MODELS[0];
+  const read = () => { S.ckey = key.value.trim(); S.cmodel = sel.value; S.writer = $('claudeUseChk').checked ? 'claude' : 'gemini'; };
+  $('claudeShowBtn').addEventListener('click', () => { key.type = key.type === 'password' ? 'text' : 'password'; });
+  $('claudeSaveBtn').addEventListener('click', () => { read(); store.set('ckey', S.ckey); store.set('cmodel', S.cmodel); store.set('writer', S.writer); refreshClaudeUi(); toast(S.ckey ? t('clSaved') : t('tSaved')); });
+  $('claudeRemoveBtn').addEventListener('click', () => { S.ckey = ''; store.set('ckey', ''); key.value = ''; refreshClaudeUi(); toast(t('clRemoved')); });
+  $('claudeTestBtn').addEventListener('click', async () => {
+    read(); if(!S.ckey){ toast(t('clNone')); return; }
+    const b = $('claudeTestBtn'); b.disabled = true; $('claudeState').textContent = '…';
+    try{ const r = await claude('Reply with one word.', 'Reply with the single word OK', 30000, 10); $('claudeState').textContent = t('clOk') + ' (' + r.model.replace(/^claude-/, '') + ')'; toast(t('clOk')); }
+    catch(e){ const msg = aiErrMsg(e); $('claudeState').textContent = t('clFail') + ': ' + msg; toast(msg); }
+    finally{ b.disabled = false; }
+  });
+  $('claudeUseChk').addEventListener('change', () => { if(S.ckey) setWriter($('claudeUseChk').checked ? 'claude' : 'gemini'); });
+  refreshClaudeUi();
+  /* small Claude | Gemini switch above the "write" button on the card page */
+  let tries = 0;
+  (function addSwitch(){
+    const wb = $('v6WriteAll');
+    if(!wb){ if(++tries < 60) setTimeout(addSwitch, 250); return; }
+    if($('v6Writer')) return;
+    const sw = mk('div', 'v6writer', '<span data-i18n="wrWho"></span><button type="button" data-w="claude" data-i18n="wrClaude"></button><button type="button" data-w="gemini" data-i18n="wrGemini"></button>');
+    sw.id = 'v6Writer';
+    sw.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setWriter(b.dataset.w)));
+    sw.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+    wb.before(sw); refreshClaudeUi();
+  })();
+})();
+const applyI18nCl = applyI18n;
+applyI18n = function(){ applyI18nCl(); refreshClaudeUi(); };
+const needKeyCl = needKey;
+needKey = function(){ needKeyCl(); setTimeout(() => { const b = $('claudeBox'); if(b && !S.gkey) b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 350); };
+
+window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook, claude, writeAi, CLAUDE_STYLE };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', nwInit); else nwInit();
 })();

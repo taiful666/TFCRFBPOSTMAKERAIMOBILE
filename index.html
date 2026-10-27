@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f4f5f7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="TF Post Card">
@@ -760,6 +760,280 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
 .claudebox h4{margin-top:0}
 .nwitem em.nwq{background:#fff200;color:#111;font-style:normal;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
+<style id="v7css">
+/* ===================== v7: professional redesign — calm, minimal, app-like ===================== */
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --surface-2:#f1f2f5; --surface-3:#e9ebef; --text:#121417; --muted:#5f6672; --faint:#9aa0aa;
+  --line:#e5e7eb; --accent:#2952e3; --accent-2:#1f43c4; --accent-soft:#eaefff; --accent-ink:#ffffff; --ok:#14804a; --danger:#d1342b;
+  --shadow:0 1px 2px rgba(16,24,40,.05); --shadow-lg:0 20px 48px rgba(16,24,40,.18);
+  --r:16px; --r-sm:12px; --hdr:56px; --nav:62px;
+}
+html[data-theme="dark"]{
+  --bg:#0d0f13; --surface:#16191f; --surface-2:#1e2229; --surface-3:#272c35; --text:#eef0f4; --muted:#9aa1ad; --faint:#6b7280;
+  --line:#262b34; --accent:#7090ff; --accent-2:#8aa3ff; --accent-soft:#1c2647; --accent-ink:#0d0f13;
+  --shadow:none; --shadow-lg:0 20px 48px rgba(0,0,0,.6);
+}
+html[data-theme="sepia"]{--accent:#2952e3;--accent-2:#1f43c4;--accent-soft:#eaefff}
+body{background:var(--bg);font-size:15px;letter-spacing:0;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent-soft)}
+
+/* ---------- clutter off: helper notes, hints and duplicate controls ---------- */
+.tiny:not(.warn):not(#v7keep),.snote,.secnote,.v6pinch,.v6modalhint,.nwhint,.v6finetune,.v6starinfo,.v6label,.v6hero p,
+.qtile:not(.big) small,.v6stepc .stt small,.v6stepc .num,.v6flow::before,.fld small,.hookbox > .tiny,.hookempty,
+.tabacts,#v6rail,#v6pin,#langBtn,#focusPill,#resetBtn,.v6hlbar .tiny,#v6sheet .panel > p:not(.keep),.claudebox > p,.wipebox > p,
+#tp-fb .hookbox,#tp-fb > .scard > .tiny,#tp-fb .v6block > .tiny,.v6tog .tg .ti,.dsep,.dtile .ok,#tp-card .scard > h3,
+.keyhint span,#imgModelInfo:empty{display:none!important}
+
+/* ---------- buttons & inputs ---------- */
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:var(--r-sm);min-height:42px;padding:8px 14px;font-weight:600;font-size:14px;gap:7px;box-shadow:none;transition:background .15s,border-color .15s,transform .08s}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:scale(.98)}
+.btn.primary,html[data-theme="dark"] .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2)}
+.btn svg{width:18px;height:18px;flex:none}
+.seg{background:var(--surface-2);border:0;border-radius:var(--r-sm);padding:3px;gap:2px}
+.seg button{border-radius:9px;color:var(--muted);font-weight:600;font-size:13.5px;padding:8px 10px}
+.seg button.on,html[data-theme="dark"] .seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(16,24,40,.12)}
+html[data-theme="dark"] .seg button.on{background:var(--surface-3)}
+.scard input[type=text],.scard input[type=url],.scard select,.scard textarea,#v6sheet input[type=text],#v6sheet input[type=url],#v6sheet input[type=password],#v6sheet textarea,#v6sheet select,.v6block textarea{
+  background:var(--surface-2)!important;border:1px solid transparent!important;border-radius:var(--r-sm)!important;color:var(--text);font-size:15px;padding:11px 12px!important;outline:none;box-shadow:none}
+.scard input:focus,.scard select:focus,.scard textarea:focus,#v6sheet input:focus,#v6sheet textarea:focus,#v6sheet select:focus,.v6block textarea:focus{border-color:var(--accent)!important;background:var(--surface)!important;box-shadow:0 0 0 3px var(--accent-soft)!important}
+.fld{font-size:12.5px;font-weight:600;color:var(--muted);gap:6px}
+input[type=range]{accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px}
+details > summary{cursor:pointer}
+
+/* ---------- header ---------- */
+.topbar{background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);box-shadow:none;border-bottom:1px solid transparent;transition:border-color .2s}
+body.v7scrolled .topbar{border-bottom-color:var(--line)}
+.topbar .wrap{height:var(--hdr)}
+.brand img{width:32px;height:32px;border-radius:9px;box-shadow:none}
+.brand b{font-size:17px;font-weight:700;letter-spacing:-.1px}
+.brand b em{color:var(--text);font-style:normal}
+.brand span{display:none!important}
+.ctrls{gap:4px}
+.icobtn{width:40px;height:40px;min-height:40px;border-radius:12px;background:transparent;color:var(--text)}
+.icobtn:hover{background:var(--surface-2)}
+.icobtn svg{width:21px;height:21px}
+#v7New{color:var(--accent)}
+#installBtn{border-radius:12px;min-height:36px;padding:6px 12px}
+#status{top:calc(var(--hdr) + 10px);background:var(--text);color:var(--bg);box-shadow:var(--shadow-lg);font-weight:600;font-size:13.5px;padding:9px 16px}
+#status .spin{border-color:color-mix(in srgb,var(--bg) 35%,transparent);border-top-color:var(--bg)}
+#toast{background:var(--text)!important;color:var(--bg)!important;border-radius:12px!important;font-weight:600;padding:11px 16px!important;box-shadow:var(--shadow-lg)}
+#progress{background:var(--accent);height:2px}
+
+/* ---------- home ---------- */
+#inputSection .inputcard{margin:22px auto 8px}
+.v6hero{padding:0 2px 16px}
+.v6hero h2{font-size:26px;font-weight:700;letter-spacing:-.3px;line-height:1.25}
+.v6quick{grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.qtile{background:var(--surface);border:1px solid var(--line);box-shadow:none;border-radius:var(--r);padding:16px 8px 14px;gap:10px}
+.qtile .qi,.qtile:nth-child(n) .qi,html[data-theme="dark"] .qtile:nth-child(n) .qi{width:44px;height:44px;border-radius:12px;background:var(--surface-2);color:var(--text)}
+.qtile b{font-size:14px;font-weight:600}
+.qtile.big{background:var(--accent);color:#fff;border:0;box-shadow:none;padding:18px;gap:14px}
+html[data-theme="dark"] .qtile.big{color:#0d0f13}
+.qtile.big .qi,html[data-theme="dark"] .qtile.big .qi{background:rgba(255,255,255,.16);color:inherit;width:46px;height:46px}
+html[data-theme="dark"] .qtile.big .qi{background:rgba(0,0,0,.12)}
+.qtile.big b{font-size:17px;font-weight:700}
+.qtile.big small{color:inherit;opacity:.82;font-size:13px}
+.qtile.big .livedot{background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+html[data-theme="dark"] .qtile.big .livedot{background:#0d0f13;box-shadow:0 0 0 4px rgba(0,0,0,.15)}
+.urlrow{background:var(--surface);border:1px solid var(--line);box-shadow:none;border-radius:var(--r);padding:6px 6px 6px 14px;display:flex;align-items:center;gap:6px;flex-wrap:nowrap!important}
+.urlrow:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.urlrow > span[aria-hidden]{display:none}
+.urlrow input{flex:1;min-width:0;border:0!important;background:transparent!important;font-size:15px;padding:8px 0!important;outline:none;box-shadow:none!important}
+.urlrow .btn{min-height:40px;flex:none!important;width:auto!important}
+.urlrow #pasteUrlBtn{border:0;background:var(--surface-2);padding:0;width:40px!important}
+.urlrow #pasteUrlBtn .lbl-hide{display:none}
+.urlrow #fetchBtn{padding:8px 16px}
+#recentBox{margin-top:20px}
+#recentBox h5{font-size:13px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;margin:0 2px 8px;display:flex;justify-content:space-between}
+.recent-item{border:1px solid var(--line)!important;box-shadow:none!important;border-radius:var(--r-sm)!important;background:var(--surface)!important}
+
+/* ---------- bottom navigation ---------- */
+#tabsWrap .tabs{margin:10px 0 0}
+.tabrow{background:var(--surface);border:1px solid var(--line);box-shadow:none;border-radius:var(--r);padding:4px}
+.tab{color:var(--muted);font-weight:600}
+.tab.on,html[data-theme="dark"] .tab.on{background:var(--accent-soft);color:var(--accent)}
+@media (max-width:760px){
+  #tabsWrap .tabs{margin:0}
+  #tabsWrap .tabrow{background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;padding:4px 6px calc(4px + env(safe-area-inset-bottom))}
+  .tab{min-height:54px;font-size:11.5px;gap:3px;border-radius:12px}
+  .tab::before,.tab.on::before{display:none!important}
+  .tab .ti{padding:3px 16px;border-radius:999px;transition:background .15s}
+  .tab .ti svg{width:22px;height:22px}
+  .tab.on,html[data-theme="dark"] .tab.on{background:transparent;color:var(--accent)}
+  .tab.on .ti{background:var(--accent-soft)}
+  body.has-article{padding-bottom:calc(var(--nav) + 6px + env(safe-area-inset-bottom))}
+  .tabpanel{margin:10px 0 24px}
+}
+
+/* ---------- panels ---------- */
+.scard{background:var(--surface);border:1px solid var(--line);box-shadow:none;border-radius:var(--r);padding:16px}
+.scard h3{font-size:18px;font-weight:700;letter-spacing:-.1px;margin:0 0 14px}
+@media (max-width:760px){
+  .scard{border:0;background:transparent;padding:4px 0 16px}
+  #tp-card .scard{padding:0 0 12px}
+}
+.v7sect{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 10px}
+.v7sect > .v7h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:15px;font-weight:700}
+.v7sect > .v7h small{font-size:12.5px;font-weight:600;color:var(--muted)}
+.v7row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.v7row > .btn{flex:1 1 0}
+
+/* ---------- reader ---------- */
+#sheet{border:1px solid var(--line);box-shadow:none;border-radius:var(--r)}
+.toolbar{background:var(--bg);border:0}
+.toolbar .btn{min-height:38px;padding:6px 11px;font-size:13px}
+.toolbar .seg{display:none}
+#clipBtn span:not(:first-child),#copyBtn span[data-i18n],#exportBtn span[data-i18n]{font-size:13px}
+.menu-list{border:1px solid var(--line)!important;border-radius:var(--r-sm)!important;box-shadow:var(--shadow-lg)!important;background:var(--surface)!important}
+.menu-list small{display:none!important}
+
+/* ---------- photo card ---------- */
+.canvasbox{background:transparent;border:0;padding:0;border-radius:var(--r)}
+#cardCanvas{border-radius:10px;box-shadow:0 1px 2px rgba(16,24,40,.08),0 8px 28px rgba(16,24,40,.14)}
+@media (max-width:760px){
+  .cardleft{background:var(--bg)!important;box-shadow:none!important;padding:8px 0 10px!important;top:var(--hdr)!important;border-bottom:1px solid var(--line)}
+  #cardCanvas{max-height:34vh}
+}
+.v6acts{display:grid!important;grid-template-columns:repeat(5,1fr);gap:6px!important;overflow:visible;margin:10px 0 0!important}
+.v6acts .btn,.cardleft .srow .btn{flex:none!important;height:auto!important;min-height:52px!important;padding:6px 2px!important;border-radius:12px!important;flex-direction:column;gap:3px!important;font-size:11.5px!important;font-weight:600;border:0;background:var(--surface);color:var(--text);white-space:nowrap}
+html[data-theme="dark"] .v6acts .btn{background:var(--surface-2)}
+.v6acts .btn svg{width:19px!important;height:19px!important}
+.v6acts #cardDlBtn{background:var(--accent);color:var(--accent-ink)}
+.v6flow{gap:10px;margin:0 0 10px}
+.v6stepc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.v6stepc .sh{margin:0 0 10px}
+.v6stepc .stt b{font-size:15px;font-weight:700}
+.v6stepc.done .stt b::after{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin:0 0 2px 8px;vertical-align:middle}
+.v6stepc .sb{gap:10px}
+.v6write,.v6gofb{min-height:48px!important;font-size:15px!important;border-radius:var(--r-sm)!important;background:var(--accent)!important;border:0!important;box-shadow:none!important;color:var(--accent-ink)!important}
+.v6writer{margin:0;gap:4px;font-size:12.5px;color:var(--muted)}
+.v6writer > span{margin-right:2px}
+.v6writer button{border:0;background:var(--surface-2);padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.v6writer button.on{background:var(--text);color:var(--bg);border:0}
+.v6flow .hookbox,.hookbox{background:transparent;border:0;padding:0;margin:0}
+.hookbox .hookhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hookbox .hookhead b{font-size:13px;font-weight:600;color:var(--muted)}
+.hookbox .hookhead .btn{min-height:32px;padding:4px 12px;font-size:12.5px;border-radius:999px;border:0;background:var(--surface-2)}
+.hooklist{display:flex;flex-direction:column;gap:8px}
+.hookopt{border:1px solid var(--line)!important;box-shadow:none!important;border-radius:var(--r-sm)!important;background:var(--surface)!important;padding:11px 12px!important;text-align:left;font-size:14.5px;line-height:1.5}
+.hookopt.on{border-color:var(--accent)!important;background:var(--accent-soft)!important;box-shadow:0 0 0 1px var(--accent) inset!important}
+.v6capstate{background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
+.v6capstate b{color:var(--ok);font-weight:600}
+.v6capstate .btn{border:0;background:var(--surface);min-height:30px}
+.v6tog{gap:6px;padding:0}
+.v6tog .tg{min-height:34px!important;padding:5px 12px 5px 8px!important;font-size:13px!important;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px}
+.v6tog .tg.on{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.v6tog .tg .ck{border-color:var(--faint)}
+.v6ds{background:transparent;padding:0}
+.dsrow{gap:10px;padding:2px 0 4px}
+.dtile{width:72px}
+.dtile .dc{width:72px;border-radius:10px;box-shadow:0 0 0 1px var(--line);outline:2px solid transparent;outline-offset:2px}
+.dtile.on .dc{outline-color:var(--accent)}
+.dtile .dl{font-size:11px;max-width:72px}
+.v6mz{background:var(--surface-2);border-radius:var(--r-sm);padding:0 12px}
+.v6mz > summary{padding:11px 0;font-size:13.5px}
+.mzscore{font-size:12px}
+.mzfix{background:var(--text);color:var(--bg)}
+/* fine-tune: one collapsible block */
+.v7more{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0 14px;margin:0 0 10px}
+.v7more > summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:14px 0;font-size:15px;font-weight:700}
+.v7more > summary::-webkit-details-marker{display:none}
+.v7more > summary::after{content:'';width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:-4px 4px 0 0;transition:transform .2s}
+.v7more[open] > summary::after{transform:rotate(-135deg);margin-top:4px}
+.v7more[open]{padding-bottom:14px}
+.v6sec{position:static!important;background:var(--surface-2);border-radius:var(--r-sm);padding:3px;margin:0 0 12px}
+.v6sec button{min-height:40px;flex-direction:row!important;gap:6px;font-size:13px;font-weight:600;color:var(--muted);border-radius:9px}
+.v6sec button svg{width:16px;height:16px}
+.v6sec button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(16,24,40,.12)}
+html[data-theme="dark"] .v6sec button.on{background:var(--surface-3)}
+.v6hlbar{gap:6px;margin:0}
+.v6hlbar .btn{min-height:34px;border-radius:999px;font-size:12.5px;padding:4px 12px}
+.v6hlbar .hlbtn{background:#fff6bf;border-color:transparent;color:#5c4400}
+.takechk,.morebox,.maskbox,.spkbox{background:var(--surface-2);border:0;border-radius:var(--r-sm)}
+.takebox{background:var(--surface-2);border:0;border-radius:var(--r-sm)}
+.srcprev{background:var(--surface-2);border-radius:var(--r-sm)}
+.colorrow label{background:var(--surface-2);border-radius:var(--r-sm)}
+
+/* ---------- Facebook ---------- */
+#tp-fb .scard > h3{margin-bottom:12px}
+.v6gen{gap:8px;margin:0 0 12px}
+.v6gen #fbPrepBtn2{min-height:48px;font-size:15px;border-radius:var(--r-sm)}
+.v6gen .fld{flex:1 1 140px}
+.v6gen .chk{font-size:13.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px}
+.fbpost{border:1px solid var(--line);box-shadow:none;border-radius:var(--r)}
+.v6fbbar{grid-template-columns:repeat(3,1fr);gap:8px}
+.v6fbbar .btn{min-height:46px;font-size:13.5px}
+.v6fbbar #fbShareBtn{min-height:50px;font-size:15px}
+.v6block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.v6block > b{font-size:15px;font-weight:700;margin-bottom:10px}
+.maskbox{padding:0 12px}
+.maskbox > summary{padding:12px 0;font-size:14px;font-weight:600;color:var(--muted)}
+
+/* ---------- sheets ---------- */
+#v6sheet{background:rgba(10,12,16,.45)}
+#v6sheet .v6sbox{border-radius:22px 22px 0 0;padding:6px 18px calc(20px + env(safe-area-inset-bottom));background:var(--surface)}
+#v6sheet .panel h4{font-size:18px;font-weight:700;margin:6px 0 12px}
+#v6sheet .panel .x{font-size:22px;width:34px;height:34px;border:0;background:var(--surface-2);border-radius:50%;color:var(--muted)}
+#v6sheet .panel .row{margin-top:12px}
+#v6sheet hr{border-top:1px solid var(--line)!important;margin:18px 0 14px!important}
+#v6sheet label{font-size:13.5px}
+.claudebox{background:transparent;border:0;padding:0}
+.claudebox h4,#proxyPanel > h4{font-size:15px!important}
+.v7lang{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:2px 0 14px;margin:0 0 6px;border-bottom:1px solid var(--line);font-weight:600;font-size:14px}
+.v7lang .seg{flex:none}
+.wipebox{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.wipebox .btn{color:var(--danger);width:100%}
+@media (min-width:761px){#v6sheet .v6sbox{border-radius:22px}}
+
+/* ---------- live news sheet ---------- */
+.nsheet{background:rgba(10,12,16,.45)}
+.nsbox{background:var(--bg);border-radius:22px 22px 0 0}
+.nshead{padding:14px 14px 8px;gap:8px;align-items:center}
+.nshead b{font-size:18px;font-weight:700}
+.nshead .btn{min-height:36px;border:0;background:var(--surface-2);border-radius:10px;padding:4px 10px}
+.nshead .x{width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:0;font-size:22px;color:var(--muted)}
+.nwupd{font-size:12px;color:var(--muted)}
+.nwchip{border:0;background:var(--surface);box-shadow:0 0 0 1px var(--line) inset;font-weight:600;color:var(--muted)}
+.nwchip.on,html[data-theme="dark"] .nwchip.on{background:var(--text);color:var(--bg);box-shadow:none}
+.nwtools input{background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r-sm)!important}
+.nwitem{background:var(--surface);border:1px solid var(--line)!important;border-radius:var(--r-sm);margin:0 0 8px;padding:10px!important}
+.nwlist{padding:4px 12px 0}
+.nwthumb{border-radius:10px}
+#metaDate,.nwdate{background:transparent;color:var(--muted);padding:0;font-weight:600}
+html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:transparent;color:var(--muted)}
+.nwtxt em{background:var(--danger)}
+
+/* ---------- modal ---------- */
+#cardModal{background:rgba(10,12,16,.82)}
+#cardModal .modal-box{background:transparent;box-shadow:none}
+#cardModal .srow .btn{min-height:46px;border-radius:var(--r-sm)}
+.cardright.v6tabs > details.v7more{display:block!important;background:var(--surface)!important;border:1px solid var(--line)!important;border-radius:var(--r)!important;padding:0 14px!important;margin:0 0 10px!important}
+.cardright.v6tabs > details.v7more[open]{padding-bottom:14px!important}
+.v7gen{align-items:flex-end!important}
+.v7gen .chk{min-height:44px;padding:0 4px}
+.cardright.v6tabs > details.v7more > summary{display:flex!important}
+.v6flow .hookbox:not(:has(.hookopt)) .hookhead,.v6capstate:has(.none){display:none!important}
+@media (min-width:761px){.v6acts .btn{background:var(--surface-2)}}
+.badge:not(.creative){display:none!important}
+.badge.creative{background:var(--surface-2);color:var(--muted);border-radius:var(--r-sm)}
+.keyhint{background:var(--surface-2)!important;border:0!important;border-radius:var(--r-sm)!important;padding:6px!important;margin:0 0 12px}
+.keyhint .btn{flex:1;border:0;background:var(--surface);color:var(--accent)}
+.chips{gap:6px}
+.chip{border:1px solid var(--line)!important;background:var(--surface)!important;color:var(--muted);font-weight:600;border-radius:999px!important}
+.chip.on{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+.v7sub{font-size:15px!important;font-weight:700;margin:4px 0 10px!important}
+#showKeyBtn,#claudeShowBtn{width:44px;padding:0;flex:none}
+#nwRefresh svg{width:18px;height:18px}
+.toolbar .btn > span:first-child svg{width:17px;height:17px;display:block}
+.v7more > details{display:none!important;border:0;background:transparent;margin:0;padding:0}
+.v7more > details.cur{display:block!important}
+.v7more > details > summary{display:none}
+.v7more > details > .dbody{padding:0;display:flex;flex-direction:column;gap:12px}
+</style>
+
 </head>
 <body>
 <div id="progress" class="no-print"></div>
@@ -5923,6 +6197,153 @@ dsOrder = function(){
   return FAV_ORDER.concat(news, q);
 };
 (function(){ const saved = (store.get('card', {}) || {}).template; if(/_/.test(saved || '') && TPL[saved]) C.template = saved; })();
+
+/* ===== v7: professional redesign — short labels, no clutter, header actions, one "more edits" block ===== */
+Object.assign(T.bn, {
+  homeHi:'আজ কী পোস্ট করবেন?', qLive:'লাইভ নিউজ', qLiveS:'সর্বশেষ খবর থেকে এক চাপে কার্ড', qLink:'লিংক', qWrite:'নিজে লিখুন', qDemo:'ডেমো',
+  urlPh:'খবরের লিংক পেস্ট করুন', fetch:'আনুন', recent:'সাম্প্রতিক', clearAll:'মুছুন',
+  tabOrigS:'খবর', tabStudioS:'লেখা', tabImageS:'ছবি', tabCardS:'কার্ড', tabFbS:'পোস্ট', tabOrigL:'খবর', tabStudioL:'AI লেখা', tabImageL:'AI ছবি', tabCardL:'কার্ড', tabFbL:'ফেসবুক পোস্ট',
+  st1:'লেখা', st2:'ডিজাইন', st3:'পোস্ট', writeAll:'AI দিয়ে লিখুন', kindNews:'খবর', kindQuote:'উক্তি', wrWho:'লিখবে',
+  hookTitle:'একটি শিরোনাম বেছে নিন', hookRegen:'আরও ৩টি', capReady:'ক্যাপশন তৈরি', capNone:'ক্যাপশন এখনো তৈরি হয়নি', capOpen:'দেখুন',
+  tgDate:'তারিখ', tgNews:'সূত্র', tgPhoto:'ছবির সূত্র', tgMarker:'হাইলাইট', tgStars:'স্টার',
+  goFb:'ফেসবুক পোস্ট দেখুন', mzTitle:'মনিটাইজেশন চেক', v7More:'আরও সম্পাদনা',
+  aDl:'সেভ', aShare:'শেয়ার', aView:'বড় করে', aNext:'ডিজাইন', aReset:'রিসেট',
+  changeImg:'নিজের ছবি', centerImg:'মাঝে আনুন', zoom:'জুম', spkTitle:'বক্তার ছবি', spkUp:'ছবি দিন', spkRm:'সরান', spkSize:'আকার', spkFlip:'উল্টান',
+  hlAdd:'হাইলাইট', hlClear:'হাইলাইট মুছুন', f_sub:'উপশিরোনাম / বক্তা', f_desc:'বিবরণ', takeOn:'আমার মন্তব্য যোগ করুন', f_take:'আমার মন্তব্য', takeGen:'AI থেকে আইডিয়া',
+  moreFields:'আরও ঘর', f_role:'বক্তার পদবি', f_points:'মূল তথ্য (প্রতি লাইনে একটি)', f_num:'বড় সংখ্যা', f_numLabel:'সংখ্যার মানে', f_source:'সূত্র', f_url:'লিংক', f_label:'ছবির লেবেল',
+  ratioLbl:'আকার', r11:'১:১', r45:'৪:৫', r169:'১৬:৯', r916:'৯:১৬', fontLbl:'ফন্ট', hSize:'লেখার আকার', alignLbl:'অ্যালাইন', acLbl:'থিম',
+  ovLbl:'ব্যাকগ্রাউন্ড গাঢ়তা', tyLbl:'লেখার অবস্থান', qAdj:'ছবির অংশ', logoUp:'লোগো দিন', logoRm:'সরান', logoSize:'আকার',
+  fbTitle:'ফেসবুক পোস্ট', prepFb:'পোস্ট তৈরি করুন', fbLen:'দৈর্ঘ্য', fbSrc:'সূত্র ও তারিখ',
+  fbCopy:'কপি', fbDl:'কার্ড সেভ', fbCard:'কার্ড', fbShare:'ফেসবুকে শেয়ার করুন', secPost:'ক্যাপশন', fbRewrite:'আবার লিখুন', fbEdit:'সম্পাদনা',
+  fcTitle:'প্রথম কমেন্ট', fcCopy:'কমেন্ট কপি', fbPh:'"পোস্ট তৈরি করুন" চাপুন',
+  maskSum:'সংবেদনশীল শব্দ', maskOn:'সংবেদনশীল শব্দ ঢেকে দিন', maskNow:'এখনই ঢাকুন', maskEdit:'শব্দতালিকা', maskReset:'ডিফল্ট',
+  stuTitle:'AI লেখা', generate:'তৈরি করুন', copyRes:'কপি', regen:'আবার', undo:'আগেরটি', toCardHead:'কার্ডের শিরোনামে', toCardDesc:'কার্ডের বিবরণে', toFb:'পোস্টে',
+  imgTitle:'AI ছবি', imgPromptLbl:'ছবির বর্ণনা', suggest:'প্রস্তাব', ratio:'আকার', imgGen:'ছবি তৈরি করুন', imgRegen:'আবার', imgDl:'সেভ', imgUse:'কার্ডে ব্যবহার', imgEmpty:'এখনো কোনো ছবি নেই',
+  openSettings:'API কী যোগ করুন', clipMode:'কাটিং', export:'এক্সপোর্ট', exImg:'ছবি (PNG)', exPdf:'PDF / প্রিন্ট', exWord:'Word (.doc)', exTxt:'টেক্সট (.txt)',
+  backEditor:'ফিরে যান', dlPng:'সেভ করুন', nwTitle:'লাইভ নিউজ', nwGuideBtn:'প্রক্সি', nwMore:'আরও খবর',
+  aiTitle:'Gemini API কী', clTitle:'Claude API কী', proxyTitle:'নিজস্ব প্রক্সি', imgModelLbl:'ছবির মডেল', aiFirst:'সবসময় AI দিয়ে খবর আনুন',
+  clmSonnet:'Claude Sonnet 5.5 (প্রস্তাবিত)', clmOpus:'Claude Opus 5.5', clmHaiku:'Claude Haiku 5.5', clUse:'লেখার কাজে Claude ব্যবহার করুন',
+  wipeBtn:'সংরক্ষিত ডাটা মুছুন', instTitle:'হোম স্ক্রিনে যোগ করুন', inst3:'"ইনস্টল" চাপুন — হোম স্ক্রিনে আইকন চলে আসবে।',
+  pasteTitle:'নিজে লিখুন', cleanShow:'কার্ড তৈরি করুন', rescueTitle:'এই পত্রিকা থেকে সরাসরি আনা যাচ্ছে না', openPaper:'পত্রিকা খুলুন', readClip:'ক্লিপবোর্ড থেকে পড়ুন',
+  footBrand:'TF Post Card', fbEmptyCap:'ক্যাপশন এখানে দেখাবে', v7Lang:'ভাষা', v7Settings:'সেটিংস', v7NewT:'নতুন খবর', v7LiveT:'লাইভ নিউজ'
+});
+Object.assign(T.en, {
+  homeHi:'What will you post today?', qLive:'Live news', qLiveS:'Card from the latest news in one tap', qLink:'Link', qWrite:'Write', qDemo:'Demo',
+  urlPh:'Paste a news link', fetch:'Get', recent:'Recent', clearAll:'Clear',
+  tabOrigS:'News', tabStudioS:'Write', tabImageS:'Image', tabCardS:'Card', tabFbS:'Post', tabOrigL:'News', tabStudioL:'AI writing', tabImageL:'AI image', tabCardL:'Card', tabFbL:'Facebook post',
+  st1:'Text', st2:'Design', st3:'Post', writeAll:'Write with AI', kindNews:'News', kindQuote:'Quote', wrWho:'Writer',
+  hookTitle:'Pick a headline', hookRegen:'3 more', capReady:'Caption ready', capNone:'No caption yet', capOpen:'View',
+  tgDate:'Date', tgNews:'Source', tgPhoto:'Photo credit', tgMarker:'Highlight', tgStars:'Stars',
+  goFb:'See Facebook post', mzTitle:'Monetization check', v7More:'More edits',
+  aDl:'Save', aShare:'Share', aView:'View', aNext:'Design', aReset:'Reset',
+  changeImg:'Own photo', centerImg:'Center', zoom:'Zoom', spkTitle:'Speaker photo', spkUp:'Add photo', spkRm:'Remove', spkSize:'Size', spkFlip:'Flip',
+  hlAdd:'Highlight', hlClear:'Clear highlight', f_sub:'Subtitle / speaker', f_desc:'Description', takeOn:'Add my comment', f_take:'My comment', takeGen:'Ideas from AI',
+  moreFields:'More fields', f_role:'Speaker title', f_points:'Key points (one per line)', f_num:'Big number', f_numLabel:'What the number means', f_source:'Source', f_url:'Link', f_label:'Photo label',
+  ratioLbl:'Size', r11:'1:1', r45:'4:5', r169:'16:9', r916:'9:16', fontLbl:'Font', hSize:'Text size', alignLbl:'Align', acLbl:'Theme',
+  ovLbl:'Background strength', tyLbl:'Text position', qAdj:'Photo area', logoUp:'Add logo', logoRm:'Remove', logoSize:'Size',
+  fbTitle:'Facebook post', prepFb:'Create post', fbLen:'Length', fbSrc:'Source & date',
+  fbCopy:'Copy', fbDl:'Save card', fbCard:'Card', fbShare:'Share to Facebook', secPost:'Caption', fbRewrite:'Rewrite', fbEdit:'Edit',
+  fcTitle:'First comment', fcCopy:'Copy comment', fbPh:'Tap "Create post"',
+  maskSum:'Sensitive words', maskOn:'Mask sensitive words', maskNow:'Mask now', maskEdit:'Word list', maskReset:'Default',
+  stuTitle:'AI writing', generate:'Generate', copyRes:'Copy', regen:'Again', undo:'Previous', toCardHead:'To card headline', toCardDesc:'To card text', toFb:'To post',
+  imgTitle:'AI image', imgPromptLbl:'Describe the image', suggest:'Suggest', ratio:'Size', imgGen:'Create image', imgRegen:'Again', imgDl:'Save', imgUse:'Use on card', imgEmpty:'No image yet',
+  openSettings:'Add API key', clipMode:'Clipping', export:'Export', exImg:'Image (PNG)', exPdf:'PDF / Print', exWord:'Word (.doc)', exTxt:'Text (.txt)',
+  backEditor:'Back', dlPng:'Save', nwTitle:'Live news', nwGuideBtn:'Proxy', nwMore:'More news',
+  aiTitle:'Gemini API key', clTitle:'Claude API key', proxyTitle:'Own proxy', imgModelLbl:'Image model', aiFirst:'Always fetch news with AI',
+  clmSonnet:'Claude Sonnet 5.5 (recommended)', clmOpus:'Claude Opus 5.5', clmHaiku:'Claude Haiku 5.5', clUse:'Use Claude for writing',
+  wipeBtn:'Clear saved data', instTitle:'Add to home screen', inst3:'Tap "Install" — the icon appears on your home screen.',
+  pasteTitle:'Write your own', cleanShow:'Make card', rescueTitle:'This paper cannot be fetched directly', openPaper:'Open paper', readClip:'Read from clipboard',
+  footBrand:'TF Post Card', fbEmptyCap:'Your caption will show here', v7Lang:'Language', v7Settings:'Settings', v7NewT:'New story', v7LiveT:'Live news'
+});
+
+/* labels show without leading emoji / symbols — calmer, more professional */
+const V7_LEAD = /^[\s←-⇿⌀-➿⬀-⯿⤀-⥿️‍❝✱⌖↺↩✓✕×]+|^(?:\p{Extended_Pictographic}|️|‍|\s)+/u;
+function v7Strip(s){ let p; do { p = s; s = s.replace(V7_LEAD, ''); } while(s !== p); return s; }
+function v7Clean(root){
+  (root || document).querySelectorAll('[data-i18n]').forEach(el => {
+    if(el.closest('#sheet') || el.children.length) return;
+    const s = v7Strip(el.textContent); if(s && s !== el.textContent) el.textContent = s;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { const s = v7Strip(el.placeholder || ''); if(s !== el.placeholder) el.placeholder = s; });
+  document.querySelectorAll('#cTpl option, #claudeModelSel option').forEach(o => { o.textContent = v7Strip(o.textContent); });
+}
+const applyI18n70 = applyI18n;
+applyI18n = function(){ applyI18n70(); try{ v7Clean(); v7LangUi(); }catch(e){} };
+
+function v7LangUi(){ document.querySelectorAll('.v7lang [data-l]').forEach(b => b.classList.toggle('on', b.dataset.l === S.lang)); }
+function v7ThemeColor(){ const m = document.querySelector('meta[name="theme-color"]'); if(m) m.content = S.theme === 'dark' ? '#0d0f13' : '#f4f5f7'; }
+
+function v7Build(){
+  if($('v7Built') || !$('v63Built')) return false;
+  document.body.appendChild(mk('i', 'hidden')).id = 'v7Built';
+
+  /* header: short name · live + new (when a story is open) · theme · settings */
+  const bb = document.querySelector('.brand b'); if(bb) bb.innerHTML = 'TF Post Card';
+  const ctrls = document.querySelector('.ctrls'), themeBtn = $('v6Theme');
+  const hb = (id, icon, k, fn) => { const b = mk('button', 'icobtn v7art', ic(icon)); b.type = 'button'; b.id = id; b.dataset.t = k; b.title = t(k); b.setAttribute('aria-label', t(k)); b.addEventListener('click', fn); ctrls.insertBefore(b, themeBtn); return b; };
+  hb('v7Live', IC.live, 'v7LiveT', () => $('liveNewsBtn').click());
+  hb('v7New', '<path d="M12 5v14M5 12h14"/>', 'v7NewT', () => $('newSearchBtn').click());
+  const syncHdr = () => document.querySelectorAll('.v7art').forEach(b => b.classList.toggle('hidden', !document.body.classList.contains('has-article')));
+  new MutationObserver(syncHdr).observe(document.body, { attributes: true, attributeFilter: ['class'] }); syncHdr();
+  if(themeBtn) themeBtn.addEventListener('click', v7ThemeColor);
+  const onScroll = () => document.body.classList.toggle('v7scrolled', window.scrollY > 4);
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  /* settings: language switch at the top */
+  const pp = $('proxyPanel'), h = pp && pp.querySelector('h4');
+  if(h){
+    const lr = mk('div', 'v7lang', '<span data-i18n="v7Lang"></span><div class="seg"><button type="button" data-l="bn">বাংলা</button><button type="button" data-l="en">English</button></div>');
+    lr.querySelectorAll('[data-l]').forEach(b => b.addEventListener('click', () => { if(S.lang !== b.dataset.l) $('langBtn').click(); v7LangUi(); }));
+    h.after(lr);
+  }
+
+  /* photo card: everything after the 1-2-3 flow goes into one collapsible "More edits" block */
+  const right = document.querySelector('.cardright'), sec = right && right.querySelector('.v6sec');
+  if(right && sec){
+    const more = mk('details', 'v7more', '<summary data-i18n="v7More"></summary>');
+    right.insertBefore(more, sec);
+    more.appendChild(sec);
+    Array.from(right.children).filter(e => e.tagName === 'DETAILS' && e !== more).forEach(d => more.appendChild(d));
+    // tapping a text on the card opens its field — make sure the block is open first
+    $('cardCanvas').addEventListener('click', () => { more.open = true; }, true);
+  }
+
+  /* paste button: clean icon instead of emoji */
+  const pb = $('pasteUrlBtn'); if(pb){ pb.innerHTML = ic('<rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>'); pb.setAttribute('aria-label', t('paste')); }
+
+
+  /* clean icons instead of emoji in the reader toolbar, settings and live news */
+  const ICO = { news: IC.news, leadBtn: IC.image, aiCleanBtn: IC.spark, editBtn: IC.pen,
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+    dl: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    refresh: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5"/>' };
+  [['clipBtn', ICO.news], ['leadBtn', ICO.leadBtn], ['aiCleanBtn', ICO.aiCleanBtn], ['editBtn', ICO.editBtn], ['copyBtn', ICO.copy], ['exportBtn', ICO.dl]].forEach(([id, p]) => {
+    const s = $(id) && $(id).querySelector('span:first-child'); if(s && !s.dataset.i18n) s.innerHTML = ic(p);
+  });
+  ['showKeyBtn', 'claudeShowBtn'].forEach(id => { const b = $(id); if(b){ b.innerHTML = ic(ICO.eye); b.setAttribute('aria-label', 'show'); } });
+  const rf = $('nwRefresh'); if(rf){ rf.innerHTML = ic(ICO.refresh); rf.setAttribute('aria-label', 'refresh'); }
+
+  /* settings sheet: one clear title, then sections */
+  const ttl = h && h.querySelector('span[data-i18n]');
+  if(ttl){ ttl.setAttribute('data-i18n', 'v7Settings'); const sub = mk('h4', 'v7sub'); sub.setAttribute('data-i18n', 'aiTitle'); pp.querySelector('.v7lang').after(sub); }
+
+  /* text that other parts write later (chips, news filters) also loses its leading emoji */
+  const tidy = root => root.querySelectorAll('button, .chip').forEach(b => {
+    b.childNodes.forEach(n => { if(n.nodeType === 3){ const s = v7Strip(n.nodeValue); if(s !== n.nodeValue && s) n.nodeValue = s; } });
+    if(!b.children.length){ const s = v7Strip(b.textContent); if(s && s !== b.textContent) b.textContent = s; }
+  });
+  ['nwChips', 'modeChips'].forEach(id => { const el = $(id); if(!el) return; tidy(el); new MutationObserver(() => tidy(el)).observe(el, { childList: true, subtree: true }); });
+
+  /* Facebook tab: generate controls sit together, preview right below */
+  const gen = document.querySelector('#tp-fb .v6gen'); if(gen) gen.classList.add('v7gen');
+
+  applyI18n(); v7ThemeColor();
+  return true;
+}
+const v7Start = () => { let n = 0; const go = () => { try{ if(v7Build() === false && ++n < 80 && !$('v7Built')) setTimeout(go, 50); }catch(e){ console.error('v7', e); } }; setTimeout(go, 0); };
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v7Start); else v7Start();
+const showTab70 = showTab;
+showTab = function(name){ showTab70(name); setTimeout(() => v7Clean(), 0); };
 
 window.TFCR = { cardBlob, setSource, onCardFile, liveNews: NW, newsSources: NEWS_SRC, fromQuintype, fromAi, parseAiJson, extractHtml, extractMarkdown, processPasted, bodyText, state: S, filterBlocks, collectBlocks, normalizeUrl, renderCard, cardState: C, ai: AI, showTab, prepareFacebook, claude, writeAi, CLAUDE_STYLE };
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

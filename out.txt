@@ -1,0 +1,63 @@
+jamuna.tv          site 200 items 12 img 0 ownlink 12
+jamuna.tv          kw   200 items 12 img 9 ownlink 3
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ec8743a425e948f21e98550e694&amp;url=https%3a%2f%2fnews.abplive.com%2felections%2fmadan-m 
+    http://www.bing.com/th?id=ONUT.Xhr3o9bkRzjJ8pnviCSyhw&amp;pid=News 
+    Wed, 28 Oct 2026 05:36:00 GMT
+jugantor.com       site 200 items 0 img 0 ownlink 0
+jugantor.com       kw   200 items 7 img 2 ownlink 3
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ecad5d94328982a3905139ae8ed&amp;url=https%3a%2f%2fwww.jugantor.com%2finternational%2f117 
+    http://www.bing.com/th?id=ONUT.YCHJsbw0cjCB7K6SX41S2w&amp;pid=News 
+    Wed, 28 Oct 2026 08:30:00 GMT
+samakal.com        site 200 items 12 img 0 ownlink 12
+samakal.com        kw   200 items 12 img 5 ownlink 2
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ecc0a6b44c2bc72dd66a5c1ab2e&amp;url=https%3a%2f%2fwww.thedailystar.net%2fnews%2fbanglade 
+    http://www.bing.com/th?id=ONUT.brjDS3PnmTRxGTMBbpYzCA&amp;pid=News 
+    Sun, 25 Oct 2026 17:00:00 GMT
+kalerkantho.com    site 200 items 10 img 0 ownlink 10
+kalerkantho.com    kw   200 items 0 img 0 ownlink 0
+bd-pratidin.com    site 200 items 12 img 0 ownlink 12
+bd-pratidin.com    kw   200 items 9 img 4 ownlink 0
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ed0e99949959694fe968ed30584&amp;url=https%3a%2f%2famarnews.com.bd%2f%25e0%25a6%25af%25e0 
+    http://www.bing.com/th?id=ONUT.3CW5UZ9Qsh3d1-mL-Qbk5A&amp;pid=News 
+    Sat, 24 Oct 2026 00:11:00 GMT
+ittefaq.com.bd     site 200 items 12 img 5 ownlink 12
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ed2907d46199e5baa3efec2abd1&amp;url=https%3a%2f%2fen.ittefaq.com.bd%2f18646%2fmild-heat- 
+    http://www.bing.com/th?id=ONUT.KrjrRd9DP1W1qD9UdOEAnQ&amp;pid=News 
+    Wed, 28 Oct 2026 06:23:00 GMT
+ittefaq.com.bd     kw   200 items 11 img 3 ownlink 6
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ed3414a480e8eb1d1aba77404bb&amp;url=https%3a%2f%2fwww.ittefaq.com.bd%2f817386%2f%25E0%25 
+    http://www.bing.com/th?id=ONUT.MurTseg5ydlin3KuoUzjLQ&amp;pid=News 
+    Mon, 26 Oct 2026 01:20:00 GMT
+ekattor.tv         site 200 items 0 img 0 ownlink 0
+ekattor.tv         kw   200 items 12 img 4 ownlink 5
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ed5ff1b467f9398d2e94b3ef67a&amp;url=https%3a%2f%2fekattor.tv%2fnational%2f96822%2f%25E0% 
+    http://www.bing.com/th?id=ONUT.-u0AA6zFWkc0mAzzrF_OkQ&amp;pid=News 
+    Wed, 28 Oct 2026 01:29:00 GMT
+deshrupantor.com   site 200 items 12 img 9 ownlink 12
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ed6f0d14e1e8cd7e170bc1aa768&amp;url=https%3a%2f%2fwww.deshrupantor.com%2f730982%2f%25E0% 
+    http://www.bing.com/th?id=ONUT.ZI3DBmrjpmt67QjiyrkFHw&amp;pid=News 
+    Wed, 28 Oct 2026 08:52:00 GMT
+deshrupantor.com   kw   200 items 2 img 2 ownlink 2
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21ed7c2134d1e8400d34fe5a3acd1&amp;url=https%3a%2f%2fwww.deshrupantor.com%2f730982%2f%25E0% 
+    http://www.bing.com/th?id=ONUT.ZI3DBmrjpmt67QjiyrkFHw&amp;pid=News 
+    Wed, 28 Oct 2026 08:52:00 GMT
+mzamin.com         site 200 items 12 img 0 ownlink 12
+mzamin.com         kw   200 items 10 img 0 ownlink 2
+dailyinqilab.com   site 200 items 0 img 0 ownlink 0
+dailyinqilab.com   kw   200 items 12 img 0 ownlink 0
+jagonews24.com     site 200 items 12 img 12 ownlink 12
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21edbcfc845859bd8b0c28747222d&amp;url=https%3a%2f%2fwww.jagonews24.com%2fen%2fsports%2fnew 
+    http://www.bing.com/th?id=ONUT.la0e3_lV9ZCxDv9PtvTgWw&amp;pid=News 
+    Wed, 28 Oct 2026 09:06:00 GMT
+jagonews24.com     kw   200 items 12 img 1 ownlink 1
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21edc11364045b0e8fe14a098c9ad&amp;url=https%3a%2f%2fwww.dhakanews24.com%2f%25e0%25a6%25ae% 
+    http://www.bing.com/th?id=ONUT.bfmJs7wIRulTkBOyxKxVAg&amp;pid=News 
+    Fri, 23 Oct 2026 17:00:00 GMT
+kalbela.com        site 200 items 12 img 10 ownlink 12
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21edec68d476c84e56a4830dace85&amp;url=https%3a%2f%2fwww.kalbela.com%2fworld%2findia%2f3438 
+    http://www.bing.com/th?id=ONUT.-a4Jq_u1G26bA_sDHYjV_w&amp;pid=News 
+    Wed, 28 Oct 2026 08:54:00 GMT
+kalbela.com        kw   200 items 12 img 7 ownlink 3
+    http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;tid=6ae21edf326c41b881ac07c634f40911&amp;url=https%3a%2f%2fwww.kalbela.com%2fentertainment%2fboll 
+    http://www.bing.com/th?id=ONUT.NqEvekeimkNCN42k5Y8A_Q&amp;pid=News 
+    Wed, 28 Oct 2026 01:03:00 GMT

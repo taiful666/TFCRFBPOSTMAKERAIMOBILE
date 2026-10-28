@@ -2321,10 +2321,25 @@ async function doCopy(kind){
 }
 
 /* ============ downloads ============ */
+// Phones hand the file to the download manager in the background; a big video can take a long time to be
+// read from the blob: link. Revoking after a few seconds broke those downloads, so the link is kept alive
+// for at least a minute (longer for big files, up to 10 min) and then released.
+const DL_ANCHOR = 'download' in document.createElement('a');
+const IN_APP = /FBAN|FBAV|FB_IAB|Instagram|Line\/|; wv\)/i.test(navigator.userAgent || '');
+function dlKeepMs(blob){ return Math.min(600000, Math.max(60000, Math.round((blob && blob.size || 0) / 131072) * 1000)); }
 function download(blob, name){
-  const u = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(u), 4000);
+  const u = URL.createObjectURL(blob);
+  if(!DL_ANCHOR){                                           // very old browsers: open the file, user saves it by hand
+    const w = window.open(u, '_blank');
+    setTimeout(() => URL.revokeObjectURL(u), 600000);
+    return w ? 'opened' : 'blocked';
+  }
+  const a = document.createElement('a');
+  a.href = u; a.download = name; a.rel = 'noopener'; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => a.remove(), 0);
+  setTimeout(() => URL.revokeObjectURL(u), dlKeepMs(blob));
+  return 'started';
 }
 function exportTxt(){
   const title = norm($('artTitle').textContent);
@@ -6374,6 +6389,13 @@ Object.assign(T.bn, {
   rlLatest:'সর্বশেষ', rlFollow:'ফলো করুন', rlMoreNews:'আরও খবর পেতে', rlLcs:'লাইক · কমেন্ট · শেয়ার', rlGlance:'এক নজরে',
   rlCardsL:'প্রতিটি খবর আলাদা ছবি-কার্ড হিসেবে', rlCardSave:'সব কার্ড সেভ', rlCardShare:'সব কার্ড শেয়ার',
   rlCardMaking:'কার্ড তৈরি হচ্ছে… {a}/{b}', rlCardSaved:'{n}টি কার্ড সেভ হয়েছে', rlCardReady:'কার্ড তৈরি — শেয়ার করতে আবার চাপুন', rlCardFail:'কার্ড তৈরি করা যায়নি',
+  rlWebm:'এই ব্রাউজারে MP4 তৈরি হয় না, তাই ভিডিওটি WebM ফরম্যাটে (ফেসবুকে আপলোড করা যায়)', rlRecErr:'ভিডিও রেকর্ড করতে সমস্যা হয়েছে — আবার চেষ্টা করুন',
+  rlDlStart:'ডাউনলোড শুরু হয়েছে — ফোনের Downloads ফোল্ডারে দেখুন', rlDlOpen:'ফাইলটি নতুন ট্যাবে খুলেছে — চেপে ধরে সেভ করুন',
+  rlInApp:'এই অ্যাপের ভেতরের ব্রাউজারে সেভ নাও হতে পারে — Chrome-এ খুলে আবার চেষ্টা করুন',
+  rlShared:'শেয়ার করা হয়েছে', rlShareCancel:'শেয়ার বাতিল হয়েছে', rlShareAgain:'শেয়ার খোলা যায়নি — আবার শেয়ার চাপুন',
+  rlNoShare:'এই ব্রাউজারে সরাসরি শেয়ার করা যায় না — ফাইল ডাউনলোড করা হচ্ছে, গ্যালারি থেকে শেয়ার করুন',
+  rlShareFail:'শেয়ার করা যায়নি — ফাইল ডাউনলোড করা হচ্ছে', rlShareBig:'ভিডিও ৫০ MB-এর বেশি, তাই সরাসরি শেয়ার হবে না — গ্যালারি থেকে শেয়ার করুন',
+  rlCardMore:'{a}টি কার্ড শেয়ার হয়েছে, বাকি {b}টির জন্য আবার শেয়ার চাপুন', rlCardDl:'{n}টি কার্ড ডাউনলোড হচ্ছে — Chrome অনুমতি চাইলে Allow চাপুন',
   rlTip:'টিপ: মনিটাইজেশনের জন্য কপিরাইট-মুক্ত মিউজিক ব্যবহার করুন, আর প্রতিটি রিলে স্টাইল বদলান।',
   rlQ:'বিস্তারিত পড়ুন মূল পত্রিকায়।', rlSrc:'তথ্য ও ছবির সূত্র: ',
   tr_fade:'ফেড', tr_flash:'ফ্ল্যাশ', tr_slide:'স্লাইড', tr_push:'পুশ', tr_zoom:'জুম', tr_wipe:'ওয়াইপ', tr_circle:'সার্কেল',
@@ -6398,6 +6420,13 @@ Object.assign(T.en, {
   rlLatest:'Latest', rlFollow:'Follow', rlMoreNews:'For more news', rlLcs:'Like · Comment · Share', rlGlance:'At a glance',
   rlCardsL:'Each story as a separate photo card', rlCardSave:'Save all cards', rlCardShare:'Share all cards',
   rlCardMaking:'Making cards… {a}/{b}', rlCardSaved:'{n} cards saved', rlCardReady:'Cards ready — tap share again', rlCardFail:'Could not make the cards',
+  rlWebm:'this browser cannot make MP4, so the video is WebM (Facebook accepts it)', rlRecErr:'Recording the video failed — please try again',
+  rlDlStart:'Download started — check the Downloads folder', rlDlOpen:'The file opened in a new tab — long-press it to save',
+  rlInApp:'This in-app browser may not save files — open the page in Chrome and try again',
+  rlShared:'Shared', rlShareCancel:'Sharing cancelled', rlShareAgain:'Could not open sharing — tap Share again',
+  rlNoShare:'This browser cannot share files — downloading instead, share it from your Gallery',
+  rlShareFail:'Sharing failed — downloading the file instead', rlShareBig:'The video is over 50 MB, too big to share directly — share it from your Gallery',
+  rlCardMore:'{a} cards shared — tap Share again for the other {b}', rlCardDl:'Downloading {n} cards — if Chrome asks, tap Allow',
   rlTip:'Tip: use copyright-free music for monetization, and change the style on every reel.',
   rlQ:'Read the full stories in the original papers.', rlSrc:'News and photo sources: ',
   tr_fade:'Fade', tr_flash:'Flash', tr_slide:'Slide', tr_push:'Push', tr_zoom:'Zoom', tr_wipe:'Wipe', tr_circle:'Circle',
@@ -7029,13 +7058,36 @@ function rlAudio(ac, dest, R, T0){
 }
 
 /* ---------------- 6) making the video ---------------- */
-function rlMime(audio){
-  if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return null;
+function rlMimeList(audio){
+  if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return [];
   // H.264 MP4 first (Facebook's favourite); otherwise WebM, which Facebook also accepts
-  const L = audio ? ['video/mp4;codecs=avc1.42E01F,mp4a.40.2', 'video/mp4;codecs=avc1.4D401F,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm']
-    : ['video/mp4;codecs=avc1.42E01F', 'video/mp4;codecs=avc1.4D401F', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp8', 'video/webm;codecs=vp9', 'video/webm'];
-  for(const m of L){ try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(e){} }
-  return '';
+  const L = audio ? ['video/mp4;codecs=avc1.42E01F,mp4a.40.2', 'video/mp4;codecs=avc1.4D401F,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm']
+    : ['video/mp4;codecs=avc1.42E01F', 'video/mp4;codecs=avc1.4D401F', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp8', 'video/webm;codecs=vp9', 'video/webm'];
+  return L.filter(m => { try{ return MediaRecorder.isTypeSupported(m); }catch(e){ return false; } });
+}
+function rlMime(audio){
+  if(!window.MediaRecorder) return null;
+  return rlMimeList(audio)[0] || '';                  // '' = let the browser pick its own format
+}
+function rlExt(type){ type = String(type || ''); return /mp4/.test(type) ? 'mp4' : /matroska/.test(type) ? 'mkv' : 'webm'; }
+/* Web Share: Chrome refuses more than 10 files or more than 50 MB in one share */
+const SHARE_MAX_FILES = 10, SHARE_MAX_BYTES = 50 * 1024 * 1024;
+async function rlShareTry(files, title){
+  if(!navigator.share || !navigator.canShare) return 'unsupported';
+  let ok = false; try{ ok = navigator.canShare({ files }); }catch(e){ ok = false; }
+  if(!ok) return 'unsupported';
+  try{ await navigator.share({ files, title }); return 'ok'; }
+  catch(e){
+    if(e && e.name === 'AbortError') return 'cancel';            // user closed the share sheet
+    if(e && e.name === 'NotAllowedError') return 'denied';       // tap was too long ago (or blocked) — tap again
+    console.error(e); return 'error';
+  }
+}
+function rlSaveFile(f, pre){
+  const r = download(f, f.name);
+  const msg = r === 'started' ? (IN_APP ? t('rlInApp') : t('rlDlStart')) : t('rlDlOpen');
+  toast(pre ? pre + ' · ' + msg : msg);
+  return r;
 }
 function prog(text, f){ $('rlProg').classList.remove('hidden'); $('rlProgT').textContent = text; $('rlProgF').style.width = Math.round(clamp(f, 0, 1) * 100) + '%'; }
 function rlShowVideo(on){
@@ -7098,19 +7150,28 @@ async function rlMake(){
       stopAudio = rlAudio(ac, dest, R, T0); dest.stream.getAudioTracks().forEach(tk => tracks.push(tk));
     }
     const ms = new MediaStream(tracks), o = { videoBitsPerSecond: 5000000 };
-    if(mime) o.mimeType = mime; if(ac) o.audioBitsPerSecond = 128000;
-    const rec = new MediaRecorder(ms, o), chunks = [];
+    if(ac) o.audioBitsPerSecond = 128000;
+    // try the best supported format first; if the browser still refuses it, fall back to the next one, then to its default
+    let rec = null; const chunks = [];
+    const tryMimes = [mime].concat(rlMimeList(!!ac)).filter((m, i, a) => m && a.indexOf(m) === i).concat(['']);
+    for(const m of tryMimes){
+      try{ const oo = Object.assign({}, o); if(m) oo.mimeType = m; rec = new MediaRecorder(ms, oo); break; }catch(e){ rec = null; }
+    }
+    if(!rec) throw new Error('recorder');
+    let recErr = null;
+    rec.onerror = e => { recErr = (e && e.error) || new Error('recorder'); console.error(recErr); };
     rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
     const stopped = new Promise(r => { rec.onstop = r; });
     try{ if(navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); }catch(e){}
     rec.start(1000);
+    if(rec.state !== 'recording') throw new Error('recorder');
     const t0 = performance.now() + 150, total = R.tl.total;
     let lastP = 0, lastCi = -1;
     let loopErr = null;
     await new Promise(res => {
       const loop = () => { try{ step(); }catch(e){ loopErr = e; res(); } };
       const step = () => {
-        if(RL.cancel){ res(); return; }
+        if(RL.cancel || recErr){ res(); return; }
         if(document.hidden){ RL.cancel = 'hidden'; res(); return; }
         const tt = Math.max(0, (performance.now() - t0) / 1000);
         if(tt >= total){ rlFrame(ctx, R, total - 0.001); res(); return; }
@@ -7123,19 +7184,24 @@ async function rlMake(){
       };
       requestAnimationFrame(loop);
     });
-    await sleep(RL.cancel || loopErr ? 0 : 300);
-    try{ rec.stop(); }catch(e){}
+    await sleep(RL.cancel || loopErr || recErr ? 0 : 300);
+    try{ if(rec.state !== 'inactive') rec.stop(); }catch(e){}
     if(loopErr) throw loopErr;
-    await Promise.race([stopped, sleep(4000)]);
+    if(recErr) throw new Error('rec');
+    // slow phones can take several seconds to hand over the last piece of the video — wait for it
+    // (the old 4 s limit could cut the end off and leave a broken file)
+    const stopOk = await Promise.race([stopped.then(() => true), sleep(20000).then(() => false)]);
     if(RL.cancel) throw new Error(RL.cancel === 'hidden' ? 'hidden' : 'cancel');
-    const type = (rec.mimeType || mime || 'video/webm').split(';')[0];
+    if(!stopOk) throw new Error('interrupted');
+    const type = String(rec.mimeType || mime || 'video/webm').split(';')[0].trim() || 'video/webm';
     let blob = new Blob(chunks, { type });
     if(!blob.size) throw new Error('empty');
     if(/webm/.test(type)){            // recorded WebM has no length written in it — add it so phones and Facebook show the duration
       try{
         if(!window.ysFixWebmDuration) await Promise.race([loadScript('https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.6/fix-webm-duration.js'), sleep(8000)]);
-        if(window.ysFixWebmDuration) blob = await window.ysFixWebmDuration(blob, Math.round(total * 1000), { logger: false });
+        if(window.ysFixWebmDuration){ const fixed = await window.ysFixWebmDuration(blob, Math.round(total * 1000), { logger: false }); if(fixed && fixed.size) blob = fixed; }
       }catch(e){}
+      if(blob.type !== type) blob = new Blob([blob], { type });   // keep the real recorded format on the file
     }
     if(RL.url) URL.revokeObjectURL(RL.url);
     RL.blob = blob; RL.url = URL.createObjectURL(blob);
@@ -7143,10 +7209,11 @@ async function rlMake(){
     try{ v.currentTime = 0; v.play().catch(() => {}); }catch(e){}
     RL.vidStyle = st;                                    // separate cards keep the look of this video
     RL.style = rlNewStyle(RL.style);                     // next reel gets a different motion, colours and music
-    toast(t('rlDone'));
+    toast(/mp4/.test(type) ? t('rlDone') : t('rlDone') + ' · ' + t('rlWebm'));
   }catch(e){
     if(e && e.message === 'hidden') toast(t('rlHidden'));
     else if(e && e.message === 'cancel') toast(t('rlCanceled'));
+    else if(e && /^(rec|recorder|interrupted|empty)$/.test(e.message)){ console.error(e); toast(t('rlRecErr')); }
     else { console.error(e); toast(t('rlNoRec') + (e && e.message ? ' (' + e.message + ')' : '')); }
     if(RL.blob){ rlShowVideo(true); }
   }finally{
@@ -7162,7 +7229,7 @@ async function rlMake(){
 $('rlMake').addEventListener('click', rlMake);
 $('rlCancel').addEventListener('click', () => { RL.cancel = true; });
 function rlFile(){
-  const ext = /mp4/.test(RL.blob.type) ? 'mp4' : 'webm', d = new Date();
+  const ext = rlExt(RL.blob.type), d = new Date();
   const name = 'TF-News-Reel-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '.' + ext;
   return new File([RL.blob], name, { type: RL.blob.type });
 }
@@ -7171,17 +7238,19 @@ async function rlCopyCap(quiet){
   try{ await navigator.clipboard.writeText(s); if(!quiet) toast(t('rlCapCopied')); return true; }
   catch(e){ const ta = $('rlCapIn'); $('rlCapBox').open = true; ta.focus(); ta.select(); try{ document.execCommand('copy'); if(!quiet) toast(t('rlCapCopied')); return true; }catch(e2){ return false; } }
 }
-$('rlSave').addEventListener('click', () => { if(!RL.blob) return; const f = rlFile(); download(f, f.name); toast(t('rlSaved')); });
+$('rlSave').addEventListener('click', () => { if(!RL.blob) return; rlSaveFile(rlFile()); });
 $('rlCapCopy').addEventListener('click', () => rlCopyCap());
 $('rlShare').addEventListener('click', async () => {
   if(!RL.blob) return;
   const f = rlFile();
-  await rlCopyCap(true);
-  if(navigator.canShare && navigator.canShare({ files: [f] })){
-    try{ toast(t('rlCapCopied')); await navigator.share({ files: [f], title: RL.title || t('rlTitleDef') }); return; }
-    catch(e){ if(e && e.name === 'AbortError') return; }
-  }
-  download(f, f.name); toast(t('rlSaved') + ' · ' + t('rlCapCopied'));
+  if(f.size > SHARE_MAX_BYTES){ rlSaveFile(f, t('rlShareBig')); return; }   // Chrome would refuse it anyway
+  const capOk = await rlCopyCap(true);
+  if(capOk) toast(t('rlCapCopied'));
+  const r = await rlShareTry([f], RL.title || t('rlTitleDef'));
+  if(r === 'ok'){ toast(t('rlShared')); return; }
+  if(r === 'cancel'){ toast(t('rlShareCancel')); return; }
+  if(r === 'denied'){ toast(t('rlShareAgain')); return; }
+  rlSaveFile(f, t(r === 'unsupported' ? 'rlNoShare' : 'rlShareFail'));
 });
 
 /* ---------------- 6b) every story as its own photo card ---------------- */
@@ -7201,32 +7270,55 @@ async function rlCardFiles(){
       prog(tf('rlCardMaking', { a: nwNum(i + 1), b: nwNum(n) }), i / n);
       const img = await rlImg(items[i]);
       const cv = rlPaintCard(items[i], i, st, img, true);
-      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      const toB = (type, q) => new Promise((res, rej) => { try{ cv.toBlob(res, type, q); }catch(e){ rej(e); } });
+      let blob = await toB('image/png');
+      if(!blob || !blob.size) blob = await toB('image/jpeg', 0.92);   // low-memory phones can fail on PNG — JPEG is much smaller
       cv.width = cv.height = 1;
-      if(!blob) throw new Error('png');
-      const name = 'TF-News-Card-' + stamp + '-' + String(i + 1).padStart(2, '0') + ' - ' + safeName(String(items[i].text || '').replace(/\*/g, '')).slice(0, 50) + '.png';
-      files.push(new File([blob], name, { type: 'image/png' }));
+      if(!blob || !blob.size) throw new Error('png');
+      const ext = blob.type === 'image/jpeg' ? '.jpg' : '.png';
+      const name = 'TF-News-Card-' + stamp + '-' + String(i + 1).padStart(2, '0') + ' - ' + safeName(String(items[i].text || '').replace(/\*/g, '')).slice(0, 50) + ext;
+      files.push(new File([blob], name, { type: blob.type || 'image/png' }));
       await sleep(0);
     }
-    RL.cardFiles = files; RL.cardSig = sig;
+    if(files.length !== n) throw new Error('count');
+    RL.cardFiles = files; RL.cardSig = sig; RL.cardAt = 0;
     return files;
   } finally { rlBusy(false); }
 }
 async function rlCardsGo(share){
   if(RL.busy || !RL.items.length) return;
-  let files;
+  let files; const before = RL.cardFiles;
   try{ files = await rlCardFiles(); }
   catch(e){ if(!(e && e.message === 'cancel')){ console.error(e); toast(t('rlCardFail')); } return; }
-  if(share && navigator.canShare && navigator.canShare({ files })){
+  const fresh = files !== before;                       // just made now → the tap may be too old to open sharing
+  if(share){
+    if(!(RL.cardAt < files.length)) RL.cardAt = 0;
+    const batch = rlShareBatch(files, RL.cardAt);       // Chrome shares at most 10 files / 50 MB at a time
     await rlCopyCap(true);
-    try{ await navigator.share({ files, title: RL.title || t('rlTitleDef') }); return; }
-    catch(e){
-      if(e && e.name === 'AbortError') return;
-      if(e && e.name === 'NotAllowedError'){ toast(t('rlCardReady')); return; }   // took too long after the tap — the cards are kept, next tap shares at once
+    const r = await rlShareTry(batch, RL.title || t('rlTitleDef'));
+    if(r === 'ok'){
+      RL.cardAt += batch.length;
+      const left = files.length - RL.cardAt;
+      if(left > 0) toast(tf('rlCardMore', { a: nwNum(RL.cardAt), b: nwNum(left) }));
+      else { RL.cardAt = 0; toast(t('rlShared')); }
+      return;
     }
+    if(r === 'cancel'){ toast(t('rlShareCancel')); return; }
+    if(r === 'denied'){ toast(t(fresh ? 'rlCardReady' : 'rlShareAgain')); return; }   // cards are kept, next tap shares at once
+    toast(t(r === 'unsupported' ? 'rlNoShare' : 'rlShareFail'));
+    await sleep(1500);
   }
-  for(let i = 0; i < files.length; i++){ download(files[i], files[i].name); await sleep(450); }
-  toast(tf('rlCardSaved', { n: nwNum(files.length) }));
+  if(!DL_ANCHOR){ rlSaveFile(files[0]); return; }
+  toast(IN_APP ? t('rlInApp') : tf('rlCardDl', { n: nwNum(files.length) }));
+  for(let i = 0; i < files.length; i++){ download(files[i], files[i].name); await sleep(700); }
+}
+function rlShareBatch(files, from){
+  const out = []; let bytes = 0;
+  for(let i = from; i < files.length && out.length < SHARE_MAX_FILES; i++){
+    if(out.length && bytes + files[i].size > SHARE_MAX_BYTES) break;
+    out.push(files[i]); bytes += files[i].size;
+  }
+  return out;
 }
 $('rlCardSave').addEventListener('click', () => rlCardsGo(false));
 $('rlCardShare').addEventListener('click', () => rlCardsGo(true));

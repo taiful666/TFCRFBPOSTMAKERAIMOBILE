@@ -6400,6 +6400,8 @@ Object.assign(T.bn, {
   rlCapCopied:'ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন', rlSaved:'ভিডিও সেভ হয়েছে', rlAiDone:'শিরোনাম ও ক্যাপশন লেখা হয়েছে',
   rlFileBad:'এই অডিও ফাইলটি চালানো যাচ্ছে না', rlChoose:'ফাইল বাছুন', rlToday:'আজকের', rlCount:'{n}টি গুরুত্বপূর্ণ খবর এক নজরে',
   rlLatest:'সর্বশেষ', rlFollow:'ফলো করুন', rlMoreNews:'আরও খবর পেতে', rlLcs:'লাইক · কমেন্ট · শেয়ার', rlGlance:'এক নজরে',
+  rlLbls:'আজকের আলোচিত|বড় খবর|সর্বশেষ|গুরুত্বপূর্ণ খবর|এক নজরে আজ|আজকের শিরোনাম', rlLblSaid:'কে কী বললেন',
+  rlCtas:'আরও {m}টি খবর ভেতরে|পুরো ভিডিওতে {n}টি খবর|{n}টি খবর এক নজরে|শেষ পর্যন্ত দেখুন — {n}টি খবর', rlCta1:'পুরো খবর দেখুন', rlNews:'টি খবর',
   rlCardsL:'প্রতিটি খবর আলাদা ছবি-কার্ড হিসেবে', rlCardSave:'সব কার্ড সেভ', rlCardShare:'সব কার্ড শেয়ার',
   rlCardMaking:'কার্ড তৈরি হচ্ছে… {a}/{b}', rlCardSaved:'{n}টি কার্ড সেভ হয়েছে', rlCardReady:'কার্ড তৈরি — শেয়ার করতে আবার চাপুন', rlCardFail:'কার্ড তৈরি করা যায়নি',
   rlTip:'টিপ: মনিটাইজেশনের জন্য কপিরাইট-মুক্ত মিউজিক ব্যবহার করুন, আর প্রতিটি রিলে স্টাইল বদলান।',
@@ -6424,6 +6426,8 @@ Object.assign(T.en, {
   rlCapCopied:'Caption copied — paste it on Facebook', rlSaved:'Video saved', rlAiDone:'Headlines and caption written',
   rlFileBad:'This audio file cannot be played', rlChoose:'Choose file', rlToday:'Today', rlCount:'{n} important stories at a glance',
   rlLatest:'Latest', rlFollow:'Follow', rlMoreNews:'For more news', rlLcs:'Like · Comment · Share', rlGlance:'At a glance',
+  rlLbls:'Talk of the day|Big story|Latest|Top story|Today at a glance|Today\'s headline', rlLblSaid:'Who said what',
+  rlCtas:'{m} more stories inside|{n} stories in this video|{n} stories at a glance|Watch to the end — {n} stories', rlCta1:'Watch the full story', rlNews:' stories',
   rlCardsL:'Each story as a separate photo card', rlCardSave:'Save all cards', rlCardShare:'Share all cards',
   rlCardMaking:'Making cards… {a}/{b}', rlCardSaved:'{n} cards saved', rlCardReady:'Cards ready — tap share again', rlCardFail:'Could not make the cards',
   rlTip:'Tip: use copyright-free music for monetization, and change the style on every reel.',
@@ -6445,10 +6449,13 @@ const ease = x => { x = clamp(x, 0, 1); return 1 - Math.pow(1 - x, 3); };
 const easeIO = x => { x = clamp(x, 0, 1); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const backOut = x => { x = clamp(x, 0, 1); const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
 const TRANS = ['fade', 'flash', 'slide', 'push', 'zoom', 'wipe', 'circle'];
+const COVERS = ['top', 'full', 'frame', 'count'];
 const PROGS = [[[0,'m'],[8,'M'],[3,'M'],[10,'M']], [[0,'m'],[5,'m'],[8,'M'],[7,'M']], [[0,'m'],[10,'M'],[8,'M'],[7,'M']], [[0,'m'],[3,'M'],[10,'M'],[5,'m']]];
 function rlNewStyle(prev){
   let tr = pick(TRANS); if(prev && TRANS.length > 1) while(tr === prev.trans) tr = pick(TRANS);
+  let cov = pick(COVERS); if(prev && COVERS.length > 1) while(cov === prev.cover) cov = pick(COVERS);
   return { trans: tr, kb: pick([1, -1]), pal: Math.floor(Math.random() * PALETTES.length), intro: pick(['stripe', 'burst']),
+    cover: cov, lbl: Math.random(), cta: Math.random(), feat: Math.random(),
     bpm: 92 + Math.floor(Math.random() * 25), root: 43 + Math.floor(Math.random() * 8), prog: pick(PROGS), shuffle: Math.random() };
 }
 RL.style = rlNewStyle();
@@ -6678,7 +6685,7 @@ function rlRenderList(){
       '<div class="rlmain"><textarea rows="2"></textarea><small></small></div>' +
       '<div class="rlbtns"><button type="button" data-a="up" aria-label="up">' + ic(IC_UP) + '</button><button type="button" data-a="dn" aria-label="down">' + ic(IC_DN) + '</button><button type="button" data-a="rm" aria-label="remove">' + ic(IC_X) + '</button></div>';
     const ta = row.querySelector('textarea'); ta.value = it.text;
-    ta.addEventListener('input', () => { it.text = ta.value; if(i === 0) rlPreview(); });
+    ta.addEventListener('input', () => { it.text = ta.value; rlPreview(); });
     row.querySelector('small').textContent = it.source + (it.date ? ' · ' + it.date : '');
     const im = row.querySelector('img.rlth'); if(im){ im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = it.o.img; } else im.style.visibility = 'hidden'; }; im.src = proxImg(it.o.img, 160); }
     row.querySelector('[data-a="up"]').disabled = i === 0;
@@ -6793,7 +6800,7 @@ function rlBg(img, color){
   return c;
 }
 function rlTimeline(n, secs){
-  const I = 1.8, O = 2.4, segs = [{ k: 'intro', s: 0, d: I }]; let s = I;
+  const I = 2.4, O = 2.4, segs = [{ k: 'intro', s: 0, d: I }]; let s = I;
   for(let i = 0; i < n; i++){ segs.push({ k: 'card', i, s, d: secs }); s += secs; }
   segs.push({ k: 'outro', s, d: O });
   return { segs, total: s + O };
@@ -6844,33 +6851,147 @@ function rlScene(ctx, R, g, p){
   }
   ctx.restore();
 }
-function rlIntro(ctx, R, p, d){
-  drawBg(ctx, R.bgs[0], p / d);
-  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, RW, RH);
-  const [ac, hl] = R.col(0), cy = 600;
-  if(R.st.intro === 'burst'){
-    ctx.save(); ctx.translate(RW / 2, cy); ctx.rotate(p * 0.35); ctx.fillStyle = hexA(hl, .09);
-    for(let i = 0; i < 16; i++){ ctx.rotate(Math.PI / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(900, -70); ctx.lineTo(900, 70); ctx.closePath(); if(i % 2) ctx.fill(); }
-    ctx.restore();
+/* ---- the opening "cover": the very first frame is what Facebook shows before anyone taps, so it must be sharp and complete
+        from frame 0 — the most talked-about story's real photo, a big headline, a label and a reason to watch. The layout,
+        label and call-to-action change from reel to reel. ---- */
+function rlFeatured(items, st, has){
+  const c = items.map((it, i) => ({ i, h: nwHot(it.o || {}), ok: has(i) })).filter(x => x.ok);
+  if(!c.length) return 0;
+  const top = Math.max(...c.map(x => x.h)), best = c.filter(x => x.h === top).slice(0, 4);
+  return best[Math.floor(st.feat * best.length)].i;
+}
+function rlCoverData(R, items, imgs){
+  const st = R.st, i = rlFeatured(items, st, k => !!imgs[k]), it = items[i] || items[0];
+  const lbls = t('rlLbls').split('|'), ctas = t('rlCtas').split('|');
+  const said = it && it.o && nwHot(it.o) >= 2 && st.lbl < 0.35;
+  return { i, img: imgs[i] || null, text: String((it && it.text) || R.title).replace(/\s+/g, ' ').trim(), src: (it && it.source) || '',
+    label: said ? t('rlLblSaid') : lbls[Math.floor(st.lbl * lbls.length)],
+    cta: R.n <= 1 ? t('rlCta1') : tf(ctas[Math.floor(st.cta * ctas.length)], { n: nwNum(R.n), m: nwNum(R.n - 1) }) };
+}
+function rlWrap(ctx, text, maxW, size, w, maxLines, min){
+  for(let s = size; ; s -= 3){
+    ctx.font = fontStr(s, w, BFAM);
+    const words = text.split(' '), lines = []; let cur = '';
+    for(const wd of words){ const tryL = cur ? cur + ' ' + wd : wd; if(cur && ctx.measureText(tryL).width > maxW){ lines.push(cur); cur = wd; } else cur = tryL; }
+    if(cur) lines.push(cur);
+    if(lines.length <= maxLines || s <= (min || 30)){
+      if(lines.length > maxLines){ lines.length = maxLines; let l = lines[maxLines - 1]; while(l.length > 3 && ctx.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l.replace(/\s+\S*$/, '') + '…'; }
+      return { lines, size: s };
+    }
   }
-  const sw = ease(p / 0.55);
-  ctx.save(); ctx.translate(RW / 2, cy); ctx.rotate(-0.06);
-  ctx.fillStyle = ac; ctx.fillRect(-RW * 0.62 * sw, -78, RW * 1.24 * sw, 156);
-  ctx.fillStyle = hl; ctx.fillRect(-RW * 0.62 * sw, 78, RW * 1.24 * sw, 8);
+}
+function rlPhoto(ctx, img, x, y, w, h, z, fx){
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  const iw = img.width, ih = img.height, s = Math.max(w / iw, h / ih) * z, dw = iw * s, dh = ih * s;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, x + (w - dw) / 2 + (fx || 0) * (dw - w) / 2, y + (h - dh) * 0.35, dw, dh);
   ctx.restore();
-  const a1 = ease((p - 0.15) / 0.4), a2 = backOut((p - 0.25) / 0.5), a3 = ease((p - 0.55) / 0.45);
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.globalAlpha = a1; ctx.fillStyle = hl; ctx.font = fontStr(34, 700, BFAM); ctx.fillText(t('rlGlance'), RW / 2, cy - 130 - 20 * (1 - a1));
-  ctx.globalAlpha = 1;
-  if(a2 > 0){
-    ctx.save(); ctx.translate(RW / 2, cy); ctx.rotate(-0.06); ctx.scale(a2, a2);
-    const size = fitFont(ctx, R.title, RW - 90, 70, 700); ctx.fillStyle = '#fff'; ctx.fillText(R.title, 0, size * 0.06);
+}
+function rlPlainBg(ctx, ac, x, y, w, h){
+  const g = ctx.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, shade(ac, -0.05)); g.addColorStop(1, shade(ac, -0.6));
+  ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 26;
+  for(let k = -h; k < w + h; k += 74){ ctx.beginPath(); ctx.moveTo(x + k, y); ctx.lineTo(x + k - h, y + h); ctx.stroke(); }
+  ctx.restore();
+}
+function rlChip(ctx, text, x, y, bg, fg, size, align, p){
+  ctx.font = fontStr(size, 700, BFAM); const tw = ctx.measureText(text).width, pw = 22, w = tw + pw * 2 + 24, h = size * 1.75;
+  const x0 = align === 'center' ? x - w / 2 : x;
+  ctx.fillStyle = bg; rr(ctx, x0, y - h / 2, w, h, 8); ctx.fill();
+  const blink = 0.6 + 0.4 * Math.sin(p * 7);
+  ctx.beginPath(); ctx.arc(x0 + pw + 4, y, size * 0.24, 0, Math.PI * 2); ctx.fillStyle = hexA(fg, blink.toFixed(3)); ctx.fill();
+  ctx.fillStyle = fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, x0 + pw + 22, y + 2);
+  const sh = ((p * 0.8) % 1.6) - 0.3;                    // a light sweep across the label
+  if(sh > 0 && sh < 1){ ctx.save(); rr(ctx, x0, y - h / 2, w, h, 8); ctx.clip(); const sx = x0 + sh * (w + 80) - 40, gr = ctx.createLinearGradient(sx - 40, 0, sx + 40, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = gr; ctx.fillRect(sx - 40, y - h / 2, 80, h); ctx.restore(); }
+  return w;
+}
+function rlLines(ctx, L, x, y, color, first, align, shadow){
+  ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.font = fontStr(L.size, 700, BFAM);
+  if(shadow){ ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 3; }
+  L.lines.forEach((l, k) => { ctx.fillStyle = k === 0 && first ? first : color; ctx.fillText(l, x, y + L.size * (0.95 + k * 1.28)); });
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  return y + L.size * (0.95 + (L.lines.length - 1) * 1.28) + L.size * 0.4;
+}
+function rlCta(ctx, text, y, ac, hl, p){
+  const pulse = 1 + 0.035 * Math.sin(p * 6);
+  ctx.font = fontStr(32, 700, BFAM); const tw = ctx.measureText(text).width, w = (tw + 120) * pulse, h = 76 * pulse, x = RW / 2 - w / 2;
+  ctx.fillStyle = hl; rr(ctx, x, y - h / 2, w, h, h / 2); ctx.fill();
+  const cx = x + 44 * pulse; ctx.beginPath(); ctx.arc(cx, y, 24 * pulse, 0, Math.PI * 2); ctx.fillStyle = ac; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(cx - 7, y - 11); ctx.lineTo(cx + 12, y); ctx.lineTo(cx - 7, y + 11); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#111'; ctx.font = fontStr(32 * pulse, 700, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(text, cx + 38 * pulse, y + 2);
+}
+function rlBrand(ctx, R, y, light){
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(24, 600, BFAM);
+  const s = R.page + '  ·  ' + R.today, w = ctx.measureText(s).width + 40;
+  ctx.fillStyle = light ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.5)'; rr(ctx, RW / 2 - w / 2, y - 22, w, 44, 22); ctx.fill();
+  ctx.fillStyle = light ? '#111' : '#fff'; ctx.fillText(s, RW / 2, y + 1);
+}
+function rlIntro(ctx, R, p, d){
+  const cv = R.cov || (R.cov = rlCoverData(R, R.items, [])), [ac, hl] = R.col(cv.i), img = cv.img, z = 1 + 0.06 * clamp(p / d, 0, 1);
+  const lay = img ? R.st.cover : (R.st.cover === 'full' || R.st.cover === 'count' ? 'top' : R.st.cover);
+  if(lay === 'top'){                                         // photo on top, headline panel below
+    ctx.fillStyle = '#0d0f14'; ctx.fillRect(0, 0, RW, RH);
+    if(img) rlPhoto(ctx, img, 0, 0, RW, 660, z, R.st.kb * 0.3); else rlPlainBg(ctx, ac, 0, 0, RW, 660);
+    const g = ctx.createLinearGradient(0, 520, 0, 662); g.addColorStop(0, 'rgba(13,15,20,0)'); g.addColorStop(1, '#0d0f14'); ctx.fillStyle = g; ctx.fillRect(0, 520, RW, 142);
+    ctx.fillStyle = hl; ctx.fillRect(0, 660, RW, 8);
+    rlBrand(ctx, R, 86, false);
+    rlChip(ctx, cv.label, 40, 640, ac, '#fff', 30, 'left', p);
+    const L = rlWrap(ctx, cv.text, RW - 80, 62, 700, 4, 34);
+    let y = rlLines(ctx, L, 40, 700, '#fff', hl);
+    if(cv.src){ ctx.font = fontStr(24, 600, BFAM); ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.textAlign = 'left'; ctx.fillText(cv.src, 40, y + 18); }
+    rlCta(ctx, cv.cta, Math.max(y + 110, 1010), ac, hl, p);
+  } else if(lay === 'full'){                                 // full-screen photo, headline over a dark fade
+    rlPhoto(ctx, img, 0, 0, RW, RH, z, R.st.kb * 0.3);
+    const g = ctx.createLinearGradient(0, 380, 0, RH); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.35, 'rgba(0,0,0,.72)'); g.addColorStop(1, 'rgba(0,0,0,.92)');
+    ctx.fillStyle = g; ctx.fillRect(0, 380, RW, RH - 380);
+    const g2 = ctx.createLinearGradient(0, 0, 0, 200); g2.addColorStop(0, 'rgba(0,0,0,.55)'); g2.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g2; ctx.fillRect(0, 0, RW, 200);
+    rlBrand(ctx, R, 86, true);
+    const L = rlWrap(ctx, cv.text, RW - 90, 64, 700, 4, 34), hgt = L.size * (0.95 + (L.lines.length - 1) * 1.28);
+    const top = Math.min(980 - hgt - 30, 760 - hgt / 2);
+    rlChip(ctx, cv.label, RW / 2, top - 52, hl, '#111', 30, 'center', p);
+    ctx.fillStyle = ac; ctx.fillRect(RW / 2 - 60, top - 14, 120, 6);
+    const y = rlLines(ctx, L, RW / 2, top, '#fff', hl, 'center', true);
+    rlCta(ctx, cv.cta, Math.max(y + 90, 1000), ac, hl, p);
+  } else if(lay === 'frame'){                                // coloured page, headline first, photo in a tilted frame
+    rlPlainBg(ctx, ac, 0, 0, RW, RH);
+    rlBrand(ctx, R, 86, true);
+    rlChip(ctx, cv.label, 44, 196, '#fff', ac, 28, 'left', p);
+    const L = rlWrap(ctx, cv.text, RW - 88, 58, 700, 4, 32);
+    const y = rlLines(ctx, L, 44, 236, '#fff', hl, 'left', true);
+    const fy = Math.max(y + 30, 470), fh = Math.min(470, 960 - fy);
+    ctx.save(); ctx.translate(RW / 2, fy + fh / 2); ctx.rotate(-0.025 * R.st.kb);
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
+    ctx.fillStyle = '#fff'; ctx.fillRect(-RW / 2 + 34, -fh / 2 - 12, RW - 68, fh + 24);
+    ctx.shadowColor = 'transparent';
+    if(img) rlPhoto(ctx, img, -RW / 2 + 46, -fh / 2, RW - 92, fh, z, 0);
+    else { ctx.fillStyle = shade(ac, -0.4); ctx.fillRect(-RW / 2 + 46, -fh / 2, RW - 92, fh); }
     ctx.restore();
+    if(R.n > 1){                                            // story-count badge on the frame corner
+      const bx = RW - 92, by = fy + 10, r = 62 * (1 + 0.04 * Math.sin(p * 5));
+      ctx.beginPath(); ctx.arc(bx, by, r + 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
+      ctx.fillStyle = '#111'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(50, 700, BFAM); ctx.fillText(nwNum(R.n), bx, by - 8);
+      ctx.font = fontStr(20, 700, BFAM); ctx.fillText(t('rlNews').trim(), bx, by + 28);
+    }
+    rlCta(ctx, cv.cta, Math.min(fy + fh + 90, 1060), '#111', hl, p);
+  } else {                                                   // 'count': big number of stories over the photo
+    rlPhoto(ctx, img, 0, 0, RW, RH, z, R.st.kb * 0.3);
+    ctx.fillStyle = 'rgba(0,0,0,.38)'; ctx.fillRect(0, 0, RW, RH);
+    const g = ctx.createLinearGradient(0, 560, 0, RH); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.75)'); ctx.fillStyle = g; ctx.fillRect(0, 560, RW, RH - 560);
+    rlBrand(ctx, R, 86, true);
+    ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 18;
+    ctx.font = fontStr(210, 700, BFAM); ctx.fillStyle = hl; const nn = nwNum(R.n); ctx.fillText(nn, 40, 400);
+    const nw = ctx.measureText(nn).width;
+    ctx.font = fontStr(52, 700, BFAM); ctx.fillStyle = '#fff'; ctx.fillText(t('rlNews').trim(), 56 + nw, 330);
+    ctx.font = fontStr(34, 600, BFAM); ctx.fillText(cv.label, 58 + nw, 384);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+    const L = rlWrap(ctx, cv.text, RW - 120, 52, 700, 4, 30), hgt = L.size * (0.95 + (L.lines.length - 1) * 1.28) + L.size * 0.4;
+    const by = 620; ctx.fillStyle = '#fff'; rr(ctx, 30, by, RW - 60, hgt + 56, 16); ctx.fill();
+    ctx.fillStyle = ac; rr(ctx, 30, by, 14, hgt + 56, 7); ctx.fill();
+    const y = rlLines(ctx, L, 66, by + 22, '#111', ac);
+    rlCta(ctx, cv.cta, Math.max(by + hgt + 56 + 80, 1000), ac, hl, p);
   }
-  ctx.globalAlpha = a3; ctx.fillStyle = '#fff'; ctx.font = fontStr(32, 600, BFAM);
-  ctx.fillText(tf('rlCount', { n: nwNum(R.n) }), RW / 2, cy + 150 + 16 * (1 - a3));
-  ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = fontStr(26, 400, BFAM); ctx.fillText(R.today, RW / 2, cy + 200 + 16 * (1 - a3));
-  ctx.globalAlpha = 1;
 }
 function rlOutro(ctx, R, p, d){
   drawBg(ctx, R.bgs[R.n - 1], 1 - p / d);
@@ -6920,6 +7041,7 @@ function rlTrans(ctx, R, ga, gb, pb, e){
   }
 }
 function rlOverlay(ctx, R, g, p, tm){
+  if(g.k === 'intro') return;                         // the cover stays clean
   const [ac, hl] = R.col(0);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   // header (not on the opening title)
@@ -6975,21 +7097,26 @@ function rlMakeR(items, st){
 }
 
 /* live preview of the first story (no recording) */
-let pvTok = 0, pvTimer = 0;
+let pvTok = 0, pvTimer = 0, pvFlip = 0;
+/* live preview (no recording): the cover the viewer sees first, then the first story, switching every 3 seconds */
 function rlPreview(){
-  clearTimeout(pvTimer);
+  clearTimeout(pvTimer); clearInterval(pvFlip);
   pvTimer = setTimeout(async () => {
     if(!RL.open || RL.busy || !RL.items.length) return;
     const tok = ++pvTok, cv = $('rlCanvas'), ctx = cv.getContext('2d');
     await ensureFonts();
-    const it = RL.items[0], R = rlMakeR([it], RL.style);
-    R.n = RL.items.length;
+    const items = RL.items, it = items[0], R = rlMakeR(items, RL.style), imgs = [];
     R.bgs[0] = rlBg(null, R.col(0)[0]); R.bmp.set(0, null);
-    const paint = img => { R.bgs[0] = rlBg(img, R.col(0)[0]); R.bmp.set(0, rlPaintCard(it, 0, RL.style, img)); rlFrame(ctx, R, R.tl.segs[1].s + 1.2); };
-    paint(null);
-    const img = await rlImg(it);
-    if(tok !== pvTok || !RL.open || RL.busy) return;
-    if(img) paint(img);
+    const fi = rlFeatured(items, RL.style, i => !!(items[i].o && items[i].o.img));
+    let showCover = true;
+    const draw = () => { if(tok !== pvTok || !RL.open || RL.busy) return; R.cov = rlCoverData(R, items, imgs); rlFrame(ctx, R, showCover ? 0.6 : R.tl.segs[1].s + 1.2); };
+    draw();
+    pvFlip = setInterval(() => { if(tok !== pvTok || !RL.open || RL.busy){ clearInterval(pvFlip); return; } showCover = !showCover; draw(); }, 3000);
+    const [ci, c0] = await Promise.all([rlImg(items[fi]), fi === 0 ? null : rlImg(it)]);
+    if(tok !== pvTok) return;
+    imgs[fi] = ci; const img0 = fi === 0 ? ci : c0;
+    R.bgs[0] = rlBg(img0, R.col(0)[0]); R.bmp.set(0, rlPaintCard(it, 0, RL.style, img0));
+    draw();
   }, 250);
 }
 
@@ -7110,6 +7237,7 @@ async function rlMake(){
       prog(tf('rlPrep', { a: nwNum(n), b: nwNum(n) }), 0.9 + (i + 1) / n * 0.1);
     }
     if(miss) toast(tf('rlNoImg', { n: nwNum(miss) }));
+    R.cov = rlCoverData(R, items, imgs);
     const want = async i => { if(!many || i < 0 || i >= n || R.bmp.has(i)) return; R.bmp.set(i, null); try{ const bm = await createImageBitmap(R.cards[i]); bmps.push(bm); R.bmp.set(i, bm); }catch(e){ R.bmp.delete(i); } };
     const keepNear = ci => { if(!many) return; for(const [i, bm] of R.bmp){ if(i < ci - 1 || i > ci + 2){ R.bmp.delete(i); if(bm && bm.close) try{ bm.close(); }catch(e){} } } [ci, ci + 1, ci + 2].forEach(want); };
     if(many){ await Promise.all([0, 1, 2].map(want)); }

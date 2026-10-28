@@ -1,12 +1,70 @@
-jamuna        429 3KB articles 0 withImg 0 missing 25 matched 0
-jugantor      429 3KB articles 0 withImg 0 missing 25 matched 0
-samakal       429 3KB articles 0 withImg 0 missing 25 matched 0
-kalerkantho   429 3KB articles 0 withImg 0 missing 25 matched 0
-bdpratidin    429 3KB articles 0 withImg 0 missing 14 matched 0
-ittefaq       429 3KB articles 0 withImg 0 missing 25 matched 0
-ekattor       429 3KB articles 0 withImg 0 missing 25 matched 0
-deshrupantor  429 3KB articles 0 withImg 0 missing 25 matched 0
-manabzamin    429 3KB articles 0 withImg 0 missing 24 matched 0
-inqilab       429 3KB articles 0 withImg 0 missing 25 matched 0
-jagonews      429 3KB articles 0 withImg 0 missing 18 matched 0
-kalbela       429 3KB articles 0 withImg 0 missing 14 matched 0
+
+=== jamuna 200 https://www.jamuna.tv/national/667007
+  title: উন্নত বাংলাদেশ গড়তে প্রবাসী-দেশবাসীকে একসঙ্গে কাজ করার আহ্বান প্রধানমন্ত্রীর
+  meta keys: lang,viewport,theme-color,msapplication-TileColor,msapplication-navbutton-color,mobile-web-app-capable,apple-mobile-web-app-status-bar-style,apple-mobile-web-app-title,distribution,robots,googlebot,googlebot-news,Developed By,Developer,fb:pages,fb:app_id,og:image:width,og:image:height,og:site_name,og:url
+  og:image: https://www.jamuna.tv/uploads/news_photos/2026/10/28/pm-and-wifev-6ae210dd851a3.jpg | tw: https://www.jamuna.tv/uploads/news_photos/2026/10/28/pm-and-wifev-6ae210dd851a3.jpg
+  images: https://www.jamuna.tv/uploads/settings/jtv-logo-whitelogo-1-1754573204.png  https://www.jamuna.tv/uploads/settings/nj-iconicon-1-1741861620.png  https://platform-cdn.sharethis.com/img/facebook.svg  https://platform-cdn.sharethis.com/img/messenger.svg
+  content head: দেশের সামগ্রিক উন্নয়ন এবং সাধারণ মানুষের কল্যাণ নিশ্চিত করতে প্রবাসী ও দেশে বসবাসকারী সকল নাগরিককে নিজ নিজ অবস্থান থেকে একযোগে কাজ করার আহ্বান জানিয়েছেন প্রধানমন্ত্রী তারেক রহমান। তিনি বলেছেন, বাংলাদেশকে একটি উন্নত দেশ হিসেবে গড়ে তুলতে পারলে দেশের ভেতর ও প্রবাসে বসবাসকারী সকল বাংলাদেশি নাগরিকই এর 
+
+=== samakal 200 https://samakal.com/whole-country/article/380196/%E0%A6%B8%E0%A7%9C%E0%A6%95%E0%A7%87-%E0%
+  title: Just a moment...
+  meta keys: lang,robots,viewport
+  og:image: undefined | tw: undefined
+  images: https://samakal.com/favicon.ico
+  content head: ![Image 1: Icon for samakal.com](https://samakal.com/favicon.ico) ## samakal.com ## Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.
+
+=== ittefaq 200 https://www.ittefaq.com.bd/817835/%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%A7%E0%A6%BE%E0%A6%A8%E
+  title: প্রধানমন্ত্রীর জাপান সফরে ৪ সমঝোতা স্মারক, ২ অনুদান চুক্তি ও অভিপ্রায়পত্র সই
+  meta keys: lang,viewport,keywords,description,robots,apple-mobile-web-app-status-bar,theme-color,og:title,og:site_name,og:description,og:type,og:url,og:image,og:image:width,og:image:height,twitter:card,twitter:site,twitter:creator,twitter:url,twitter:title
+  og:image: https://cdn.ittefaqbd.com/contents/cache/images/1200x630x1xxxxx1/uploads/media/2026/10/28/83f4f77819da7b78fdf7e7bba6c2e93a-6ae20822256b3.jpg | tw: https://cdn.ittefaqbd.com/contents/cache/images/1200x630x1xxxxx1/uploads/media/2026/10/28/83f4f77819da7b78fdf7e7bba6c2e93a-6ae20822256b3.jpg
+  images: https://cdn.ittefaqbd.com/contents/themes/public/style/images/logo.svg?v=1.0.318  https://cdn.ittefaqbd.com/contents/themes/public/style/images/logo-small.png?v=1.0.318  https://cdn.ittefaqbd.com/contents/cache/images/900x505x1/uploads/media/2026/10/28/83f4f77819da7b78fdf7e7bba6c2e93a-6ae20822256b3.jpg?jadewits_media_id=319555  https://cdn.unibotscdn.com/ubplayer/logo/player_logo.svg
+  content head: #### সেকশন * [হোম](https://www.ittefaq.com.bd/home) * [আজকের সর্বশেষ খবর](https://www.ittefaq.com.bd/latest-news) * [বিশেষ সংবাদ](https://www.ittefaq.com.bd/topic/%E0%A6%AC%E0%A6%BF%E0%A6%B6%E0%A7%87%E0%A6%B7-%E0%A6%B8%E0%A6%82%E0%A6%AC%E0%A6%BE%E0%A6%A6) * [করোনাভাইরাস](https://www.ittefaq.com.bd/t
+
+=== ekattor 200 https://ekattor.tv/national/96854/%E0%A6%AC%E0%A6%BE%E0%A6%82%E0%A6%B2%E0%A6%BE%E0%A6%A6%E
+  title: Just a moment...
+  meta keys: lang,robots,viewport
+  og:image: undefined | tw: undefined
+  images: https://ekattor.tv/favicon.ico
+  content head: ![Image 1: Icon for ekattor.tv](https://ekattor.tv/favicon.ico) ## ekattor.tv ## Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.
+
+=== inqilab 200 https://dailyinqilab.com/bangladesh/news/956193
+  title: Just a moment...
+  meta keys: lang,robots,viewport
+  og:image: undefined | tw: undefined
+  images: https://dailyinqilab.com/favicon.ico
+  content head: ![Image 1: Icon for dailyinqilab.com](https://dailyinqilab.com/favicon.ico) ## dailyinqilab.com ## Performing security verification This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.
+
+=== deshrupantor 200 https://www.deshrupantor.com/730965/%E0%A6%AE%E0%A7%87%E0%A6%98%E0%A6%A8%E0%A6%BE%E0%A7%9F
+  title: মেঘনায় ২৫০ কেজি ইলিশ ও জাল জব্দ, ৩ জেলের কারাদণ্ড
+  meta keys: lang,viewport,keywords,description,robots,apple-mobile-web-app-status-bar,theme-color,og:title,og:site_name,og:description,og:type,og:url,og:image,og:image:width,og:image:height,fb:app_id,twitter:card,twitter:site,twitter:creator,twitter:url
+  og:image: https://cdn.deshrupantor.net/contents/cache/images/1200x630x1xxxxx1/uploads/media/2026/10/28/c31cfb73ffba64e8c3d3bc2bc803511f-6ae2032df28a2.jpg | tw: https://cdn.deshrupantor.net/contents/cache/images/1200x630x1xxxxx1/uploads/media/2026/10/28/c31cfb73ffba64e8c3d3bc2bc803511f-6ae2032df28a2.jpg
+  images: https://cdn.deshrupantor.net/contents/uploads/media/2026/08/30/cc8e8a8e1d6e67a394f8593a68b599b3-6a9466c0d7fe1.svg?jadewits_media_id=224884?v=1.0.2014  https://cdn.deshrupantor.net/contents/cache/images/1100x618x1/uploads/media/2026/10/28/c31cfb73ffba64e8c3d3bc2bc803511f-6ae2032df28a2.jpg?jadewits_media_id=238527  https://cdn.deshrupantor.net/contents/themes/public/style/images/icon-googlenews.png  https://www.deshrupantor.com/730965/%E0%A6%AE%E0%A7%87%E0%A6%98%E0%A6%A8%E0%A6%BE%E0%A7%9F-%E0%A7%A8%E0%A7%AB%E0%A7%A6-%E0%A6%95%E0%A7%87%E0%A6%9C%E0%A6%BF-%E0%A6%87%E0%A6%B2%E0%A6%BF%E0%A6%B6-%E0%A6%93-%E0%A6%9C%E0%A6%BE%E0%A6%B2-%E0%A6%9C%E0%A6%AC%E0%A7%8D%E0%A6%A6-%E0%A7%A9-%E0%A6%9C%E0%A7%87%E0%A6%B2%E0%A7%87%E0%A6%B0-%E0%A6%95%E0%A6%BE%E0%A6%B0%E0%A6%BE%E0%A6%A6%E0%A6%A3%E0%A7%8D%E0%A6%A1
+  content head: [![Image 1: দেশ রূপান্তর](https://cdn.deshrupantor.net/contents/uploads/media/2026/08/30/cc8e8a8e1d6e67a394f8593a68b599b3-6a9466c0d7fe1.svg?jadewits_media_id=224884?v=1.0.2014)](https://www.deshrupantor.com/) অনুসন্ধান #### সেকশন * [হোম](https://www.deshrupantor.com/home) * [পত্রিকা](javascript:) * 
+
+=== bdpratidin 200 https://www.bd-pratidin.com/international-news/2026/10/28/1318574
+  title: সাবমেরিন থেকে ছোঁড়া রুশ ক্ষেপণাস্ত্র আঘাত হানল ৬ হাজার কিলোমিটার দূরের টার্গেটে 
+  meta keys: lang,viewport,msapplication-TileColor,theme-color,language,coverage,distribution,robots,googlebot,googlebot-news,Developer,Developed By,author,identifier-URL,og:site_name,og:type,propeller,google-site-verification,msvalidate.01,fb:app_id
+  og:image: https://cdn.bd-pratidin.com/public/news_images/2026/10/28/og/1793199696-a269962fe1424e1ca3e68c328b9fed61.jpg | tw: https://cdn.bd-pratidin.com/public/news_images/2026/10/28/og/1793199696-a269962fe1424e1ca3e68c328b9fed61.jpg
+  images: https://www.bd-pratidin.com/front/img/logo.png  https://www.bd-pratidin.com/front/img/android.png  https://www.bd-pratidin.com/front/img/ios-app.png  https://www.bd-pratidin.com/front/img/google_news.png
+  content head: [](https://www.bd-pratidin.com/#) * [](https://www.facebook.com/dailybangladeshpratidin) * [](https://x.com/bd_pratidin) * [](https://www.youtube.com/@BangladeshPratidinNews) * [](https://www.instagram.com/bd_pratidin) বুধবার, ২৮ অক্টোবর, ২০২৬ [![Image 15: logo](https://www.bd-pratidin.com/front/img
+
+=== jugantor 403 https://www.jugantor.com/national/1175822
+  title: 
+  meta keys: 
+  og:image: undefined | tw: undefined
+  images: 
+  content head: {"data":null,"code":403,"name":"AbuseAlleviationError","status":40305,"message":"Anonymous access to domain www.jugantor.com blocked until Wed Oct 28 2026 16:28:00 GMT+0000 (Coordinated Universal Time) due to previous abuse found on https://www.jugantor.com/videos/1175349: DDoS attack suspected: Too
+
+=== kalerkantho 403 https://www.kalerkantho.com/online/national/2026/10/28/1759542
+  title: 
+  meta keys: 
+  og:image: undefined | tw: undefined
+  images: 
+  content head: {"data":null,"code":403,"name":"AbuseAlleviationError","status":40305,"message":"Anonymous access to domain www.kalerkantho.com blocked until Wed Oct 28 2026 16:31:51 GMT+0000 (Coordinated Universal Time) due to previous abuse found on https://www.kalerkantho.com/online/country-news/2026/10/28/17594
+
+=== manabzamin 403 https://www.mzamin.com/article/54200
+  title: 
+  meta keys: 
+  og:image: undefined | tw: undefined
+  images: 
+  content head: {"data":null,"code":403,"name":"AbuseAlleviationError","status":40305,"message":"Anonymous access to domain www.mzamin.com blocked until Wed Oct 28 2026 16:33:59 GMT+0000 (Coordinated Universal Time) due to previous abuse found on https://www.mzamin.com/article/54162: DDoS attack suspected: Too many

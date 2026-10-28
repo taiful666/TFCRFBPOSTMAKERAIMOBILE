@@ -9,4 +9,4 @@ jobs:
       - run: node exp/test.mjs > out.txt 2>&1 || true
       - run: |
           git config user.name t; git config user.email t@t
-          git add out.txt; git commit -m "test output"; git push
+          git add out.txt gn.html; git commit -m "test output"; git push

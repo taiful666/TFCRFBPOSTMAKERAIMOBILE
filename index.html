@@ -4597,9 +4597,11 @@ function nwRender(){
   all = all.filter(o => !o.date || o.date.getTime() < now + 3600000);     // drop wrong future dates
   // দেশের খবর আগে: foreign stories are pushed back by 12 hours, so today's Bangladesh news leads the feed
   if(NW.src === 'quotes') all = all.filter(o => nwHot(o) >= 2);
-  // statements ("কে কী বললেন") and political news come first; foreign news is pushed back
-  const nwKey = o => (o.date ? o.date.getTime() : 0) - (nwIsForeign(o) ? 12 * 3600000 : 0) + [0, 2, 6, 9][nwHot(o)] * 3600000;
-  all.sort((a, b) => nwKey(b) - nwKey(a));
+  // stories with a photo always come first (a photo found earlier on this phone counts too); stories without one go to the end
+  const nwHasImg = o => { if(!o.img){ try{ const m = nwImgMem[o.link]; if(m) o.img = m; }catch(e){} } return o.img ? 1 : 0; };
+  // within each group: Bangladesh political statements ("কে কী বললেন") first, then statements, then political news; foreign news is pushed back
+  const nwKey = o => (o.date ? o.date.getTime() : 0) - (nwIsForeign(o) ? 12 * 3600000 : 0) + [0, 3, 8, 14][nwHot(o)] * 3600000;
+  all.sort((a, b) => nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
   NW.list = all;
   const busy = srcs.some(s => NW.busy[s.id]) || !!NW.gemBusy;
   const doneN = srcs.filter(s => (NW.items[s.id] || []).length).length;
@@ -6085,7 +6087,7 @@ function nwImgPump(){
   while(nwImgRunning < 3 && nwImgQueue.length){
     const { o, b } = nwImgQueue.shift(); if(o.img || nwImgBusy.has(o.link)) continue;
     nwImgBusy.add(o.link); nwImgRunning++;
-    nwFindImg(o.link).then(im => { if(im && !o.img){ o.img = im; nwThumb(b, im); } }).finally(() => { nwImgBusy.delete(o.link); nwImgRunning--; nwImgPump(); });
+    nwFindImg(o.link).then(im => { if(im && !o.img){ o.img = im; nwThumb(b, im); nwResortSoon(); } }).finally(() => { nwImgBusy.delete(o.link); nwImgRunning--; nwImgPump(); });
   }
 }
 const nwIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
@@ -6099,6 +6101,32 @@ function nwWatchImgs(){
   document.querySelectorAll('#nwList .nwitem').forEach(b => { const o = NW.list && NW.list[+b.dataset.i]; if(o && !o.img) nwIO.observe(b); });
 }
 new MutationObserver(() => setTimeout(nwWatchImgs, 30)).observe($('nwList'), { childList: true });
+
+/* 2b) photos first: the top stories still without a photo are looked up in the background (political statements first, the
+       list order already puts them first). When a photo turns up, the list is re-sorted so that story moves up among the
+       stories with photos — but only while the user is not scrolling or tapping, so nothing jumps under their finger. */
+let nwBgT = 0, nwReT = 0, nwTouchAt = 0;
+['pointerdown', 'touchstart', 'wheel', 'scroll'].forEach(ev => $('nwList').addEventListener(ev, () => { nwTouchAt = Date.now(); }, { passive: true, capture: true }));
+function nwResortSoon(){
+  clearTimeout(nwReT);
+  nwReT = setTimeout(function go(){
+    if(!NW.open) return;
+    if(Date.now() - nwTouchAt < 3000){ nwReT = setTimeout(go, 1500); return; }
+    const l = $('nwList'), y = l.scrollTop; nwRender(); l.scrollTop = y;
+  }, 1800);
+}
+function nwBgPhotos(){
+  clearTimeout(nwBgT);
+  nwBgT = setTimeout(() => {
+    if(!NW.open || !NW.list) return;
+    NW.list.filter(o => !o.img && !/news\.google\./.test(o.link) && nwImgMem[o.link] === undefined && !nwImgBusy.has(o.link)).slice(0, 30).forEach(o => {
+      if(nwImgQueue.some(q => q.o === o)) return;
+      nwImgQueue.push({ o, b: null, bg: true });
+    });
+    nwImgPump();
+  }, 1200);
+}
+new MutationObserver(nwBgPhotos).observe($('nwList'), { childList: true });
 
 /* 3) opening a story: wait at most ~20 s for Gemini, then build the card from what is there */
 /* ===== Claude writer: settings + "who writes" switch next to the write button ===== */

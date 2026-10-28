@@ -140,7 +140,7 @@ jobs:
           const meta2 = (html, n) => { const m = html.match(new RegExp('<meta[^>]+(?:property|name)=["\']' + n + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name)=["\']' + n + '["\']', 'i')); return m ? decode(m[1]) : ''; };
           const NEEDY = [];
           async function details(o) {
-            if (CACHE.has(o.link)) { const c = CACHE.get(o.link); if (!o.img && c.img) o.img = c.img; if ((!o.desc || o.desc.length < 60) && c.desc) o.desc = c.desc; if (c.nr) o.nr = c.nr; if (o.img || c.nr) return; }
+            if (CACHE.has(o.link)) { const c = CACHE.get(o.link); if (!o.img && c.img) o.img = c.img; if ((!o.desc || o.desc.length < 60) && c.desc) o.desc = c.desc; if (c.nr === 2) o.nr = 2; if (o.img || o.nr === 2) return; }
             let html = '';
             try { html = await page(o.link); DIAG.ok(o.link, 'page ' + (html.length >> 10) + 'KB'); } catch (e) { DIAG.ok(o.link, 'page ' + String(e && e.message || e).slice(0, 40)); }
             if (html) {
@@ -204,34 +204,56 @@ jobs:
           });
           /* sites that refuse GitHub's servers: a free reader service opens the page instead.
              It allows about 20 requests a minute, so the newest stories go first and every photo found is kept for later runs. */
+          const READER_SKIP = new Set();        // sites the reader cannot open in this run (security check or temporary block)
+          const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
           async function viaReader(o) {
+            const site = hostOf(o.link);
+            if (READER_SKIP.has(site)) return false;
             const c = new AbortController(); const t = setTimeout(() => c.abort(), 25000);
             try {
               const r = await fetch('https://r.jina.ai/' + o.link, { signal: c.signal, headers: { 'Accept': 'application/json', 'X-With-Images-Summary': 'true', 'X-Timeout': '20' } });
-              if (!r.ok) { DIAG.ok(o.link, 'reader ' + r.status); if (r.status === 403 || r.status === 404) o.nr = 1; return r.status === 429; }
+              if (!r.ok) {
+                DIAG.ok(o.link, 'reader ' + r.status);
+                if (r.status === 404) o.nr = 2;                      // page is gone
+                else if (r.status === 403 || r.status === 451) READER_SKIP.add(site);   // temporary block: try again next run
+                return r.status === 429;
+              }
               const j = await r.json(), d = (j && j.data) || {};
+              if (/just a moment|attention required|security verification/i.test((d.title || '') + ' ' + String(d.content || '').slice(0, 400))) {
+                READER_SKIP.add(site); DIAG.ok(o.link, 'reader challenge'); return false;   // the site showed a "are you a robot" page
+              }
               const cands = [];
-              if (d.metadata) cands.push(d.metadata['og:image'], d.metadata['twitter:image']);
+              if (d.metadata) cands.push(d.metadata['og:image'], d.metadata['og:image:url'], d.metadata['og:image:secure_url'], d.metadata['twitter:image'], d.metadata['twitter:image:src']);
               if (d.images) cands.push(...Object.values(d.images));
               for (const m of String(d.content || '').matchAll(/!\[[^\]]*\]\((https?:[^)\s]+)/g)) cands.push(m[1]);
-              const host = new URL(o.link).hostname.replace(/^www\./, '').split('.').slice(-2).join('.');
-              const good = u => u && /^https?:/.test(u) && !badImg(u) && /\.(jpe?g|png|webp)(\?|$)|\/(images?|media|uploads?|photos?)\//i.test(u) && !/icon|avatar|banner|ads?[\/_.-]|sprite|facebook|whatsapp|twitter|youtube|app-?store|google-?play/i.test(u);
+              const host = site.split('.').slice(-2).join('.');
+              // "ads" etc. only count as a whole word — earlier this check also threw away every photo kept in an "uploads/" folder
+              const good = u => u && /^https?:/.test(u) && !badImg(u) && /\.(jpe?g|png|webp)(\?|$)|\/(images?|media|uploads?|photos?|news_images|news_photos)\//i.test(u) &&
+                !/icon|avatar|(?:^|[\/_.-])(?:banner|ads?|adv)(?:[\/_.-]|$)|sprite|facebook|whatsapp|twitter|youtube|app-?store|google-?play|android|ios-app|google_?news/i.test(u);
               const pick = cands.find(u => good(u) && u.includes(host)) || cands.find(good);
               if (pick) { o.img = pick; STATS.found++; STATS.missed--; CACHE.set(o.link, { img: pick, desc: o.desc || '' }); }
-              if (!pick) o.nr = 1;
+              else o.nr = 2;
               DIAG.ok(o.link, 'reader ' + (pick ? 'img' : 'noimg'));
             } catch (e) { DIAG.ok(o.link, 'reader ' + String(e && e.message || e).slice(0, 30)); }
             finally { clearTimeout(t); }
             return false;
           }
-          NEEDY.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          const stopAt = Date.now() + 6 * 60000;
-          for (const o of NEEDY.slice(0, 90)) {
-            if (Date.now() > stopAt) break;
+          /* political statements from Bangladesh get their photo first, then everything else, newest first */
+          const SAID = /বললেন|বলেছেন|বলেন\b|মন্তব্য|বক্তব্য|দাবি|অভিযোগ|নিন্দা|হুঁশিয়ারি|হুশিয়ারি|সমালোচনা|প্রশ্ন তুল|জবাব|পাল্টা|মুখ খুল|ক্ষোভ|কটাক্ষ|তোপ|আহ্বান|সতর্ক কর|চ্যালেঞ্জ|[:：]\s*\S+(\s\S+){0,3}$/;
+          const POL = /বিএনপি|জামায়াত|আওয়ামী|লীগ|এনসিপি|ছাত্রদল|শিবির|প্রধানমন্ত্রী|মন্ত্রী|উপদেষ্টা|সংসদ|এমপি|নির্বাচন|তারেক|ইউনূস|হাসিনা|খালেদা|ফখরুল|রিজভী|সালাহউদ্দিন|শফিকুর|নাহিদ|হাসনাত|সারজিস|রাষ্ট্রপতি|সেনাপ্রধান/;
+          const rank = o => (SAID.test(o.title) ? 2 : 0) + (POL.test(o.title) ? 1 : 0);
+          NEEDY.sort((a, b) => rank(b) - rank(a) || (b.date || '').localeCompare(a.date || ''));
+          const stopAt = Date.now() + 7 * 60000;
+          let asked = 0;
+          for (const o of NEEDY) {
+            if (Date.now() > stopAt || asked >= 130) break;
+            if (o.img || READER_SKIP.has(hostOf(o.link))) continue;
+            asked++;
             const t0 = Date.now(); const limited = await viaReader(o);
             if (limited) await new Promise(r => setTimeout(r, 20000));
             const wait = 3200 - (Date.now() - t0); if (wait > 0) await new Promise(r => setTimeout(r, wait));
           }
+          console.log('reader skipped sites this run:', [...READER_SKIP].join(', ') || 'none');
 
           try {
             const g = parseFeed(await get(GOOGLE_TOP), 'https://news.google.com/', true).slice(0, 40);

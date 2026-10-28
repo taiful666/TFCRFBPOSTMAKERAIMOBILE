@@ -6372,6 +6372,8 @@ Object.assign(T.bn, {
   rlCapCopied:'ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন', rlSaved:'ভিডিও সেভ হয়েছে', rlAiDone:'শিরোনাম ও ক্যাপশন লেখা হয়েছে',
   rlFileBad:'এই অডিও ফাইলটি চালানো যাচ্ছে না', rlChoose:'ফাইল বাছুন', rlToday:'আজকের', rlCount:'{n}টি গুরুত্বপূর্ণ খবর এক নজরে',
   rlLatest:'সর্বশেষ', rlFollow:'ফলো করুন', rlMoreNews:'আরও খবর পেতে', rlLcs:'লাইক · কমেন্ট · শেয়ার', rlGlance:'এক নজরে',
+  rlCardsL:'প্রতিটি খবর আলাদা ছবি-কার্ড হিসেবে', rlCardSave:'সব কার্ড সেভ', rlCardShare:'সব কার্ড শেয়ার',
+  rlCardMaking:'কার্ড তৈরি হচ্ছে… {a}/{b}', rlCardSaved:'{n}টি কার্ড সেভ হয়েছে', rlCardReady:'কার্ড তৈরি — শেয়ার করতে আবার চাপুন', rlCardFail:'কার্ড তৈরি করা যায়নি',
   rlTip:'টিপ: মনিটাইজেশনের জন্য কপিরাইট-মুক্ত মিউজিক ব্যবহার করুন, আর প্রতিটি রিলে স্টাইল বদলান।',
   rlQ:'বিস্তারিত পড়ুন মূল পত্রিকায়।', rlSrc:'তথ্য ও ছবির সূত্র: ',
   tr_fade:'ফেড', tr_flash:'ফ্ল্যাশ', tr_slide:'স্লাইড', tr_push:'পুশ', tr_zoom:'জুম', tr_wipe:'ওয়াইপ', tr_circle:'সার্কেল',
@@ -6394,6 +6396,8 @@ Object.assign(T.en, {
   rlCapCopied:'Caption copied — paste it on Facebook', rlSaved:'Video saved', rlAiDone:'Headlines and caption written',
   rlFileBad:'This audio file cannot be played', rlChoose:'Choose file', rlToday:'Today', rlCount:'{n} important stories at a glance',
   rlLatest:'Latest', rlFollow:'Follow', rlMoreNews:'For more news', rlLcs:'Like · Comment · Share', rlGlance:'At a glance',
+  rlCardsL:'Each story as a separate photo card', rlCardSave:'Save all cards', rlCardShare:'Share all cards',
+  rlCardMaking:'Making cards… {a}/{b}', rlCardSaved:'{n} cards saved', rlCardReady:'Cards ready — tap share again', rlCardFail:'Could not make the cards',
   rlTip:'Tip: use copyright-free music for monetization, and change the style on every reel.',
   rlQ:'Read the full stories in the original papers.', rlSrc:'News and photo sources: ',
   tr_fade:'Fade', tr_flash:'Flash', tr_slide:'Slide', tr_push:'Push', tr_zoom:'Zoom', tr_wipe:'Wipe', tr_circle:'Circle',
@@ -6452,6 +6456,7 @@ body.rlsel .rlbar{display:flex}
 .rlprog .btn{align-self:center;min-height:32px;padding:4px 14px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff}
 .rlres{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}
 .rlres.hidden{display:none}
+.rlcards{text-align:center}.rlcards .rlmeta{display:block;margin:0 0 6px}.rlcards.hidden{display:none}
 .rlres .btn{min-height:44px;flex:1;min-width:92px}
 .rlres .btn svg,.rlfoot .btn svg{width:18px;height:18px}
 .rlsec{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;margin-bottom:10px}
@@ -6561,6 +6566,10 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <button type="button" class="btn" id="rlSave">${ic(IC_DL)}<span></span></button>
       <button type="button" class="btn" id="rlCapCopy">${ic(IC_COPY)}<span></span></button>
     </div>
+    <div class="rlcards" id="rlCards"><span class="rlmeta" id="rlCardsL"></span><div class="rlres">
+      <button type="button" class="btn" id="rlCardSave">${ic(IC_DL)}<span></span></button>
+      <button type="button" class="btn" id="rlCardShare">${ic(IC.share)}<span></span></button>
+    </div></div>
     <div class="rlsec"><div class="rlh"><b id="rlNewsT"></b><button type="button" class="btn" id="rlAi">${ic(IC.spark)}<span></span></button></div>
       <div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div>
     <div class="rlsec">
@@ -6589,6 +6598,7 @@ function opts(id, list, cur, onPick){
 }
 function rlTexts(){
   $('rlHeadT').textContent = t('rlTitleBar'); $('rlCancel').textContent = t('rlCancel');
+  $('rlCardsL').textContent = t('rlCardsL'); $('rlCardSave').querySelector('span').textContent = t('rlCardSave'); $('rlCardShare').querySelector('span').textContent = t('rlCardShare');
   $('rlShare').querySelector('span').textContent = t('rlShare'); $('rlSave').querySelector('span').textContent = t('rlSave'); $('rlCapCopy').querySelector('span').textContent = t('rlCapCopy');
   $('rlNewsT').textContent = t('rlNews'); $('rlAi').querySelector('span').textContent = t('rlAi'); $('rlAdd').textContent = t('rlAdd');
   $('rlTitleL').textContent = t('rlIntro'); $('rlTitleIn').placeholder = t('rlTitleDef');
@@ -6654,6 +6664,7 @@ function rlRenderList(){
     list.appendChild(row);
   });
   $('rlMake').disabled = !RL.items.length || RL.busy;
+  $('rlCards').classList.toggle('hidden', !RL.items.length);
   rlMeta(); rlCaptionAuto();
 }
 function rlSelFromItems(){ RL.sel = new Map(RL.items.map(x => [x.link, x.o])); }
@@ -6675,7 +6686,7 @@ $('liveNewsBtn').addEventListener('click', () => setMode(false));
 $('rlTitleIn').addEventListener('input', () => { rlSyncTexts(); rlCaptionAuto(); });
 $('rlTickIn').addEventListener('input', () => { rlSyncTexts(); rlPreview(); });
 $('rlMixC').addEventListener('change', () => { RL.mixColor = $('rlMixC').checked; store.set('rlMixColor', RL.mixColor); rlPreview(); });
-$('rlShuffle').addEventListener('click', () => { RL.style = rlNewStyle(RL.style); rlMeta(); rlPreview(); toast(t('rlStyle') + ': ' + t('tr_' + RL.style.trans)); });
+$('rlShuffle').addEventListener('click', () => { RL.vidStyle = null; RL.style = rlNewStyle(RL.style); rlMeta(); rlPreview(); toast(t('rlStyle') + ': ' + t('tr_' + RL.style.trans)); });
 $('rlMusicFile').addEventListener('change', async () => {
   const f = $('rlMusicFile').files[0]; $('rlMusicFile').value = ''; if(!f) return;
   try{
@@ -6719,7 +6730,7 @@ function rlTpls(st){
   return [TPL[RL.tpl] ? RL.tpl : 'band'];
 }
 function rlColor(st, i){ return PALETTES[(st.pal + (RL.mixColor ? i : 0)) % PALETTES.length]; }
-function rlPaintCard(it, i, st, img){
+function rlPaintCard(it, i, st, img, full){
   const keep = Object.assign({}, C), cv = document.createElement('canvas'), tpls = rlTpls(st), tpl = tpls[i % tpls.length];
   try{
     if(RL.tpl !== 'mine'){
@@ -6731,6 +6742,7 @@ function rlPaintCard(it, i, st, img){
     C.fields = { headline: it.text, sub: '', role: '', desc: '', cat: '', source: it.source, date: it.date, url: it.host, label: img ? t('photoBy') + it.source : '', take: '', points: '', num: '', numLabel: '' };
     paintCard(cv);
   } finally { Object.assign(C, keep); }
+  if(full) return cv;                                  // full size (1080×1080) for separate photo posts
   const out = document.createElement('canvas'); out.width = RW; out.height = RW;
   const x = out.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(cv, 0, 0, RW, RW);
   cv.width = cv.height = 1;
@@ -7031,7 +7043,7 @@ function rlShowVideo(on){
 }
 function rlBusy(on){
   RL.busy = on; $('rlMake').disabled = on || !RL.items.length;
-  ['rlAi', 'rlAdd', 'rlShuffle'].forEach(id => { $(id).disabled = on; });
+  ['rlAi', 'rlAdd', 'rlShuffle', 'rlCardSave', 'rlCardShare'].forEach(id => { $(id).disabled = on; });
   $('rlList').querySelectorAll('button,textarea').forEach(el => { el.disabled = on; });
   if(!on){ $('rlProg').classList.add('hidden'); rlRenderList(); }
 }
@@ -7129,6 +7141,7 @@ async function rlMake(){
     RL.blob = blob; RL.url = URL.createObjectURL(blob);
     v.src = RL.url; rlShowVideo(true);
     try{ v.currentTime = 0; v.play().catch(() => {}); }catch(e){}
+    RL.vidStyle = st;                                    // separate cards keep the look of this video
     RL.style = rlNewStyle(RL.style);                     // next reel gets a different motion, colours and music
     toast(t('rlDone'));
   }catch(e){
@@ -7170,6 +7183,53 @@ $('rlShare').addEventListener('click', async () => {
   }
   download(f, f.name); toast(t('rlSaved') + ' · ' + t('rlCapCopied'));
 });
+
+/* ---------------- 6b) every story as its own photo card ---------------- */
+function rlCardSig(st){
+  return JSON.stringify([RL.items.map(x => [x.link, x.text]), RL.tpl, RL.mixColor, st.pal, st.shuffle, C.template, C.accent, C.hl, pageName()]);
+}
+async function rlCardFiles(){
+  const st = RL.vidStyle || RL.style, sig = rlCardSig(st);
+  if(RL.cardFiles && RL.cardSig === sig) return RL.cardFiles;
+  rlSyncTexts(); RL.cancel = false; rlBusy(true);
+  try{
+    await ensureFonts();
+    const items = RL.items.slice(), n = items.length, files = [], d = new Date();
+    const stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    for(let i = 0; i < n; i++){
+      if(RL.cancel) throw new Error('cancel');
+      prog(tf('rlCardMaking', { a: nwNum(i + 1), b: nwNum(n) }), i / n);
+      const img = await rlImg(items[i]);
+      const cv = rlPaintCard(items[i], i, st, img, true);
+      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      cv.width = cv.height = 1;
+      if(!blob) throw new Error('png');
+      const name = 'TF-News-Card-' + stamp + '-' + String(i + 1).padStart(2, '0') + ' - ' + safeName(String(items[i].text || '').replace(/\*/g, '')).slice(0, 50) + '.png';
+      files.push(new File([blob], name, { type: 'image/png' }));
+      await sleep(0);
+    }
+    RL.cardFiles = files; RL.cardSig = sig;
+    return files;
+  } finally { rlBusy(false); }
+}
+async function rlCardsGo(share){
+  if(RL.busy || !RL.items.length) return;
+  let files;
+  try{ files = await rlCardFiles(); }
+  catch(e){ if(!(e && e.message === 'cancel')){ console.error(e); toast(t('rlCardFail')); } return; }
+  if(share && navigator.canShare && navigator.canShare({ files })){
+    await rlCopyCap(true);
+    try{ await navigator.share({ files, title: RL.title || t('rlTitleDef') }); return; }
+    catch(e){
+      if(e && e.name === 'AbortError') return;
+      if(e && e.name === 'NotAllowedError'){ toast(t('rlCardReady')); return; }   // took too long after the tap — the cards are kept, next tap shares at once
+    }
+  }
+  for(let i = 0; i < files.length; i++){ download(files[i], files[i].name); await sleep(450); }
+  toast(tf('rlCardSaved', { n: nwNum(files.length) }));
+}
+$('rlCardSave').addEventListener('click', () => rlCardsGo(false));
+$('rlCardShare').addEventListener('click', () => rlCardsGo(true));
 
 /* ---------------- 7) caption + AI writing ---------------- */
 let capEdited = false;

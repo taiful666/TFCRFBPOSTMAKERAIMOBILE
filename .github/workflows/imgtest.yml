@@ -1,0 +1,8 @@
+name: imgtest
+on: { push: { branches: [img-test] } }
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node exp/test.mjs

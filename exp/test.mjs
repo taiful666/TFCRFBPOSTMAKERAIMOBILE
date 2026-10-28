@@ -1,25 +1,22 @@
-// Google News search page (public HTML): does it carry a thumbnail per story, and do titles match our photo-less stories?
-import { writeFileSync } from 'node:fs';
+// What does the reader service (r.jina.ai, already used by the app) return for stories that ended up without a photo?
 const NEWS = await (await fetch('https://raw.githubusercontent.com/taiful666/TFCRFBPOSTMAKERAIMOBILE/live-news/news.json?t=' + Date.now())).json();
-const HOSTS = { jamuna: 'jamuna.tv', jugantor: 'jugantor.com', samakal: 'samakal.com', kalerkantho: 'kalerkantho.com', bdpratidin: 'bd-pratidin.com', ittefaq: 'ittefaq.com.bd', ekattor: 'ekattor.tv', deshrupantor: 'deshrupantor.com', manabzamin: 'mzamin.com', inqilab: 'dailyinqilab.com', jagonews: 'jagonews24.com', kalbela: 'kalbela.com' };
-const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', 'Accept-Language': 'bn-BD,bn;q=0.9,en;q=0.8' };
-const tkey = s => String(s || '').replace(/&[^;]+;/g, '').replace(/[^\p{L}\p{N}]+/gu, '').slice(0, 40);
-let saved = false;
-for (const [id, h] of Object.entries(HOSTS)) {
-  const miss = (NEWS.sources[id]?.items || []).filter(o => !o.img);
-  const mt = new Map(miss.map(o => [tkey(o.title), o]));
-  const r = await fetch('https://news.google.com/search?q=' + encodeURIComponent('site:' + h + ' when:2d') + '&hl=bn&gl=BD&ceid=BD:bn', { headers: UA });
-  const html = await r.text();
-  if (!saved) { writeFileSync('gn.html', html); saved = true; }
-  const arts = html.split(/<article\b/).slice(1);
-  let withImg = 0, match = 0; const ex = [];
-  for (const a of arts) {
-    const img = (a.match(/<img[^>]+src="([^"]*\/api\/attachments\/[^"]+)"/) || a.match(/<img[^>]+src="([^"]+)"/) || [])[1];
-    const t = (a.match(/<a[^>]+class="[^"]*JtKRv[^"]*"[^>]*>([^<]+)</) || a.match(/aria-label="([^"]+)"/) || [])[1] || '';
-    if (img) withImg++;
-    if (img && mt.has(tkey(t))) { match++; if (ex.length < 1) ex.push(t.slice(0, 50) + ' | ' + img.slice(0, 120)); }
+const IDS = ['jamuna', 'samakal', 'ittefaq', 'ekattor', 'inqilab', 'deshrupantor', 'bdpratidin', 'jugantor', 'kalerkantho', 'manabzamin'];
+for (const id of IDS) {
+  const o = (NEWS.sources[id]?.items || []).find(x => !x.img && !/news\.google/.test(x.link) && !/topic|page=/.test(x.link));
+  if (!o) { console.log(id, 'no sample'); continue; }
+  for (const accept of ['application/json']) {
+    const c = new AbortController(); const t = setTimeout(() => c.abort(), 30000);
+    try {
+      const r = await fetch('https://r.jina.ai/' + o.link, { signal: c.signal, headers: { 'Accept': accept, 'X-With-Images-Summary': 'true', 'X-Timeout': '20' } });
+      const txt = await r.text(); let j = {}; try { j = JSON.parse(txt); } catch {}
+      const d = j.data || {};
+      console.log('\n=== ' + id, r.status, o.link.slice(0, 90));
+      console.log('  title:', String(d.title || '').slice(0, 80));
+      console.log('  meta keys:', Object.keys(d.metadata || {}).slice(0, 20).join(','));
+      console.log('  og:image:', (d.metadata || {})['og:image'], '| tw:', (d.metadata || {})['twitter:image']);
+      console.log('  images:', Object.values(d.images || {}).slice(0, 4).join('  '));
+      console.log('  content head:', String(d.content || txt).replace(/\s+/g, ' ').slice(0, 300));
+    } catch (e) { console.log(id, 'ERR', e.message); } finally { clearTimeout(t); }
+    await new Promise(r => setTimeout(r, 4000));
   }
-  console.log(id.padEnd(13), r.status, (html.length >> 10) + 'KB', 'articles', arts.length, 'withImg', withImg, 'missing', miss.length, 'matched', match);
-  ex.forEach(e => console.log('   ', e));
-  await new Promise(r => setTimeout(r, 1500));
 }

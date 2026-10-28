@@ -1,63 +1,12 @@
-jamuna        site      items  12 matched-missing 0
-jamuna        site c100 items  14 matched-missing 0
-jamuna        kw        items  12 matched-missing 0
-jamuna        kw   c100 items  14 matched-missing 0
-  => missing 25 now found 0
-jugantor      site      items  12 matched-missing 2
-   thumb (plain) 200 image/jpeg 49KB 700x393
-   thumb &w=1200 200 image/jpeg 49KB 700x393
-   thumb &w=1200&h=675&c=7 200 image/jpeg 58KB 1200x675
-jugantor      site c100 items  14 matched-missing 2
-jugantor      kw        items   7 matched-missing 1
-jugantor      kw   c100 items   7 matched-missing 1
-  => missing 25 now found 2
-samakal       site      items  12 matched-missing 0
-samakal       site c100 items  14 matched-missing 0
-samakal       kw        items  12 matched-missing 0
-samakal       kw   c100 items  14 matched-missing 0
-  => missing 25 now found 0
-kalerkantho   site      items  10 matched-missing 0
-kalerkantho   site c100 items  14 matched-missing 0
-kalerkantho   kw        items  12 matched-missing 0
-kalerkantho   kw   c100 items  14 matched-missing 0
-  => missing 25 now found 0
-bdpratidin    site      items  12 matched-missing 0
-bdpratidin    site c100 items  14 matched-missing 0
-bdpratidin    kw        items   9 matched-missing 0
-bdpratidin    kw   c100 items  14 matched-missing 0
-  => missing 25 now found 0
-ittefaq       site      items  12 matched-missing 0
-ittefaq       site c100 items  14 matched-missing 0
-ittefaq       kw        items  12 matched-missing 0
-ittefaq       kw   c100 items  12 matched-missing 0
-  => missing 25 now found 0
-ekattor       site      items  12 matched-missing 2
-ekattor       site c100 items  14 matched-missing 2
-ekattor       kw        items  12 matched-missing 1
-ekattor       kw   c100 items  14 matched-missing 0
-  => missing 25 now found 2
-deshrupantor  site      items  12 matched-missing 0
-deshrupantor  site c100 items  14 matched-missing 0
-deshrupantor  kw        items   2 matched-missing 0
-deshrupantor  kw   c100 items   2 matched-missing 0
-  => missing 25 now found 0
-manabzamin    site      items  12 matched-missing 0
-manabzamin    site c100 items  14 matched-missing 0
-manabzamin    kw        items  10 matched-missing 0
-manabzamin    kw   c100 items  10 matched-missing 0
-  => missing 24 now found 0
-inqilab       site      items  12 matched-missing 0
-inqilab       site c100 items  14 matched-missing 0
-inqilab       kw        items  12 matched-missing 0
-inqilab       kw   c100 items  14 matched-missing 0
-  => missing 25 now found 0
-jagonews      site      items  12 matched-missing 0
-jagonews      site c100 items  14 matched-missing 0
-jagonews      kw        items  12 matched-missing 0
-jagonews      kw   c100 items  14 matched-missing 0
-  => missing 18 now found 0
-kalbela       site      items  12 matched-missing 0
-kalbela       site c100 items  14 matched-missing 0
-kalbela       kw        items  12 matched-missing 0
-kalbela       kw   c100 items  14 matched-missing 0
-  => missing 12 now found 0
+jamuna        429 3KB articles 0 withImg 0 missing 25 matched 0
+jugantor      429 3KB articles 0 withImg 0 missing 25 matched 0
+samakal       429 3KB articles 0 withImg 0 missing 25 matched 0
+kalerkantho   429 3KB articles 0 withImg 0 missing 25 matched 0
+bdpratidin    429 3KB articles 0 withImg 0 missing 14 matched 0
+ittefaq       429 3KB articles 0 withImg 0 missing 25 matched 0
+ekattor       429 3KB articles 0 withImg 0 missing 25 matched 0
+deshrupantor  429 3KB articles 0 withImg 0 missing 25 matched 0
+manabzamin    429 3KB articles 0 withImg 0 missing 24 matched 0
+inqilab       429 3KB articles 0 withImg 0 missing 25 matched 0
+jagonews      429 3KB articles 0 withImg 0 missing 18 matched 0
+kalbela       429 3KB articles 0 withImg 0 missing 14 matched 0

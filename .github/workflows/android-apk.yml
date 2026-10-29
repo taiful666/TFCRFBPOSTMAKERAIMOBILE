@@ -67,8 +67,24 @@ jobs:
             echo "::error::The fixed signing key (secret ANDROID_DEBUG_KEYSTORE_B64) is missing. Add it in Settings > Secrets and variables > Actions, then run this again."
             exit 1
           fi
-          mkdir -p ~/.android && echo "$KS" | tr -d ' \r\n' | base64 -d > ~/.android/debug.keystore
-          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey > /dev/null
+          KSF="$GITHUB_WORKSPACE/android-app/android/app/tf-signing.keystore"
+          echo "$KS" | tr -d ' \r\n' | base64 -d > "$KSF"
+          keytool -list -keystore "$KSF" -storepass android -alias androiddebugkey > /dev/null
+          # Tell Gradle to sign with this key (instead of making a temporary one)
+          cat >> "$GITHUB_WORKSPACE/android-app/android/app/build.gradle" <<'GRADLE'
+
+          android {
+              signingConfigs {
+                  debug {
+                      storeFile file('tf-signing.keystore')
+                      storePassword 'android'
+                      keyAlias 'androiddebugkey'
+                      keyPassword 'android'
+                  }
+              }
+          }
+          GRADLE
+          keytool -exportcert -keystore "$KSF" -storepass android -alias androiddebugkey | sha256sum | cut -d' ' -f1 > "$RUNNER_TEMP/key.sha256"
           echo "Fixed signing key in use"
 
       - name: Build the APK
@@ -77,6 +93,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/TF-FB-Reels-Post-Maker.apk"
+          # Safety check: the APK must be signed with the fixed key, otherwise stop
+          SIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          GOT=$("$SIGNER" verify --print-certs "$GITHUB_WORKSPACE/TF-FB-Reels-Post-Maker.apk" | grep -m1 'SHA-256 digest' | awk '{print $NF}')
+          WANT=$(cat "$RUNNER_TEMP/key.sha256")
+          echo "APK key: $GOT"
+          if [ "$GOT" != "$WANT" ]; then echo "::error::APK is not signed with the fixed key"; exit 1; fi
 
       - name: Keep the APK as a build file
         uses: actions/upload-artifact@v4

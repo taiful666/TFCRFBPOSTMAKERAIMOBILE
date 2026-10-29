@@ -6601,6 +6601,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
   <div class="rlbody">
     <div class="rlstage"><canvas id="rlCanvas" width="${RW}" height="${RH}"></canvas><video id="rlVideo" class="hidden" playsinline controls loop></video>
       <div class="rlprog hidden" id="rlProg"><span id="rlProgT"></span><div class="rlpb"><i id="rlProgF"></i></div><button type="button" class="btn" id="rlCancel"></button></div></div>
+    <p class="rlmeta rlpvhint" id="rlPvHint"></p>
     <div class="rlres hidden" id="rlRes">
       <button type="button" class="btn primary" id="rlShare">${ic(IC.share)}<span></span></button>
       <button type="button" class="btn" id="rlSave">${ic(IC_DL)}<span></span></button>
@@ -6613,6 +6614,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
     <div class="rlsec"><div class="rlh"><b id="rlNewsT"></b><button type="button" class="btn" id="rlAi">${ic(IC.spark)}<span></span></button></div>
       <div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div>
     <div class="rlsec">
+      <div class="rlf"><span id="rlLogoL"></span><div class="rllogo" id="rlLogoBox"><img id="rlLogoTh" alt="" class="hidden"><span id="rlLogoMsg"></span><button type="button" class="btn" id="rlLogoBtn"></button></div></div>
       <div class="rlf"><label for="rlTitleIn" id="rlTitleL"></label><input type="text" id="rlTitleIn" maxlength="40" autocomplete="off"></div>
       <div class="rlf"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
       <div class="rlf"><span id="rlMusicL"></span><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>
@@ -6688,8 +6690,9 @@ function rlRenderList(){
     const row = mk('div', 'rlrow');
     row.innerHTML = '<span class="rln">' + nwNum(i + 1) + '</span>' + (it.o.img ? '<img class="rlth" alt="" referrerpolicy="no-referrer">' : '<span class="rlth"></span>') +
       '<div class="rlmain"><textarea rows="2"></textarea><small></small></div>' +
-      '<div class="rlbtns"><button type="button" data-a="up" aria-label="up">' + ic(IC_UP) + '</button><button type="button" data-a="dn" aria-label="down">' + ic(IC_DN) + '</button><button type="button" data-a="rm" aria-label="remove">' + ic(IC_X) + '</button></div>';
+      '<div class="rlbtns"><button type="button" data-a="up" aria-label="up">' + ic(IC_UP) + '</button><button type="button" data-a="dn" aria-label="down">' + ic(IC_DN) + '</button><button type="button" data-a="ed" class="rled" aria-label="edit">' + ic(IC.pen) + '</button><button type="button" data-a="rm" aria-label="remove">' + ic(IC_X) + '</button></div>';
     const ta = row.querySelector('textarea'); ta.value = it.text;
+    const th = row.querySelector('.rlth'); if(th){ th.style.cursor = 'pointer'; th.addEventListener('click', () => { if(!RL.busy) rlEdOpen(i); }); }
     ta.addEventListener('input', () => { it.text = ta.value; rlPreview(); });
     row.querySelector('small').textContent = it.source + (it.date ? ' · ' + it.date : '');
     const im = row.querySelector('img.rlth'); if(im){ im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = it.o.img; } else im.style.visibility = 'hidden'; }; im.src = proxImg(it.o.img, 160); }
@@ -6697,6 +6700,7 @@ function rlRenderList(){
     row.querySelector('[data-a="dn"]').disabled = i === RL.items.length - 1;
     row.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
       const a = b.dataset.a;
+      if(a === 'ed'){ rlEdOpen(i); return; }
       if(a === 'rm'){ RL.items.splice(i, 1); RL.sel.delete(it.link); }
       else { const j = a === 'up' ? i - 1 : i + 1; if(j < 0 || j >= RL.items.length) return; [RL.items[i], RL.items[j]] = [RL.items[j], RL.items[i]]; }
       rlSelFromItems(); rlRenderList(); rlMeta(); if(i <= 1) rlPreview();
@@ -6770,17 +6774,22 @@ function rlTpls(st){
   return [TPL[RL.tpl] ? RL.tpl : 'band'];
 }
 function rlColor(st, i){ return PALETTES[(st.pal + (RL.mixColor ? i : 0)) % PALETTES.length]; }
-function rlPaintCard(it, i, st, img, full){
-  const keep = Object.assign({}, C), cv = document.createElement('canvas'), tpls = rlTpls(st), tpl = tpls[i % tpls.length];
+function rlPaintCard(it, i, st, img, full, opt){
+  opt = opt || {};
+  const keep = Object.assign({}, C), cv = document.createElement('canvas'), tpls = rlTpls(st), tpl = tpls[i % tpls.length], ed = it.ed || {};
   try{
     if(RL.tpl !== 'mine'){
       const d = TPL[tpl] || TPL.band;
       C.template = tpl; C.tc = d.tc; C.align = d.align; C.overlay = d.overlay; C.textY = 0;
       const pc = rlColor(st, i); C.accent = pc[0]; C.hl = pc[1];
     } else if(RL.mixColor && !isQuoteTpl(C.template)){ const pc = rlColor(st, i); C.accent = pc[0]; C.hl = pc[1]; }
-    C.ratio = '1:1'; C.img = img || null; C.tainted = false; C.src = img ? 'orig' : 'none'; C.panX = 0; C.panY = 0; C.zoom = 100;
+    C.ratio = '1:1'; C.img = img || null; C.tainted = false; C.src = img ? 'orig' : 'none';
+    C.panX = ed.panX || 0; C.panY = ed.panY || 0; C.zoom = ed.zoom || 100;      // photo position & zoom set by hand for this story
+    if(ed.textY != null) C.textY = ed.textY;                                     // text moved up / down by hand
+    if(!full || opt.noLogo) C.logoImg = null;          // in the video the page logo sits fixed in the corner of every frame instead
     C.fields = { headline: it.text, sub: '', role: '', desc: '', cat: '', source: it.source, date: it.date, url: it.host, label: img ? t('photoBy') + it.source : '', take: '', points: '', num: '', numLabel: '' };
     paintCard(cv);
+    if(opt.info){ opt.info.regions = C.regions; opt.info.pmax = C.pmax; }
   } finally { Object.assign(C, keep); }
   if(full) return cv;                                  // full size (1080×1080) for separate photo posts
   const out = document.createElement('canvas'); out.width = RW; out.height = RW;
@@ -6927,9 +6936,23 @@ function rlCta(ctx, text, y, ac, hl, p){
 }
 function rlBrand(ctx, R, y, light){
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(24, 600, BFAM);
-  const s = R.page + '  ·  ' + R.today, w = ctx.measureText(s).width + 40;
-  ctx.fillStyle = light ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.5)'; rr(ctx, RW / 2 - w / 2, y - 22, w, 44, 22); ctx.fill();
-  ctx.fillStyle = light ? '#111' : '#fff'; ctx.fillText(s, RW / 2, y + 1);
+  const s = R.page + '  ·  ' + R.today, lg = C.logoImg ? 62 : 0, h = lg ? 66 : 44, w = Math.min(RW - 40, ctx.measureText(s).width + 40 + lg);
+  const x0 = RW / 2 - w / 2;
+  ctx.fillStyle = light ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.5)'; rr(ctx, x0, y - h / 2, w, h, h / 2); ctx.fill();
+  if(lg) rlLogoDisc(ctx, x0 + 6 + 27, y, 27);
+  ctx.fillStyle = light ? '#111' : '#fff'; ctx.fillText(s, RW / 2 + lg / 2, y + 1, w - lg - 30);
+}
+/* the page logo on a round white disc (the logo is uploaded once in "কার্ড → লোগো" or in the reel studio) */
+function rlLogoDisc(ctx, cx, cy, r){
+  const im = C.logoImg; if(!im) return;
+  const iw = im.naturalWidth || im.width || 300, ih = im.naturalHeight || im.height || 300, s = (r * 1.62) / Math.max(iw, ih);
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.beginPath(); ctx.arc(cx, cy, r - 2, 0, Math.PI * 2); ctx.clip();
+  ctx.imageSmoothingQuality = 'high'; ctx.drawImage(im, cx - iw * s / 2, cy - ih * s / 2, iw * s, ih * s);
+  ctx.restore();
 }
 function rlIntro(ctx, R, p, d){
   const cv = R.cov || (R.cov = rlCoverData(R, R.items, [])), [ac, hl] = R.col(cv.i), img = cv.img, z = 1 + 0.06 * clamp(p / d, 0, 1);
@@ -7005,9 +7028,7 @@ function rlOutro(ctx, R, p, d){
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   let y = 430;
   if(C.logoImg && a > 0){
-    const im = C.logoImg, iw = im.naturalWidth || 300, ih = im.naturalHeight || 300, w = 190 * a, h = w * ih / iw;
-    ctx.save(); ctx.beginPath(); ctx.arc(RW / 2, y, 118 * a, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fill(); ctx.restore();
-    ctx.drawImage(im, RW / 2 - w / 2, y - h / 2, w, h);
+    rlLogoDisc(ctx, RW / 2, y, 118 * a);
     y += 170;
   } else y += 60;
   ctx.globalAlpha = b; ctx.fillStyle = '#fff';
@@ -7053,9 +7074,10 @@ function rlOverlay(ctx, R, g, p, tm){
   if(g.k !== 'intro'){
     const a = g === R.tl.segs[1] ? ease(p / 0.5) : 1;
     ctx.globalAlpha = a;
-    const size = fitFont(ctx, R.title, RW - 140, 44, 700), tw = ctx.measureText(R.title).width;
+    const mw = RW - (C.logoImg && g.k !== 'outro' ? 260 : 140);
+    const size = fitFont(ctx, R.title, mw, 44, 700), tw = ctx.measureText(R.title).width;
     ctx.fillStyle = '#fff'; ctx.fillText(R.title, RW / 2, 100);
-    ctx.fillStyle = hl; ctx.fillRect(RW / 2 - Math.min(tw, RW - 140) / 2 * a, 100 + size * 0.72, Math.min(tw, RW - 140) * a, 5);
+    ctx.fillStyle = hl; ctx.fillRect(RW / 2 - Math.min(tw, mw) / 2 * a, 100 + size * 0.72, Math.min(tw, mw) * a, 5);
     ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = fontStr(24, 400, BFAM); ctx.fillText(R.today, RW / 2, 168);
     ctx.globalAlpha = 1;
   }
@@ -7092,6 +7114,7 @@ function rlFrame(ctx, R, t){
   if(k > 0 && p < XT) rlTrans(ctx, R, segs[k - 1], g, p, p / XT);
   else rlScene(ctx, R, g, p);
   rlOverlay(ctx, R, g, p, t);
+  if(C.logoImg && g.k === 'card') rlLogoDisc(ctx, 66, 104, 46);     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
 }
 function rlMakeR(items, st){
   const page = pageName();
@@ -7474,7 +7497,7 @@ $('rlShare').addEventListener('click', async () => {
 
 /* ---------------- 6b) every story as its own photo card ---------------- */
 function rlCardSig(st){
-  return JSON.stringify([RL.items.map(x => [x.link, x.text]), RL.tpl, RL.mixColor, st.pal, st.shuffle, C.template, C.accent, C.hl, pageName()]);
+  return JSON.stringify([RL.items.map(x => [x.link, x.text, x.ed || null]), C.logoUrl ? C.logoUrl.length : 0, RL.tpl, RL.mixColor, st.pal, st.shuffle, C.template, C.accent, C.hl, pageName()]);
 }
 async function rlCardFiles(){
   const st = RL.vidStyle || RL.style, sig = rlCardSig(st);
@@ -7563,6 +7586,155 @@ $('rlAi').addEventListener('click', async () => {
   b.addEventListener('click', () => { nwOpen(); setMode(true); toast(t('rlHint')); });
   if(big) big.after(b); else q.prepend(b);
 })();
+
+/* ---------------- 9) fix each card by hand: drag the photo, pinch to zoom, drag the text up / down ---------------- */
+Object.assign(T.bn, {
+  rlEdit:'ঠিক করুন', rlEdTitle:'কার্ড {a} / {b}', rlEdHint:'এক আঙুলে ছবি সরান · দুই আঙুলে ছবি ছোট-বড় করুন · লেখায় আঙুল রেখে ওপরে-নিচে সরান',
+  rlEdZoom:'ছবির জুম', rlEdText:'কার্ডের লেখা', rlEdReset:'আগের মতো', rlEdDone:'হয়েছে', rlPvHint:'প্রিভিউতে বা তালিকার ✎ চাপ দিয়ে প্রতিটি কার্ডের ছবি ও লেখা হাত দিয়ে ঠিক করুন',
+  rlLogo:'আপনার পেজের লোগো', rlLogoOk:'লোগো দেওয়া আছে — প্রতিটি খবরের কোণে, শুরুতে আর শেষে দেখাবে', rlLogoNo:'লোগো দেওয়া হয়নি — রিলে আপনার পেজের লোগো দেখাবে না',
+  rlLogoUp:'লোগো দিন', rlLogoCh:'বদলান', tRlNoLogo:'আপনার পেজের লোগো এখনো দেওয়া হয়নি — নিচে "আপনার পেজের লোগো" থেকে একবার দিয়ে দিন', tRlEdSaved:'কার্ড ঠিক করা হয়েছে — নতুন ভিডিওতে এভাবেই আসবে'
+});
+Object.assign(T.en, {
+  rlEdit:'Adjust', rlEdTitle:'Card {a} / {b}', rlEdHint:'Drag the photo with one finger · pinch with two to zoom · drag the text up or down',
+  rlEdZoom:'Photo zoom', rlEdText:'Card text', rlEdReset:'Reset', rlEdDone:'Done', rlPvHint:'Tap the preview or ✎ in the list to fix each card\'s photo and text by hand',
+  rlLogo:'Your page logo', rlLogoOk:'Logo added — shows in the corner of every story, on the cover and at the end', rlLogoNo:'No logo yet — your page logo will not show in the reel',
+  rlLogoUp:'Add logo', rlLogoCh:'Change', tRlNoLogo:'Your page logo is not added yet — add it once below in "Your page logo"', tRlEdSaved:'Card adjusted — the next video uses it'
+});
+const edCss = document.createElement('style');
+edCss.textContent = `
+#rlEd{z-index:90}
+.rledbox{max-width:560px;height:auto;max-height:96vh;max-height:96dvh}
+.rledbody{flex:1;overflow-y:auto;padding:12px 14px 6px;-webkit-overflow-scrolling:touch}
+#rlEdCv{width:100%;max-width:520px;aspect-ratio:1/1;height:auto;display:block;margin:0 auto;border-radius:12px;background:#111;touch-action:none;cursor:grab;box-shadow:0 4px 18px rgba(0,0,0,.2)}
+#rlEdCv.dragging{cursor:grabbing}
+.rledbody .rlmeta{text-align:center;margin:8px 4px 12px}
+.rledbody input[type=range]{width:100%;accent-color:var(--accent)}
+.rledbody textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);font:600 15px/1.45 var(--sans);resize:vertical;min-height:64px;outline:none}
+.rledfoot{display:flex;gap:8px}.rledfoot .btn{flex:1;min-height:48px;width:auto;font-size:15px}
+.rlednav{min-width:40px;min-height:36px;font-size:20px;line-height:1;padding:0 10px}
+.rlpvhint{text-align:center;margin:-4px 8px 12px}
+.rlbtns button.rled{color:var(--accent)}
+#rlCanvas{cursor:pointer}
+.rllogo{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px}
+.rllogo img{width:44px;height:44px;border-radius:50%;object-fit:contain;background:#fff;border:1px solid var(--line);flex:none}
+.rllogo span{flex:1;font-size:13px;line-height:1.4;color:var(--muted)}
+.rllogo.no span{color:var(--danger,#d93025);font-weight:600}
+.rllogo .btn{flex:none;min-height:38px;white-space:nowrap}
+`;
+document.head.appendChild(edCss);
+const ed = mk('div', 'nsheet hidden no-print'); ed.id = 'rlEd'; ed.setAttribute('role', 'dialog'); ed.setAttribute('aria-modal', 'true');
+ed.innerHTML = `<div class="nsbox rledbox">
+  <div class="nshead"><button type="button" class="btn rlednav" id="rlEdPrev" aria-label="previous">‹</button><b id="rlEdT"></b><button type="button" class="btn rlednav" id="rlEdNext" aria-label="next">›</button><span style="flex:1"></span><button type="button" class="x" id="rlEdClose" aria-label="close">×</button></div>
+  <div class="rledbody">
+    <canvas id="rlEdCv" width="1080" height="1080"></canvas>
+    <p class="rlmeta" id="rlEdHintT"></p>
+    <div class="rlf"><span id="rlEdZoomL"></span><input type="range" id="rlEdZoom" min="100" max="300" step="1"></div>
+    <div class="rlf"><span id="rlEdTextL"></span><textarea id="rlEdText" rows="3"></textarea></div>
+  </div>
+  <div class="rlfoot rledfoot"><button type="button" class="btn" id="rlEdReset"></button><button type="button" class="btn primary" id="rlEdDone"></button></div>
+</div>`;
+document.body.appendChild(ed);
+const ED = { open: false, i: 0, img: null, info: {}, raf: 0, tok: 0, changed: false };
+const edIt = () => RL.items[ED.i];
+function edState(it){
+  if(!it.ed) it.ed = { panX: 0, panY: 0, zoom: 100, textY: null };
+  if(it.ed.textY == null) it.ed.textY = RL.tpl === 'mine' ? (C.textY || 0) : 0;
+  return it.ed;
+}
+function edDraw(){
+  cancelAnimationFrame(ED.raf);
+  ED.raf = requestAnimationFrame(() => {
+    const it = edIt(); if(!it || !ED.open) return;
+    const info = {}, c = rlPaintCard(it, ED.i, RL.style, ED.img, true, { noLogo: true, info });
+    ED.info = info;
+    const cv = $('rlEdCv'), x = cv.getContext('2d'); x.clearRect(0, 0, 1080, 1080); x.drawImage(c, 0, 0, 1080, 1080); c.width = c.height = 1;
+  });
+}
+function edTexts(){
+  $('rlEdT').textContent = tf('rlEdTitle', { a: nwNum(ED.i + 1), b: nwNum(RL.items.length) });
+  $('rlEdHintT').textContent = t('rlEdHint'); $('rlEdZoomL').textContent = t('rlEdZoom'); $('rlEdTextL').textContent = t('rlEdText');
+  $('rlEdReset').textContent = t('rlEdReset'); $('rlEdDone').textContent = t('rlEdDone');
+  $('rlEdPrev').disabled = ED.i <= 0; $('rlEdNext').disabled = ED.i >= RL.items.length - 1;
+}
+async function edLoad(i){
+  ED.i = clamp(i, 0, RL.items.length - 1); const it = edIt(); if(!it) return;
+  const st = edState(it); ED.img = null;
+  $('rlEdZoom').value = st.zoom; $('rlEdText').value = it.text; edTexts();
+  const tok = ++ED.tok;
+  await ensureFonts(); edDraw();
+  const im = await rlImg(it);
+  if(tok === ED.tok && ED.open){ ED.img = im; edDraw(); }
+}
+function rlEdOpen(i){
+  if(RL.busy || !RL.items.length) return;
+  rlSyncTexts();
+  ED.open = true; ED.changed = false; ed.classList.remove('hidden');
+  try{ history.pushState({ rl: 1, ed: 1 }, ''); }catch(e){}
+  edLoad(i || 0);
+}
+function rlEdClose(fromPop){
+  if(!ED.open) return;
+  ED.open = false; ED.tok++; ed.classList.add('hidden');
+  if(fromPop !== true){ try{ if(history.state && history.state.ed) history.back(); }catch(e){} }
+  if(ED.changed){ RL.cardFiles = null; rlRenderList(); rlPreview(); toast(t('tRlEdSaved')); }
+}
+(function wireEd(){
+  const cv = $('rlEdCv'), ptrs = new Map(); let drag = null, pinch = null;
+  const pdist = () => { const [a, b] = Array.from(ptrs.values()); return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+  const pt = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * 1080 / r.width, y: (e.clientY - r.top) * 1080 / r.height }; };
+  const hit = p => { const R0 = ED.info.regions || []; for(let i = R0.length - 1; i >= 0; i--){ const g = R0[i]; if(p.x >= g.x && p.x <= g.x + g.w && p.y >= g.y && p.y <= g.y + g.h) return g; } return null; };
+  cv.addEventListener('pointerdown', e => {
+    e.preventDefault(); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); try{ cv.setPointerCapture(e.pointerId); }catch(er){}
+    const it = edIt(); if(!it) return; const st = edState(it);
+    if(ptrs.size >= 2){ drag = null; cv.classList.remove('dragging'); if(ptrs.size === 2) pinch = { d: pdist(), z: st.zoom }; return; }
+    const p = pt(e); drag = { last: p, start: p, hit: hit(p), moved: false }; cv.classList.add('dragging');
+  });
+  cv.addEventListener('pointermove', e => {
+    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const it = edIt(); if(!it) return; const st = edState(it);
+    if(pinch){ if(ptrs.size >= 2 && ED.img){ st.zoom = clamp(Math.round(pinch.z * pdist() / pinch.d), 100, 300); $('rlEdZoom').value = st.zoom; ED.changed = true; edDraw(); } return; }
+    if(!drag) return;
+    const p = pt(e), dx = p.x - drag.last.x, dy = p.y - drag.last.y; drag.last = p;
+    if(!drag.moved && Math.hypot(p.x - drag.start.x, p.y - drag.start.y) < 6) return;
+    drag.moved = true; ED.changed = true;
+    const k = drag.hit ? drag.hit.k : null, pm = ED.info.pmax || { x: 0, y: 0 };
+    if(k && k !== 'photo' && k !== 'logo') st.textY = clamp(st.textY + dy, -400, 400);
+    else { if(pm.x > 0) st.panX = clamp(st.panX + dx / pm.x, -1, 1); if(pm.y > 0) st.panY = clamp(st.panY + dy / pm.y, -1, 1); }
+    edDraw();
+  });
+  const end = e => { if(e && e.pointerId != null) ptrs.delete(e.pointerId); if(pinch){ if(!ptrs.size) pinch = null; return; } drag = null; cv.classList.remove('dragging'); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  cv.addEventListener('wheel', e => { const it = edIt(); if(!it || !ED.img) return; e.preventDefault(); const st = edState(it); st.zoom = clamp(st.zoom - Math.sign(e.deltaY) * 5, 100, 300); $('rlEdZoom').value = st.zoom; ED.changed = true; edDraw(); }, { passive: false });
+  $('rlEdZoom').addEventListener('input', () => { const it = edIt(); if(!it) return; edState(it).zoom = +$('rlEdZoom').value; ED.changed = true; edDraw(); });
+  $('rlEdText').addEventListener('input', () => { const it = edIt(); if(!it) return; it.text = $('rlEdText').value; ED.changed = true; edDraw(); });
+  $('rlEdReset').addEventListener('click', () => { const it = edIt(); if(!it) return; it.ed = null; edState(it); $('rlEdZoom').value = 100; ED.changed = true; edDraw(); });
+  $('rlEdDone').addEventListener('click', () => rlEdClose());
+  $('rlEdClose').addEventListener('click', () => rlEdClose());
+  $('rlEdPrev').addEventListener('click', () => edLoad(ED.i - 1));
+  $('rlEdNext').addEventListener('click', () => edLoad(ED.i + 1));
+  ed.addEventListener('click', e => { if(e.target === ed) rlEdClose(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && ED.open){ e.stopImmediatePropagation(); rlEdClose(true); } }, true);
+  window.addEventListener('popstate', () => { if(ED.open && !(history.state && history.state.ed)) rlEdClose(true); });
+  $('rlCanvas').addEventListener('click', () => { if(RL.open && !RL.busy && RL.items.length) rlEdOpen(0); });
+})();
+
+/* ---------------- 10) page logo right inside the reel studio ---------------- */
+function rlLogoUi(){
+  const has = !!C.logoUrl, box = $('rlLogoBox'); if(!box) return;
+  $('rlLogoL').textContent = t('rlLogo');
+  box.classList.toggle('no', !has);
+  const th = $('rlLogoTh'); if(has){ th.src = C.logoUrl; th.classList.remove('hidden'); } else { th.removeAttribute('src'); th.classList.add('hidden'); }
+  $('rlLogoMsg').textContent = has ? t('rlLogoOk') : t('rlLogoNo');
+  $('rlLogoBtn').textContent = has ? t('rlLogoCh') : t('rlLogoUp');
+  $('rlPvHint').textContent = t('rlPvHint');
+}
+$('rlLogoBtn').addEventListener('click', () => $('logoFile').click());
+const updateLogoUiRl = updateLogoUi;
+updateLogoUi = function(){ updateLogoUiRl(); try{ rlLogoUi(); if(RL.open){ RL.cardFiles = null; rlPreview(); } if(ED.open) edDraw(); }catch(e){} };
+const rlTextsEd = rlTexts;
+rlTexts = function(){ rlTextsEd(); try{ rlLogoUi(); if(ED.open) edTexts(); }catch(e){} };
+const rlOpenEd = rlOpen;
+rlOpen = function(){ rlOpenEd(); try{ if(!C.logoUrl) setTimeout(() => toast(t('tRlNoLogo')), 600); }catch(e){} };
 /* other parts of the app (e.g. the newspapers sheet) can open the reel studio with their own list of stories */
 window.TFReel = {
   open(list){

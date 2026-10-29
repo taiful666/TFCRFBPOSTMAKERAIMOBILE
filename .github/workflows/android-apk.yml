@@ -63,7 +63,13 @@ jobs:
         env:
           KS: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
         run: |
-          if [ -n "$KS" ]; then mkdir -p ~/.android && echo "$KS" | base64 -d > ~/.android/debug.keystore && echo "Fixed signing key in use"; else echo "No fixed signing key yet - a temporary one will be used"; fi
+          if [ -z "$KS" ]; then
+            echo "::error::The fixed signing key (secret ANDROID_DEBUG_KEYSTORE_B64) is missing. Add it in Settings > Secrets and variables > Actions, then run this again."
+            exit 1
+          fi
+          mkdir -p ~/.android && echo "$KS" | tr -d ' \r\n' | base64 -d > ~/.android/debug.keystore
+          keytool -list -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey > /dev/null
+          echo "Fixed signing key in use"
 
       - name: Build the APK
         working-directory: android-app/android

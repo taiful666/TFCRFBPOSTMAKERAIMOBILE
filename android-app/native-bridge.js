@@ -110,6 +110,8 @@
   var lastBack = 0;
   if (App && App.addListener) {
     App.addListener('backButton', function (e) {
+      // If the update message is open, Back just closes it.
+      if (dialogOpen) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return; }
       // Let the app close any open panel first (same as pressing Esc).
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true }));
       if (e && e.canGoBack) { history.back(); return; }
@@ -119,6 +121,65 @@
       say('বের হতে আবার Back চাপুন');
     });
   }
+
+  /* ---------- "New update available" check ----------
+     Every time the app opens (or comes back from the background), it asks
+     GitHub which build is on the Releases page. If that build is newer than
+     the one installed, it shows a message with an "Update" button that
+     downloads the new APK in the phone's browser. */
+  var REPO = 'taiful666/TFCRFBPOSTMAKERAIMOBILE';
+  var APK_URL = 'https://github.com/' + REPO + '/releases/download/android-latest/TF-FB-Reels-Post-Maker.apk';
+  var myBuild = 0, skipped = 0, lastCheck = 0, dialogOpen = false;
+
+  function showUpdate(newBuild) {
+    if (dialogOpen || !document.body) return;
+    dialogOpen = true;
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;background:rgba(6,10,24,.62);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:22px;font-family:"Hind Siliguri","Noto Sans Bengali",sans-serif';
+    wrap.innerHTML =
+      '<div style="background:#fff;color:#111;border-radius:18px;max-width:380px;width:100%;padding:22px 20px 18px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center">' +
+        '<div style="font-size:42px;line-height:1">🎉</div>' +
+        '<div style="font-size:19px;font-weight:700;margin:10px 0 6px">নতুন আপডেট এসেছে!</div>' +
+        '<div style="font-size:14.5px;line-height:1.6;color:#444">TF FB Reels &amp; Post Maker-এর নতুন ভার্সন <b>1.0.' + newBuild + '</b> পাওয়া যাচ্ছে।<br>' +
+        '(আপনার ফোনে আছে 1.0.' + myBuild + ')<br><br>' +
+        '"আপডেট করুন" চাপলে ফাইল ডাউনলোড হবে। ডাউনলোড শেষে ফাইলটি খুলে <b>Update / ইনস্টল</b> চাপুন — আপনার সব কাজ ও সেটিং থেকে যাবে।</div>' +
+        '<button data-a="go" style="margin-top:16px;width:100%;border:0;border-radius:12px;background:#1877F2;color:#fff;font-size:16px;font-weight:700;padding:13px">আপডেট করুন</button>' +
+        '<button data-a="later" style="margin-top:8px;width:100%;border:0;border-radius:12px;background:#eef1f6;color:#333;font-size:15px;padding:11px">পরে করবো</button>' +
+      '</div>';
+    function close() { dialogOpen = false; wrap.remove(); document.removeEventListener('keydown', onKey, true); }
+    function onKey(e) { if (e.key === 'Escape') { skipped = newBuild; close(); e.stopImmediatePropagation(); } }
+    wrap.addEventListener('click', function (e) {
+      var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
+      if (a === 'go') { close(); say('ডাউনলোড শুরু হচ্ছে…'); window.location.href = APK_URL; }
+      else if (a === 'later') { skipped = newBuild; close(); }
+    });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(wrap);
+  }
+
+  async function checkUpdate() {
+    var now = Date.now();
+    if (now - lastCheck < 10 * 60 * 1000) return;   // at most once every 10 minutes
+    lastCheck = now;
+    try {
+      if (!myBuild && App && App.getInfo) myBuild = parseInt((await App.getInfo()).build, 10) || 0;
+      if (!myBuild) return;
+      var r = await fetch('https://api.github.com/repos/' + REPO + '/releases/tags/android-latest', { cache: 'no-store' });
+      if (!r.ok) return;
+      var rel = await r.json();
+      var m = /build\s+(\d+)/i.exec(String(rel.name || ''));
+      var latest = m ? parseInt(m[1], 10) : 0;
+      var hasApk = (rel.assets || []).some(function (x) { return /\.apk$/i.test(x.name || ''); });
+      if (hasApk && latest > myBuild && latest !== skipped) showUpdate(latest);
+    } catch (e) { /* no internet etc. — try again next time */ }
+  }
+
+  function startUpdateChecks() {
+    setTimeout(checkUpdate, 3000);
+    if (App && App.addListener) App.addListener('resume', function () { setTimeout(checkUpdate, 1500); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startUpdateChecks);
+  else startUpdateChecks();
 
   document.documentElement.classList.add('tf-android-app');
 })();

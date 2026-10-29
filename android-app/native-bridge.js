@@ -1,4 +1,4 @@
-/* TF NewsCraft — Android bridge.
+/* TF FB Reels & Post Maker — Android bridge.
    Loaded first inside the Android app only. Makes the web app's
    save / share / back-button behave like a real phone app.
    In a normal browser it does nothing. */
@@ -11,7 +11,7 @@
     return (C.Plugins && C.Plugins[name]) || (C.registerPlugin && C.registerPlugin(name));
   }
   var FS = plug('Filesystem'), Share = plug('Share'), App = plug('App');
-  var FOLDER = 'TF NewsCraft';
+  var FOLDER = 'TF FB Maker';
 
   function say(msg) {
     try { if (typeof window.toast === 'function') { window.toast(msg); return; } } catch (e) {}

@@ -1,4 +1,4 @@
-# Builds the TF NewsCraft Android app (APK) on GitHub's servers.
+# Builds the TF FB Reels & Post Maker Android app (APK) on GitHub's servers.
 # Runs by itself whenever the app (index.html) or the android-app folder changes,
 # or by hand from the Actions tab ("Run workflow").
 # The finished APK is put on the repository's Releases page (tag: android-latest).
@@ -70,13 +70,13 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/TF-NewsCraft.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/TF-FB-Maker.apk"
 
       - name: Keep the APK as a build file
         uses: actions/upload-artifact@v4
         with:
-          name: TF-NewsCraft-apk
-          path: TF-NewsCraft.apk
+          name: TF-FB-Maker-apk
+          path: TF-FB-Maker.apk
 
       - name: Publish the APK on the Releases page
         working-directory: .
@@ -84,7 +84,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete android-latest --yes --cleanup-tag || true
-          gh release create android-latest TF-NewsCraft.apk \
+          gh release create android-latest TF-FB-Maker.apk \
             --target "${{ github.sha }}" \
-            --title "TF NewsCraft — Android app (build ${{ github.run_number }})" \
-            --notes "ফোনে ইনস্টল করতে TF-NewsCraft.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})"
+            --title "TF FB Reels & Post Maker — Android app (build ${{ github.run_number }})" \
+            --notes "ফোনে ইনস্টল করতে TF-FB-Maker.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})"

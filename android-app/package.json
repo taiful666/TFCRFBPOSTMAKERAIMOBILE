@@ -1,0 +1,21 @@
+{
+  "name": "tf-newscraft-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android app wrapper for TF NewsCraft (built automatically by GitHub Actions)",
+  "scripts": {
+    "prepare-www": "node prepare-www.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.6.0"
+  }
+}

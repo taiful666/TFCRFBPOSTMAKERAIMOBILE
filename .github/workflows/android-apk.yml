@@ -1,0 +1,84 @@
+# Builds the TF NewsCraft Android app (APK) on GitHub's servers.
+# Runs by itself whenever the app (index.html) or the android-app folder changes,
+# or by hand from the Actions tab ("Run workflow").
+# The finished APK is put on the repository's Releases page (tag: android-latest).
+name: Build Android app (APK)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'android-app/**'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: android-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install app tools
+        run: npm install --no-audit --no-fund
+
+      - name: Copy the web app into the Android project
+        run: node prepare-www.mjs
+
+      - name: Create the Android project
+        run: npx cap add android
+
+      - name: Make icons and splash screen from the logo
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#0B1430' --iconBackgroundColorDark '#0B1430' --splashBackgroundColor '#0B1430' --splashBackgroundColorDark '#0B1430'
+
+      - name: Set version number
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -E 'versionCode|versionName' android/app/build.gradle
+
+      - name: Sync plugins
+        run: npx cap sync android
+
+      - name: Build the APK
+        working-directory: android-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/TF-NewsCraft.apk"
+
+      - name: Keep the APK as a build file
+        uses: actions/upload-artifact@v4
+        with:
+          name: TF-NewsCraft-apk
+          path: TF-NewsCraft.apk
+
+      - name: Publish the APK on the Releases page
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest TF-NewsCraft.apk \
+            --target "${{ github.sha }}" \
+            --title "TF NewsCraft — Android app (build ${{ github.run_number }})" \
+            --notes "ফোনে ইনস্টল করতে TF-NewsCraft.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})"

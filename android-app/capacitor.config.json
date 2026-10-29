@@ -1,0 +1,20 @@
+{
+  "appId": "com.taiful.tfnewscraft",
+  "appName": "TF NewsCraft",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#f4f5f7",
+    "allowMixedContent": false,
+    "captureInput": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 700,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#0B1430",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    }
+  }
+}

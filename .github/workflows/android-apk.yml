@@ -70,13 +70,13 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/TF-FB-Maker.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/TF-FB-Reels-Post-Maker.apk"
 
       - name: Keep the APK as a build file
         uses: actions/upload-artifact@v4
         with:
-          name: TF-FB-Maker-apk
-          path: TF-FB-Maker.apk
+          name: TF-FB-Reels-Post-Maker-apk
+          path: TF-FB-Reels-Post-Maker.apk
 
       - name: Publish the APK on the Releases page
         working-directory: .
@@ -84,7 +84,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete android-latest --yes --cleanup-tag || true
-          gh release create android-latest TF-FB-Maker.apk \
+          gh release create android-latest TF-FB-Reels-Post-Maker.apk \
             --target "${{ github.sha }}" \
             --title "TF FB Reels & Post Maker — Android app (build ${{ github.run_number }})" \
-            --notes "ফোনে ইনস্টল করতে TF-FB-Maker.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})"
+            --notes "ফোনে ইনস্টল করতে TF-FB-Reels-Post-Maker.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})"

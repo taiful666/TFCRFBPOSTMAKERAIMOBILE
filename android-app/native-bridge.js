@@ -11,7 +11,7 @@
     return (C.Plugins && C.Plugins[name]) || (C.registerPlugin && C.registerPlugin(name));
   }
   var FS = plug('Filesystem'), Share = plug('Share'), App = plug('App');
-  var FOLDER = 'TF FB Maker';
+  var FOLDER = 'TF FB Reels and Post Maker';
 
   function say(msg) {
     try { if (typeof window.toast === 'function') { window.toast(msg); return; } } catch (e) {}

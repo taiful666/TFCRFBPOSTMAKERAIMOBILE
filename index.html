@@ -7772,7 +7772,8 @@ Object.assign(T.bn, {
   tPpBadUrl:'সঠিক লিংক দিন', tPpNeedName:'পত্রিকার নাম লিখুন', tPpSaved:'পত্রিকা যোগ হয়েছে', tPpOpening:'পত্রিকা খোলা হচ্ছে…',
   tPpTab:'পত্রিকা নতুন ট্যাবে খুলেছে — খবরের লিংক কপি করে এখানে পেস্ট করুন', tPpNoTitle:'শিরোনাম আনা যায়নি — রিলে গিয়ে শিরোনাম লিখে দিন',
   tPpFetching:'খবরের শিরোনাম ও ছবি আনা হচ্ছে…', tPpOpenFail:'পত্রিকা খোলা যায়নি — আবার চেষ্টা করুন',
-  ppBarCard:'কার্ড বানান', ppBarAdd:'রিলে যোগ', ppBarAdded:'রিলে আছে', ppBarReel:'রিল', ppBarHint:'যেকোনো খবরে ঢুকুন — তারপর এখান থেকে কার্ড বা রিল', ppBarWait:'খবর নেওয়া হচ্ছে…'
+  ppBarCard:'কার্ড বানান', ppBarAdd:'রিলে যোগ', ppBarAdded:'রিলে আছে', ppBarReel:'রিল', ppBarHint:'যেকোনো খবরে ঢুকুন — তারপর এখান থেকে কার্ড বা রিল', ppBarWait:'খবর নেওয়া হচ্ছে…',
+  ppAdOn:'🛡️ পত্রিকার বিজ্ঞাপন কমান (অ্যাড ফিল্টার)', tPpAdOn:'অ্যাড ফিল্টার চালু — পরের বার পত্রিকা খুললে কাজ করবে', tPpAdOff:'অ্যাড ফিল্টার বন্ধ'
 });
 Object.assign(T.en, {
   ppTile:'Newspapers', ppTileS:'Every paper & TV site — card or reel from any story',
@@ -7789,7 +7790,8 @@ Object.assign(T.en, {
   tPpBadUrl:'Enter a valid link', tPpNeedName:'Enter the paper name', tPpSaved:'Paper added', tPpOpening:'Opening the paper…',
   tPpTab:'The paper opened in a new tab — copy a story link and paste it here', tPpNoTitle:'Could not get the headline — type it in the reel',
   tPpFetching:'Getting the headline and photo…', tPpOpenFail:'Could not open the paper — try again',
-  ppBarCard:'Make card', ppBarAdd:'Add to reel', ppBarAdded:'In reel', ppBarReel:'Reel', ppBarHint:'Open any story — then make a card or reel here', ppBarWait:'Taking the story…'
+  ppBarCard:'Make card', ppBarAdd:'Add to reel', ppBarAdded:'In reel', ppBarReel:'Reel', ppBarHint:'Open any story — then make a card or reel here', ppBarWait:'Taking the story…',
+  ppAdOn:'🛡️ Reduce newspaper ads (ad filter)', tPpAdOn:'Ad filter on — works the next time you open a paper', tPpAdOff:'Ad filter off'
 });
 const tf = (k, o) => { let s = t(k); Object.keys(o || {}).forEach(x => { s = s.split('{' + x + '}').join(o[x]); }); return s; };
 
@@ -7839,7 +7841,7 @@ PAPERS.forEach(p => { p.host = hostOf(p.u); });
 const PP = {
   open: false, grp: store.get('ppGrp', 'all'), edit: false, basketOpen: false,
   custom: store.get('ppCustom', []), hidden: store.get('ppHidden', []), basket: store.get('ppBasket', []),
-  iab: null, iabOpen: false, iabPaper: null, wired: false, busy: false
+  iab: null, iabOpen: false, iabPaper: null, wired: false, busy: false, adBlock: store.get('ppAdBlock', true) !== false
 };
 const ppSave = () => { store.set('ppCustom', PP.custom); store.set('ppHidden', PP.hidden); };
 const ppSaveBasket = () => { if(!store.set('ppBasket', PP.basket)){ PP.basket.forEach(x => { x.desc = ''; }); store.set('ppBasket', PP.basket); } };
@@ -7961,8 +7963,91 @@ function ppInjected(L){
   api.ensure(); render(); api.hello();
   setInterval(function(){ api.ensure(); if(location.href !== last){ st.has = false; st.busy = false; api.hello(); } }, 900);
 }
+/* ---------------- ad filter for the newspaper pages (Android app only) ----------------
+   These are the papers' own ads (ad networks), not the app's. Two layers:
+   1) the in-app browser refuses to open a page on an ad network (ad redirects / pop-unders);
+   2) a small script inside the page hides ad slots and removes ad frames as they appear. */
+const PP_AD_HOSTS = [
+  'doubleclick.net', 'googlesyndication.com', 'googleadservices.com', 'adservice.google.com', 'googletagservices.com',
+  'amazon-adsystem.com', 'adnxs.com', 'criteo.com', 'criteo.net', 'pubmatic.com', 'rubiconproject.com', 'openx.net',
+  'smartadserver.com', 'casalemedia.com', 'yieldmo.com', 'teads.tv', 'adform.net', 'media.net',
+  'taboola.com', 'outbrain.com', 'mgid.com', 'revcontent.com', 'adskeeper.com', 'adskeeper.co.uk', 'zergnet.com',
+  'popads.net', 'popcash.net', 'propellerads.com', 'onclickads.net', 'onclkds.com', 'adsterra.com', 'adsterratech.com',
+  'exoclick.com', 'exdynsrv.com', 'juicyads.com', 'hilltopads.net', 'clickadu.com', 'a-ads.com', 'adcash.com',
+  'admaven.com', 'ad-maven.com', 'richpush.co', 'pushame.com', 'evadav.com', 'monetag.com', 'galaksion.com'
+];
+const PP_AD_CSS = [
+  'ins.adsbygoogle', '.adsbygoogle', '[id^="div-gpt-ad"]', '[id^="google_ads_iframe"]', '[id*="google_ads"]', 'iframe[id^="aswift_"]',
+  '[data-ad-slot]', '[data-ad-unit]', '[data-google-query-id]', 'amp-ad', 'amp-embed', '.gpt-ad', '.dfp-ad', '[class*="dfp-ad"]',
+  '[id^="taboola-"]', '.trc_related_container', '[class*="taboola"]', '.OUTBRAIN', '[class^="mgid"]', '[id^="mgid"]', '[id*="ScriptRootC"]',
+  '.ad-slot', '.ad-container', '.ad-wrapper', '.ads-wrapper', '.ad-unit', '.advertisement', '.adsense', '.sticky-ad', '.stickyAd'
+].join(',');
+const ppAdHostPatterns = () => PP_AD_HOSTS.reduce((a, d) => a.concat([d, '*.' + d]), []);
+
+/* runs inside the newspaper page */
+function ppAdFilter(H, SEL){
+  var W = window;
+  if(W.__tfads) return; W.__tfads = 1;
+  var bad = function(u){
+    if(!u || /^(data|blob|about|javascript):/i.test(u)) return false;
+    var h; try{ h = new URL(u, location.href).hostname.toLowerCase(); }catch(e){ return false; }
+    for(var i = 0; i < H.length; i++){ var d = H[i]; if(h === d || h.slice(-d.length - 1) === '.' + d) return true; }
+    return false;
+  };
+  var st = document.createElement('style');
+  st.textContent = SEL + '{display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;margin:0!important;padding:0!important}';
+  (document.head || document.documentElement).appendChild(st);
+  /* an ad that floats over the page (fixed / sticky box) goes away with its box —
+     but only a box with almost no text of its own, so a sticky site menu is never hidden */
+  function hide(el){
+    var p = el.parentElement;
+    for(var i = 0; p && p !== document.body && i < 6; i++, p = p.parentElement){
+      var pos = ''; try{ pos = getComputedStyle(p).position; }catch(e){}
+      if(pos === 'fixed' || pos === 'sticky'){
+        if(p.id !== 'tfpp-host' && String(p.innerText || '').trim().length < 60) p.style.setProperty('display', 'none', 'important');
+        break;
+      }
+    }
+    if(el.tagName === 'IFRAME' || el.tagName === 'SCRIPT'){ try{ el.src = 'about:blank'; }catch(e){} el.remove(); }
+    else el.style.setProperty('display', 'none', 'important');
+  }
+  function sweep(root){
+    if(!root || !root.querySelectorAll) return;
+    var els = root.querySelectorAll('iframe,script[src],img[src],a[href]');
+    for(var i = 0; i < els.length; i++){
+      var e = els[i], u = e.tagName === 'A' ? e.getAttribute('href') : (e.getAttribute('src') || e.getAttribute('data-src') || '');
+      if(bad(u)) hide(e);
+    }
+  }
+  sweep(document);
+  try{
+    new MutationObserver(function(ms){
+      for(var i = 0; i < ms.length; i++){
+        var m = ms[i];
+        if(m.type === 'attributes'){ sweep(m.target.parentNode || m.target); continue; }
+        for(var j = 0; j < m.addedNodes.length; j++){
+          var n = m.addedNodes[j]; if(n.nodeType !== 1) continue;
+          if(/^(IFRAME|SCRIPT|IMG|A)$/.test(n.tagName)){ var u = n.tagName === 'A' ? n.getAttribute('href') : n.getAttribute('src'); if(bad(u)){ hide(n); continue; } }
+          sweep(n);
+        }
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+  }catch(e){}
+  /* pop-ups: a new window to an ad network, or one opened without a tap, is refused */
+  var tap = 0;
+  ['touchstart', 'mousedown', 'keydown'].forEach(function(t){ W.addEventListener(t, function(){ tap = Date.now(); }, true); });
+  var open0 = W.open;
+  W.open = function(u){
+    if(bad(u) || Date.now() - tap > 1500) return null;
+    return open0.apply(W, arguments);
+  };
+}
+function ppAdScript(){
+  return '(function(){try{(' + ppAdFilter.toString() + ')(' + JSON.stringify(PP_AD_HOSTS) + ',' + JSON.stringify(PP_AD_CSS) + ');}catch(e){console.error("tfads",e);}})();';
+}
+
 function ppScript(){
-  const L = { card: t('ppBarCard'), add: t('ppBarAdd'), added: t('ppBarAdded'), reel: t('ppBarReel'), hint: t('ppBarHint'), wait: t('ppBarWait') };
+  const L ={ card: t('ppBarCard'), add: t('ppBarAdd'), added: t('ppBarAdded'), reel: t('ppBarReel'), hint: t('ppBarHint'), wait: t('ppBarWait') };
   return '(function(){try{(' + ppInjected.toString() + ')(' + JSON.stringify(L) + ');}catch(e){console.error("tfpp",e);}})();';
 }
 function ppTell(o){ const I = ppIab(); if(!I || !PP.iabOpen) return; try{ I.executeScript({ code: 'window.__tfpp&&window.__tfpp.set(' + JSON.stringify(o) + ');' }).catch(() => {}); }catch(e){} }
@@ -7970,7 +8055,7 @@ function ppState(page, msg){ const n = PP.basket.length; return { n, nt: nwNum(n
 async function ppCloseBrowser(){ const I = ppIab(); PP.iabOpen = false; if(!I) return; try{ await I.close(); }catch(e){} }
 function ppWire(){
   if(PP.wired) return; const I = ppIab(); if(!I || !I.addListener) return; PP.wired = true;
-  const inject = () => { try{ I.executeScript({ code: ppScript() }).catch(() => {}); }catch(e){} };
+  const inject = () => { try{ I.executeScript({ code: (PP.adBlock ? ppAdScript() : '') + ppScript() }).catch(() => {}); }catch(e){} };
   I.addListener('browserPageLoaded', inject);
   I.addListener('closeEvent', () => { PP.iabOpen = false; ppRenderBasket(); });
   I.addListener('messageFromWebview', ev => {
@@ -7994,7 +8079,8 @@ async function ppOpenPaper(p){
         url: p.u, title: ppName(p), toolbarType: 'navigation', showReloadButton: true, visibleTitle: true,
         toolbarColor: '#1877f2', toolbarTextColor: '#ffffff', showArrow: true,
         activeNativeNavigationForWebview: true, openBlankTargetInWebView: true, preventDeeplink: true,
-        backgroundColor: S.theme === 'dark' ? 'black' : 'white'
+        backgroundColor: S.theme === 'dark' ? 'black' : 'white',
+        ...(PP.adBlock ? { blockedHosts: ppAdHostPatterns() } : {})
       });
       return;
     }catch(e){ PP.iabOpen = false; console.error('pp open', e); toast(t('tPpOpenFail')); return; }
@@ -8073,6 +8159,7 @@ css.textContent = `
 .ppbox .ppsub{font-size:12.5px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ppbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 12px 16px}
 .pphint{font-size:13px;line-height:1.55;color:var(--muted);margin:2px 2px 10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm,10px);padding:9px 11px}
+.ppad{display:flex;gap:8px;align-items:center;font-size:13.5px;margin:0 2px 10px}
 .ppgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:9px}
 .pptile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r,14px);padding:13px 6px 11px;color:var(--text);text-align:center;min-height:0}
 .pptile:active{transform:scale(.97)}
@@ -8117,6 +8204,7 @@ sheet.innerHTML = `<div class="nsbox ppbox">
   <div class="nwtools"><input type="search" id="ppSearch" autocomplete="off"></div>
   <div class="ppbody" id="ppBody">
     <p class="pphint" id="ppHint"></p>
+    <label class="chk ppad hidden" id="ppAdRow"><input type="checkbox" id="ppAdChk"> <span id="ppAdT"></span></label>
     <div class="ppform hidden" id="ppForm">
       <input type="text" id="ppNewName" maxlength="40" autocomplete="off">
       <input type="url" id="ppNewUrl" inputmode="url" autocomplete="off" spellcheck="false">
@@ -8142,6 +8230,7 @@ function ppTexts(){
   $('ppEditBtn').textContent = PP.edit ? t('ppDone') : t('ppEdit');
   $('ppSearch').placeholder = t('ppSearch');
   $('ppHint').textContent = ppNative() ? t('ppHintApp') : t('ppHintWeb');
+  $('ppAdRow').classList.toggle('hidden', !ppNative()); $('ppAdT').textContent = t('ppAdOn'); $('ppAdChk').checked = PP.adBlock;
   $('ppNewName').placeholder = t('ppNewName'); $('ppNewUrl').placeholder = t('ppNewUrl');
   $('ppFormCancel').textContent = t('ppCancel'); $('ppFormSave').textContent = t('ppSave');
   $('ppRestore').textContent = t('ppRestore');
@@ -8245,6 +8334,7 @@ $('ppGrid').addEventListener('click', e => {
   ppOpenPaper(p);
 });
 $('ppRestore').addEventListener('click', () => { PP.hidden = []; ppSave(); ppRender(); });
+$('ppAdChk').addEventListener('change', e => { PP.adBlock = e.target.checked; store.set('ppAdBlock', PP.adBlock); toast(t(PP.adBlock ? 'tPpAdOn' : 'tPpAdOff')); });
 $('ppFormCancel').addEventListener('click', () => { $('ppForm').classList.add('hidden'); });
 $('ppFormSave').addEventListener('click', () => {
   const name = norm($('ppNewName').value), u = normalizeUrl($('ppNewUrl').value);

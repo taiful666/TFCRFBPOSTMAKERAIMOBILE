@@ -7748,6 +7748,20 @@ const applyI18nRl = applyI18n;
 applyI18n = function(){ applyI18nRl(); try{ rlLabels(); if(RL.open) rlTexts(); }catch(e){} };
 rlLabels();
 document.addEventListener('keydown', e => { if(e.key === 'Escape' && RL.open && !RL.busy) rlClose(); });
+/* full clear (header "Clear" button): drop every picked story, the reel list and the made video — reel settings stay */
+(window.TFClearHooks = window.TFClearHooks || []).push({
+  has: () => RL.sel.size > 0 || RL.items.length > 0 || !!RL.url || RL.on || RL.open,
+  clear: () => {
+    if(RL.busy) RL.cancel = true;
+    if(ED.open){ ED.changed = false; rlEdClose(true); }
+    if(RL.open) rlClose(true);
+    const v = $('rlVideo'); if(v){ try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} }
+    if(RL.url){ try{ URL.revokeObjectURL(RL.url); }catch(e){} }
+    RL.sel.clear(); RL.items = []; RL.imgs.clear(); RL.blob = null; RL.url = ''; RL.caption = ''; RL.cardFiles = null; RL.cardSig = '';
+    RL.style = rlNewStyle(RL.style);
+    setMode(false);
+  }
+});
 })();
 
 /* =====================================================================
@@ -8368,6 +8382,78 @@ $('ppReel').addEventListener('click', ppMakeReel);
 const applyI18nPp = applyI18n;
 applyI18n = function(){ applyI18nPp(); try{ if(PP.open){ ppTexts(); ppRender(); } }catch(e){} };
 window.TFPapers = { open: ppOpen, list: PAPERS, basket: () => PP.basket, inject: ppScript };
+(window.TFClearHooks = window.TFClearHooks || []).push({
+  has: () => PP.basket.length > 0 || PP.open,
+  clear: () => {
+    if(PP.open) ppClose(true);
+    PP.basket = []; ppSaveBasket(); try{ ppRenderBasket(); }catch(e){}
+    if($('ppLink')) $('ppLink').value = '';
+  }
+});
+})();
+
+/* ================= header "Clear" button — wipe everything picked and start fresh (logo, API keys & settings stay) ================= */
+(function clearAllModule(){
+Object.assign(T.bn, { clrLbl:'ক্লিয়ার', clrTitle:'সব ক্লিয়ার করে নতুন করে শুরু করুন',
+  clrAsk:'সিলেক্ট করা সব খবর, কার্ড, ছবি, AI লেখা, ফেসবুক পোস্ট, রিল ও সেভ করা খবরের তালিকা মুছে নতুন করে শুরু করবেন?\n\n(লোগো, API কী, পেজের নাম ও সেটিংস যেমন আছে তেমনই থাকবে)',
+  clrDone:'সব ক্লিয়ার — নতুন করে শুরু করুন', clrEmpty:'ক্লিয়ার করার মতো কিছু নেই — নতুন করে শুরু করতে পারেন' });
+Object.assign(T.en, { clrLbl:'Clear', clrTitle:'Clear everything and start fresh',
+  clrAsk:'Clear every selected story, card, photo, AI text, Facebook post, reel and saved-stories list, and start fresh?\n\n(Your logo, API keys, page name and settings stay as they are)',
+  clrDone:'All cleared — start fresh', clrEmpty:'Nothing to clear — you can start fresh' });
+
+const css = document.createElement('style');
+css.textContent = `
+.tfclr{display:inline-flex;align-items:center;gap:5px;height:36px;min-height:36px;padding:0 11px 0 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:700 13.5px/1 var(--sans,inherit);cursor:pointer;flex:none;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.tfclr svg{width:17px;height:17px;flex:none;color:#e5484d}
+.tfclr:hover{background:var(--surface-2)}
+.tfclr:active{transform:scale(.96)}
+.tfclr.spin svg{animation:tfclrSpin .5s ease}
+@keyframes tfclrSpin{to{transform:rotate(-360deg)}}
+#v7New{display:none!important}
+.topbar .brand{min-width:0}
+.topbar .brand b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:380px){.topbar .brand b{font-size:15px}.tfclr{padding:0 9px 0 8px}}
+@media (max-width:340px){.tfclr span{display:none}.tfclr{padding:0;width:36px;justify-content:center}}
+`;
+document.head.appendChild(css);
+
+const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+const hooks = () => window.TFClearHooks || [];
+function hasStuff(){
+  if(S.article || S.pastedHtml) return true;
+  if(['urlInput', 'pasteText', 'pasteTitle', 'pasteSource', 'imgPrompt', 'fbText', 'customInstr'].some(id => { const el = $(id); return el && String(el.value || '').trim(); })) return true;
+  if(C.img || C.upUrl || C.aiUrl || (AI.images && AI.images.length)) return true;
+  if(NW.open || document.body.classList.contains('rlsel')) return true;
+  return hooks().some(h => { try{ return h.has(); }catch(e){ return false; } });
+}
+function clearAll(){
+  if(hasStuff() && !window.confirm(t('clrAsk'))) return;
+  hooks().forEach(h => { try{ h.clear(); }catch(e){ console.warn('clear', e); } });
+  try{ if(NW.open) nwClose(true); }catch(e){}
+  document.body.classList.remove('nwlock', 'rlsel');
+  try{ newSearch(); }catch(e){ console.warn('clear', e); }
+  setTimeout(() => { const a = document.activeElement; if(a && a.blur && a.id === 'urlInput') a.blur(); }, 320);   // no keyboard pop-up on phones
+  const b = $('tfClearBtn'); if(b){ b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); }
+  toast(t('clrDone'));
+}
+function labels(){
+  const b = $('tfClearBtn'); if(!b) return;
+  b.querySelector('span').textContent = t('clrLbl'); b.title = t('clrTitle'); b.setAttribute('aria-label', t('clrTitle'));
+}
+(function build(tries){
+  const ctrls = document.querySelector('.topbar .ctrls');
+  if(!ctrls || (!$('v7Built') && (tries || 0) < 40)){ if((tries || 0) < 80) setTimeout(() => build((tries || 0) + 1), 150); return; }
+  if($('tfClearBtn')) return;
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'tfClearBtn'; b.className = 'tfclr';
+  b.innerHTML = ICON + '<span></span>';
+  b.addEventListener('click', clearAll);
+  const first = $('v7Live') || $('v6Theme') || ctrls.firstChild;
+  ctrls.insertBefore(b, first);
+  labels();
+})();
+const applyI18nClr = applyI18n;
+applyI18n = function(){ applyI18nClr(); try{ labels(); }catch(e){} };
+window.TFClearAll = clearAll;
 })();
 
 })();

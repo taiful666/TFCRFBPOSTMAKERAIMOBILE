@@ -35,7 +35,7 @@ jobs:
           import { writeFileSync } from 'node:fs';
 
           const SOURCES = [
-            ['prothomalo', 'prothomalo.com', ['https://www.prothomalo.com/feed/'], { q: 'https://www.prothomalo.com', qi: 'https://images.prothomalo.com/' }],
+            ['prothomalo', 'prothomalo.com', ['https://www.prothomalo.com/feed/'], { q: 'https://www.prothomalo.com', qi: 'https://media.prothomalo.com/' }],
             ['jamuna', 'jamuna.tv', ['https://jamuna.tv/feed', 'https://jamuna.tv/rss.xml', 'https://jamuna.tv/feed/rss.xml']],
             ['kalbela', 'kalbela.com', ['https://www.kalbela.com/rss.xml', 'https://www.kalbela.com/feed', 'https://www.kalbela.com/feed/rss.xml']],
             ['bdnews24', 'bangla.bdnews24.com', ['https://bangla.bdnews24.com/feed'], { q: 'https://bangla.bdnews24.com' }],

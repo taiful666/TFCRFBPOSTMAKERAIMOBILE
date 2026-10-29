@@ -1573,7 +1573,9 @@ const norm = s => (s || '').replace(/\u00a0/g, ' ').replace(/[\u200b\u200c\u200d
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\d?\./, '').toLowerCase(); }catch(e){ return ''; } }
 function safeName(s){ return (s || 'article').replace(/[\\/:*?"<>|\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 70) || 'article'; }
-function proxImg(u, w){ if(!u || /^data:/.test(u)) return u; return 'https://images.weserv.nl/?url=' + encodeURIComponent(u.replace(/^https?:\/\//, '')) + (w ? '&w=' + w : '') + '&we&output=jpg&q=85'; }
+/* Prothom Alo moved its photos from images.prothomalo.com (now shut down) to media.prothomalo.com */
+function fixImgHost(u){ return typeof u === 'string' ? u.replace(/^(https?:)?\/\/images\.prothomalo\.com\//i, 'https://media.prothomalo.com/') : u; }
+function proxImg(u, w){ if(!u || /^data:/.test(u)) return u; u = fixImgHost(u); return 'https://images.weserv.nl/?url=' + encodeURIComponent(u.replace(/^https?:\/\//, '')) + (w ? '&w=' + w : '') + '&we&output=jpg&q=85'; }
 
 /* ============ i18n ============ */
 const T = {
@@ -1961,8 +1963,8 @@ async function getText(u, ms, headers){
 }
 function looksBlocked(html){ return !html || html.length < 800 || /cf-browser-verification|challenge-platform|Just a moment\.\.\.|Attention Required|Enable JavaScript and cookies|captcha|Access denied/i.test(html.slice(0, 6000)) && !/<p[\s>]/i.test(html.slice(0, 40000)); }
 /* ---- Quintype sites (Prothom Alo etc.): official JSON story feed ---- */
-const QUINTYPE = { 'prothomalo.com': 'https://images.prothomalo.com/', 'en.prothomalo.com': 'https://images.prothomalo.com/' };
-function quintypeBase(url){ const h = hostOf(url); for(const k in QUINTYPE){ if(h === k) return QUINTYPE[k]; } if(h.endsWith('.prothomalo.com')) return 'https://images.prothomalo.com/'; return null; }
+const QUINTYPE = { 'prothomalo.com': 'https://media.prothomalo.com/', 'en.prothomalo.com': 'https://media.prothomalo.com/' };
+function quintypeBase(url){ const h = hostOf(url); for(const k in QUINTYPE){ if(h === k) return QUINTYPE[k]; } if(h.endsWith('.prothomalo.com')) return 'https://media.prothomalo.com/'; return null; }
 function fromQuintype(json, url, imgBase){
   const st = json && (json.story || json);
   if(!st || !st.headline || !Array.isArray(st.cards)) return null;
@@ -2237,6 +2239,7 @@ function renderMeta(){
 function setLeadImage(){
   const a = S.article, fig = $('leadFig'), img = $('leadImg');
   if(!a || !a.image || !S.lead){ fig.classList.add('hidden'); return; }
+  a.image = fixImgHost(a.image);
   fig.classList.remove('hidden');
   img.onerror = () => {
     const st = img.dataset.stage;
@@ -3348,6 +3351,7 @@ function paintCard(cv){
 /* ---- images for the card ---- */
 function loadImg(src, cors){ return new Promise((res, rej) => { const im = new Image(); if(cors) im.crossOrigin = 'anonymous'; im.decoding = 'async'; im.onload = () => im.naturalWidth ? res(im) : rej(new Error('empty')); im.onerror = () => rej(new Error('img')); im.src = src; }); }
 async function loadExportable(url){
+  url = fixImgHost(url);
   if(/^(data|blob):/.test(url)) return { img: await loadImg(url, false), tainted: false };
   const enc = encodeURIComponent(url);
   // 0) your own proxy (Cloudflare Worker) — most reliable for blocked photos
@@ -4289,7 +4293,7 @@ Object.assign(T.en, {
 /* sources: f = known feed addresses (tried in order); if none answer, the paper's
    home page is searched for its feed, and finally Google News (site:) is used */
 const NEWS_SRC = [
-  { id:'prothomalo', bn:'প্রথম আলো', en:'Prothom Alo', d:'prothomalo.com', q:'https://www.prothomalo.com', qi:'https://images.prothomalo.com/', f:['https://www.prothomalo.com/feed/', 'https://www.prothomalo.com/stories.rss'], main:1 },
+  { id:'prothomalo', bn:'প্রথম আলো', en:'Prothom Alo', d:'prothomalo.com', q:'https://www.prothomalo.com', qi:'https://media.prothomalo.com/', f:['https://www.prothomalo.com/feed/', 'https://www.prothomalo.com/stories.rss'], main:1 },
   { id:'jamuna', bn:'যমুনা টিভি', en:'Jamuna TV', d:'jamuna.tv', f:['https://jamuna.tv/feed', 'https://jamuna.tv/rss.xml', 'https://jamuna.tv/feed/rss.xml'], main:1 },
   { id:'kalbela', bn:'কালবেলা', en:'Kalbela', d:'kalbela.com', f:['https://www.kalbela.com/rss.xml', 'https://www.kalbela.com/feed', 'https://www.kalbela.com/feed/rss.xml'], main:1 },
   { id:'bdnews24', bn:'বিডিনিউজ২৪', en:'bdnews24', d:'bangla.bdnews24.com', q:'https://bangla.bdnews24.com', f:['https://bangla.bdnews24.com/feed', 'https://bangla.bdnews24.com/stories.rss', 'https://bdnews24.com/feed'], main:1 },
@@ -4548,7 +4552,7 @@ async function nwJson(force){
   if(!force && NW.json && Date.now() - NW.jsonAt < 60000) return NW.json;
   for(const u of nwJsonUrls()){
     try{
-      const j = JSON.parse(await getText(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), 8000));
+      const j = JSON.parse(String(await getText(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), 8000)).replace(/\/\/images\.prothomalo\.com\//g, '//media.prothomalo.com/'));
       if(j && j.sources && (!NW.json || (Date.parse(j.updated) || 0) >= (Date.parse(NW.json.updated) || 0))){ NW.json = j; NW.jsonAt = Date.now(); }
       if(j && j.sources && Date.now() - (Date.parse(j.updated) || 0) < 3 * 3600000) break;    // fresh enough
     }catch(e){}
@@ -6078,6 +6082,7 @@ async function nwFindImg(link){
   return im;
 }
 function nwThumb(b, im){
+  im = fixImgHost(im);
   if(!b || !b.isConnected) return; const th = b.querySelector('.nwthumb'); if(!th) return;
   th.innerHTML = '<img alt="" referrerpolicy="no-referrer">'; const i = th.querySelector('img');
   i.onerror = () => { if(i.dataset.f !== '1'){ i.dataset.f = '1'; i.src = im; } else th.textContent = '📰'; };

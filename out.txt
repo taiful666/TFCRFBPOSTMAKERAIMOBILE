@@ -1,0 +1,70 @@
+
+=== https://images.prothomalo.com/prothomalo-bangla/2026-10-29/ywnv2n6t/Flavio-Bolsonaro.avif
+  direct       ERR fetch failed
+  direct+ref   ERR fetch failed
+  pa?fmt=jpg   ERR fetch failed
+  pa?format    ERR fetch failed
+  weserv       404 application/json         90B acao=* 313ms
+  wsrv         404 application/json         90B acao=* 423ms
+  i0.wp        400 text/html; charset=utf-8       49B acao=null 120ms
+  statically   403 text/plain              173B acao=null 118ms
+  google       404 text/html; charset=UTF-8      134B acao=null 334ms
+  allorigins   500 text/html               579B acao=null 7748ms
+  corsproxy    401 application/json         81B acao=* 125ms
+  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19674ms
+
+=== https://images.prothomalo.com/prothomalo-bangla/2026-10-27/rkmgba0e/Active-Denial-System.avif
+  direct       ERR fetch failed
+  direct+ref   ERR fetch failed
+  pa?fmt=jpg   ERR fetch failed
+  pa?format    ERR fetch failed
+  weserv       404 application/json         90B acao=* 212ms
+  wsrv         404 application/json         90B acao=* 580ms
+  i0.wp        400 text/html; charset=utf-8       49B acao=null 83ms
+  statically   403 text/plain              173B acao=null 81ms
+  google       404 text/html; charset=UTF-8      134B acao=null 460ms
+  allorigins   400 text/plain;charset=UTF-8       65B acao=https://taiful666.github.io 10873ms
+  corsproxy    401 application/json         81B acao=* 72ms
+  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19638ms
+
+=== https://images.prothomalo.com/prothomalo-bangla/2026-10-29/du7reuh5/45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg
+  direct       ERR fetch failed
+  direct+ref   ERR fetch failed
+  pa?fmt=jpg   ERR fetch failed
+  pa?format    ERR fetch failed
+  weserv       404 application/json         90B acao=* 219ms
+  wsrv         404 application/json         90B acao=* 286ms
+  i0.wp        400 text/html; charset=utf-8       49B acao=null 92ms
+  statically   403 text/plain              173B acao=null 66ms
+  google       404 text/html; charset=UTF-8      134B acao=null 402ms
+  allorigins   522 text/html; charset=UTF-8     7255B acao=null 19367ms
+  corsproxy    401 application/json         81B acao=* 83ms
+  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19374ms
+
+=== https://images.prothomalo.com/prothomalo-bangla/2022-11/7f28c4d4-9a7f-45f7-8692-519e7b7764bd/7.jpg
+  direct       ERR fetch failed
+  direct+ref   ERR fetch failed
+  pa?fmt=jpg   ERR fetch failed
+  pa?format    ERR fetch failed
+  weserv       404 application/json         90B acao=* 226ms
+  wsrv         404 application/json         90B acao=* 230ms
+  i0.wp        400 text/html; charset=utf-8       49B acao=null 113ms
+  statically   403 text/plain              173B acao=null 69ms
+  google       404 text/html; charset=UTF-8      134B acao=null 353ms
+  allorigins   400 text/plain;charset=UTF-8       65B acao=https://taiful666.github.io 8968ms
+  corsproxy    401 application/json         81B acao=* 92ms
+  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19524ms
+
+=== https://images.prothomalo.com/prothomalo-bangla/2026-10-29/211fvh1b/iamnamitmalhotra1733041865351333227276605455066777623635.jpg
+  direct       ERR fetch failed
+  direct+ref   ERR fetch failed
+  pa?fmt=jpg   ERR fetch failed
+  pa?format    ERR fetch failed
+  weserv       404 application/json         90B acao=* 206ms
+  wsrv         404 application/json         90B acao=* 224ms
+  i0.wp        400 text/html; charset=utf-8       49B acao=null 97ms
+  statically   403 text/plain              173B acao=null 74ms
+  google       404 text/html; charset=UTF-8      134B acao=null 358ms
+  allorigins   522 text/html; charset=UTF-8     7255B acao=null 19331ms
+  corsproxy    401 application/json         81B acao=* 131ms
+  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19381ms

@@ -1,70 +1,18 @@
+images.prothomalo.com [] ["prothomalo.gumlet.io"]
+www.prothomalo.com ["104.17.145.114","104.17.144.114"] "ENODATA"
+media.prothomalo.com ["172.66.169.65","104.20.26.16"] ["custom-images.assettype.com"]
+gumlet.assettype.com ["172.66.169.65","104.20.26.16"] "ENODATA"
+images.assettype.com ["104.20.26.16","172.66.169.65"] "ENODATA"
 
-=== https://images.prothomalo.com/prothomalo-bangla/2026-10-29/ywnv2n6t/Flavio-Bolsonaro.avif
-  direct       ERR fetch failed
-  direct+ref   ERR fetch failed
-  pa?fmt=jpg   ERR fetch failed
-  pa?format    ERR fetch failed
-  weserv       404 application/json         90B acao=* 313ms
-  wsrv         404 application/json         90B acao=* 423ms
-  i0.wp        400 text/html; charset=utf-8       49B acao=null 120ms
-  statically   403 text/plain              173B acao=null 118ms
-  google       404 text/html; charset=UTF-8      134B acao=null 334ms
-  allorigins   500 text/html               579B acao=null 7748ms
-  corsproxy    401 application/json         81B acao=* 125ms
-  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19674ms
+img https://images.prothomalo.com/prothomalo-bangla/2026-10-29/du7reuh5/45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg
+direct ERR fetch failed ENOTFOUND getaddrinfo ENOTFOUND images.prothomalo.com
 
-=== https://images.prothomalo.com/prothomalo-bangla/2026-10-27/rkmgba0e/Active-Denial-System.avif
-  direct       ERR fetch failed
-  direct+ref   ERR fetch failed
-  pa?fmt=jpg   ERR fetch failed
-  pa?format    ERR fetch failed
-  weserv       404 application/json         90B acao=* 212ms
-  wsrv         404 application/json         90B acao=* 580ms
-  i0.wp        400 text/html; charset=utf-8       49B acao=null 83ms
-  statically   403 text/plain              173B acao=null 81ms
-  google       404 text/html; charset=UTF-8      134B acao=null 460ms
-  allorigins   400 text/plain;charset=UTF-8       65B acao=https://taiful666.github.io 10873ms
-  corsproxy    401 application/json         81B acao=* 72ms
-  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19638ms
-
-=== https://images.prothomalo.com/prothomalo-bangla/2026-10-29/du7reuh5/45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg
-  direct       ERR fetch failed
-  direct+ref   ERR fetch failed
-  pa?fmt=jpg   ERR fetch failed
-  pa?format    ERR fetch failed
-  weserv       404 application/json         90B acao=* 219ms
-  wsrv         404 application/json         90B acao=* 286ms
-  i0.wp        400 text/html; charset=utf-8       49B acao=null 92ms
-  statically   403 text/plain              173B acao=null 66ms
-  google       404 text/html; charset=UTF-8      134B acao=null 402ms
-  allorigins   522 text/html; charset=UTF-8     7255B acao=null 19367ms
-  corsproxy    401 application/json         81B acao=* 83ms
-  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19374ms
-
-=== https://images.prothomalo.com/prothomalo-bangla/2022-11/7f28c4d4-9a7f-45f7-8692-519e7b7764bd/7.jpg
-  direct       ERR fetch failed
-  direct+ref   ERR fetch failed
-  pa?fmt=jpg   ERR fetch failed
-  pa?format    ERR fetch failed
-  weserv       404 application/json         90B acao=* 226ms
-  wsrv         404 application/json         90B acao=* 230ms
-  i0.wp        400 text/html; charset=utf-8       49B acao=null 113ms
-  statically   403 text/plain              173B acao=null 69ms
-  google       404 text/html; charset=UTF-8      134B acao=null 353ms
-  allorigins   400 text/plain;charset=UTF-8       65B acao=https://taiful666.github.io 8968ms
-  corsproxy    401 application/json         81B acao=* 92ms
-  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19524ms
-
-=== https://images.prothomalo.com/prothomalo-bangla/2026-10-29/211fvh1b/iamnamitmalhotra1733041865351333227276605455066777623635.jpg
-  direct       ERR fetch failed
-  direct+ref   ERR fetch failed
-  pa?fmt=jpg   ERR fetch failed
-  pa?format    ERR fetch failed
-  weserv       404 application/json         90B acao=* 206ms
-  wsrv         404 application/json         90B acao=* 224ms
-  i0.wp        400 text/html; charset=utf-8       49B acao=null 97ms
-  statically   403 text/plain              173B acao=null 74ms
-  google       404 text/html; charset=UTF-8      134B acao=null 358ms
-  allorigins   522 text/html; charset=UTF-8     7255B acao=null 19331ms
-  corsproxy    401 application/json         81B acao=* 131ms
-  codetabs     522 text/html; charset=UTF-8     7243B acao=null 19381ms
+page og:image: https://media.prothomalo.com/prothomalo-bangla%2F2026-10-29%2Fdu7reuh5%2F45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg?rect=0%2C102%2C1600%2C840&amp;w=1200&amp;ar=40%3A21&amp;auto=format%2Ccompress&amp;ogImage=true&amp;mode=crop&amp;overlay=https%3A%2F%2Fmedia.prothomalo.com%2Fprothomalo-bangla%2F2026-09-03%2F99dqhmx6%2Fog-banner-for-sports.png&amp;overlay_position=bottom&amp;overlay_width_pct=1
+image hosts in page: {"media.prothomalo.com":33,"paloimages.prothom-alo.com":58}
+   https://media.prothomalo.com/prothomalo-bangla%2F2026-10-29%2Fdu7reuh5%2F45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg?rect=0%2C72%2C1600%2C900&amp;w=1200&amp;ar=16%3A9&amp;auto=format%2Ccompress&amp;ogIma
+   https://media.prothomalo.com/prothomalo-bangla%2F2026-10-29%2Fdu7reuh5%2F45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg?rect=0%2C102%2C1600%2C840&amp;w=1200&amp;ar=40%3A21&amp;auto=format%2Ccompress&amp;ogI
+   https://media.prothomalo.com/prothomalo-bangla/2026-10-29/yry160mj/abdb7858_3984_4060_a1b9_fb3352e264e1.jpg?w=1200&h=675&auto=format%2Ccompress&fit=max
+   https://media.prothomalo.com/prothomalo-bangla/2026-10-29/oh3kgrtd/63de33b7_3e8e_4673_8d3e_3950654a9270.jpg?w=1200&h=675&auto=format%2Ccompress&fit=max
+gumlet.assettype 200 image/jpeg 31598
+images.assettype 200 image/jpeg 239240
+wsrv-assettype 200 image/jpeg 43480

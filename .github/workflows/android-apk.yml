@@ -59,6 +59,12 @@ jobs:
       - name: Sync plugins
         run: npx cap sync android
 
+      - name: Use the fixed signing key (so updates install over the old app)
+        env:
+          KS: ${{ secrets.ANDROID_DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then mkdir -p ~/.android && echo "$KS" | base64 -d > ~/.android/debug.keystore && echo "Fixed signing key in use"; else echo "No fixed signing key yet - a temporary one will be used"; fi
+
       - name: Build the APK
         working-directory: android-app/android
         run: |

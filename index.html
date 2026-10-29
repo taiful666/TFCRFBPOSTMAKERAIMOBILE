@@ -7563,10 +7563,549 @@ $('rlAi').addEventListener('click', async () => {
   b.addEventListener('click', () => { nwOpen(); setMode(true); toast(t('rlHint')); });
   if(big) big.after(b); else q.prepend(b);
 })();
+/* other parts of the app (e.g. the newspapers sheet) can open the reel studio with their own list of stories */
+window.TFReel = {
+  open(list){
+    RL.sel = new Map();
+    (list || []).forEach(o => { if(o && o.link && o.title && RL.sel.size < RL_MAX) RL.sel.set(o.link, o); });
+    if(!RL.sel.size){ toast(t('rlNeedOne')); return false; }
+    setMode(false); rlOpen(); return true;
+  }
+};
 const applyI18nRl = applyI18n;
 applyI18n = function(){ applyI18nRl(); try{ rlLabels(); if(RL.open) rlTexts(); }catch(e){} };
 rlLabels();
 document.addEventListener('keydown', e => { if(e.key === 'Escape' && RL.open && !RL.busy) rlClose(); });
+})();
+
+/* =====================================================================
+   v9: পত্রিকা — দেশের সব বড় পত্রিকা ও টিভির আসল ওয়েবসাইট অ্যাপের ভেতরেই খুলুন।
+   যেকোনো খবরে ঢুকে নিচের বাটনে চাপ দিন: "কার্ড বানান" বা "রিলে যোগ"।
+   কয়েকটি পত্রিকা থেকে খবর রিলের তালিকায় জমিয়ে এক চাপে রিল।
+   (Android অ্যাপে পত্রিকা অ্যাপের ভেতরে খোলে; ব্রাউজারে নতুন ট্যাবে খোলে — সেখানে লিংক পেস্ট করুন)
+   ===================================================================== */
+(function papersModule(){
+Object.assign(T.bn, {
+  ppTile:'পত্রিকা', ppTileS:'সব পত্রিকা ও টিভির সাইট — যেকোনো খবর থেকে কার্ড ও রিল',
+  ppTitle:'পত্রিকা', ppSub:'যেকোনো পত্রিকায় ঢুকে খবর বেছে নিন',
+  ppAll:'সব', ppNews:'পত্রিকা', ppTv:'টিভি', ppOnline:'অনলাইন', ppMine:'আমার যোগ করা',
+  ppSearch:'পত্রিকার নাম খুঁজুন…', ppEdit:'সাজান', ppDone:'হয়েছে', ppAdd:'নতুন যোগ',
+  ppHintApp:'যেকোনো পত্রিকায় চাপ দিন — পত্রিকাটি অ্যাপের ভেতরেই খুলবে। যেকোনো খবরে ঢুকে নিচের বাটনে "কার্ড বানান" বা "রিলে যোগ" চাপুন।',
+  ppHintWeb:'ব্রাউজারে পত্রিকা নতুন ট্যাবে খুলবে। পছন্দের খবরের লিংক কপি করে এখানে ফিরে নিচের ঘরে পেস্ট করুন। (Android অ্যাপে পত্রিকার ভেতর থেকেই এক চাপে কার্ড ও রিল।)',
+  ppLinkPh:'খবরের লিংক পেস্ট করুন', ppCard:'কার্ড বানান', ppAddReel:'রিলে যোগ', ppAdded:'রিলে আছে',
+  ppBasket:'রিলের তালিকা', ppBasketN:'{n}টি খবর', ppShow:'দেখুন', ppHide:'লুকান', ppMakeReel:'রিল বানান', ppClear:'সব মুছুন',
+  ppNewName:'পত্রিকার নাম', ppNewUrl:'ওয়েবসাইটের লিংক (যেমন: www.example.com)', ppSave:'যোগ করুন', ppCancel:'বাতিল',
+  ppRestore:'লুকানো পত্রিকা ফিরিয়ে আনুন', ppEmpty:'কোনো পত্রিকা পাওয়া যায়নি',
+  tPpAdded:'রিলের তালিকায় যোগ হয়েছে ({n}টি)', tPpHad:'এই খবরটি আগেই তালিকায় আছে', tPpRemoved:'তালিকা থেকে সরানো হয়েছে',
+  tPpBadUrl:'সঠিক লিংক দিন', tPpNeedName:'পত্রিকার নাম লিখুন', tPpSaved:'পত্রিকা যোগ হয়েছে', tPpOpening:'পত্রিকা খোলা হচ্ছে…',
+  tPpTab:'পত্রিকা নতুন ট্যাবে খুলেছে — খবরের লিংক কপি করে এখানে পেস্ট করুন', tPpNoTitle:'শিরোনাম আনা যায়নি — রিলে গিয়ে শিরোনাম লিখে দিন',
+  tPpFetching:'খবরের শিরোনাম ও ছবি আনা হচ্ছে…', tPpOpenFail:'পত্রিকা খোলা যায়নি — আবার চেষ্টা করুন',
+  ppBarCard:'কার্ড বানান', ppBarAdd:'রিলে যোগ', ppBarAdded:'রিলে আছে', ppBarReel:'রিল', ppBarHint:'যেকোনো খবরে ঢুকুন — তারপর এখান থেকে কার্ড বা রিল', ppBarWait:'খবর নেওয়া হচ্ছে…'
+});
+Object.assign(T.en, {
+  ppTile:'Newspapers', ppTileS:'Every paper & TV site — card or reel from any story',
+  ppTitle:'Newspapers', ppSub:'Open any paper and pick a story',
+  ppAll:'All', ppNews:'Papers', ppTv:'TV', ppOnline:'Online', ppMine:'Added by me',
+  ppSearch:'Search papers…', ppEdit:'Arrange', ppDone:'Done', ppAdd:'Add new',
+  ppHintApp:'Tap any paper — it opens inside the app. Open any story and tap "Make card" or "Add to reel" at the bottom.',
+  ppHintWeb:'In a browser the paper opens in a new tab. Copy the link of the story you like, come back and paste it below. (In the Android app you can make cards and reels right inside the paper.)',
+  ppLinkPh:'Paste a news link', ppCard:'Make card', ppAddReel:'Add to reel', ppAdded:'In reel',
+  ppBasket:'Reel list', ppBasketN:'{n} stories', ppShow:'View', ppHide:'Hide', ppMakeReel:'Make reel', ppClear:'Clear all',
+  ppNewName:'Paper name', ppNewUrl:'Website link (e.g. www.example.com)', ppSave:'Add', ppCancel:'Cancel',
+  ppRestore:'Bring back hidden papers', ppEmpty:'No paper found',
+  tPpAdded:'Added to the reel list ({n})', tPpHad:'This story is already in the list', tPpRemoved:'Removed from the list',
+  tPpBadUrl:'Enter a valid link', tPpNeedName:'Enter the paper name', tPpSaved:'Paper added', tPpOpening:'Opening the paper…',
+  tPpTab:'The paper opened in a new tab — copy a story link and paste it here', tPpNoTitle:'Could not get the headline — type it in the reel',
+  tPpFetching:'Getting the headline and photo…', tPpOpenFail:'Could not open the paper — try again',
+  ppBarCard:'Make card', ppBarAdd:'Add to reel', ppBarAdded:'In reel', ppBarReel:'Reel', ppBarHint:'Open any story — then make a card or reel here', ppBarWait:'Taking the story…'
+});
+const tf = (k, o) => { let s = t(k); Object.keys(o || {}).forEach(x => { s = s.split('{' + x + '}').join(o[x]); }); return s; };
+
+/* g: p = newspaper, tv = TV channel, on = online news portal */
+const PAPERS = [
+  { id:'prothomalo', bn:'প্রথম আলো', en:'Prothom Alo', u:'https://www.prothomalo.com/', g:'p' },
+  { id:'kalerkantho', bn:'কালের কণ্ঠ', en:'Kaler Kantho', u:'https://www.kalerkantho.com/', g:'p' },
+  { id:'jugantor', bn:'যুগান্তর', en:'Jugantor', u:'https://www.jugantor.com/', g:'p' },
+  { id:'samakal', bn:'সমকাল', en:'Samakal', u:'https://samakal.com/', g:'p' },
+  { id:'ittefaq', bn:'ইত্তেফাক', en:'Ittefaq', u:'https://www.ittefaq.com.bd/', g:'p' },
+  { id:'bdpratidin', bn:'বাংলাদেশ প্রতিদিন', en:'Bangladesh Pratidin', u:'https://www.bd-pratidin.com/', g:'p' },
+  { id:'kalbela', bn:'কালবেলা', en:'Kalbela', u:'https://www.kalbela.com/', g:'p' },
+  { id:'ajkerpatrika', bn:'আজকের পত্রিকা', en:'Ajker Patrika', u:'https://www.ajkerpatrika.com/', g:'p' },
+  { id:'deshrupantor', bn:'দেশ রূপান্তর', en:'Desh Rupantor', u:'https://www.deshrupantor.com/', g:'p' },
+  { id:'nayadiganta', bn:'নয়া দিগন্ত', en:'Naya Diganta', u:'https://www.dailynayadiganta.com/', g:'p' },
+  { id:'manabzamin', bn:'মানবজমিন', en:'Manab Zamin', u:'https://mzamin.com/', g:'p' },
+  { id:'inqilab', bn:'ইনকিলাব', en:'Inqilab', u:'https://dailyinqilab.com/', g:'p' },
+  { id:'janakantha', bn:'জনকণ্ঠ', en:'Janakantha', u:'https://www.dailyjanakantha.com/', g:'p' },
+  { id:'bhorerkagoj', bn:'ভোরের কাগজ', en:'Bhorer Kagoj', u:'https://www.bhorerkagoj.com/', g:'p' },
+  { id:'bonikbarta', bn:'বণিক বার্তা', en:'Bonik Barta', u:'https://bonikbarta.com/', g:'p' },
+  { id:'dailystarbn', bn:'ডেইলি স্টার বাংলা', en:'Daily Star Bangla', u:'https://bangla.thedailystar.net/', g:'p' },
+  { id:'dailystar', bn:'দ্য ডেইলি স্টার', en:'The Daily Star', u:'https://www.thedailystar.net/', g:'p' },
+  { id:'dhakatribune', bn:'ঢাকা ট্রিবিউন', en:'Dhaka Tribune', u:'https://www.dhakatribune.com/', g:'p' },
+  { id:'tbsnews', bn:'দ্য বিজনেস স্ট্যান্ডার্ড', en:'The Business Standard', u:'https://www.tbsnews.net/', g:'p' },
+  { id:'somoy', bn:'সময় টিভি', en:'Somoy TV', u:'https://www.somoynews.tv/', g:'tv' },
+  { id:'jamuna', bn:'যমুনা টিভি', en:'Jamuna TV', u:'https://jamuna.tv/', g:'tv' },
+  { id:'channel24', bn:'চ্যানেল ২৪', en:'Channel 24', u:'https://www.channel24bd.tv/', g:'tv' },
+  { id:'ekattor', bn:'একাত্তর টিভি', en:'Ekattor TV', u:'https://ekattor.tv/', g:'tv' },
+  { id:'rtv', bn:'আরটিভি', en:'RTV', u:'https://www.rtvonline.com/', g:'tv' },
+  { id:'ntv', bn:'এনটিভি', en:'NTV', u:'https://www.ntvbd.com/', g:'tv' },
+  { id:'channeli', bn:'চ্যানেল আই', en:'Channel i', u:'https://www.channelionline.com/', g:'tv' },
+  { id:'independent', bn:'ইনডিপেনডেন্ট টিভি', en:'Independent TV', u:'https://www.independent24.com/', g:'tv' },
+  { id:'dbc', bn:'ডিবিসি নিউজ', en:'DBC News', u:'https://dbcnews.tv/', g:'tv' },
+  { id:'atnnews', bn:'এটিএন নিউজ', en:'ATN News', u:'https://www.atnnewstv.com/', g:'tv' },
+  { id:'news24', bn:'নিউজ২৪', en:'News24', u:'https://www.news24bd.tv/', g:'tv' },
+  { id:'banglavision', bn:'বাংলাভিশন', en:'Banglavision', u:'https://www.banglavision.tv/', g:'tv' },
+  { id:'ekhon', bn:'এখন টিভি', en:'Ekhon TV', u:'https://www.ekhon.tv/', g:'tv' },
+  { id:'bdnews24', bn:'বিডিনিউজ২৪', en:'bdnews24', u:'https://bangla.bdnews24.com/', g:'on' },
+  { id:'dhakapost', bn:'ঢাকা পোস্ট', en:'Dhaka Post', u:'https://www.dhakapost.com/', g:'on' },
+  { id:'jagonews', bn:'জাগো নিউজ', en:'Jago News', u:'https://www.jagonews24.com/', g:'on' },
+  { id:'banglatribune', bn:'বাংলা ট্রিবিউন', en:'Bangla Tribune', u:'https://www.banglatribune.com/', g:'on' },
+  { id:'banglanews24', bn:'বাংলানিউজ২৪', en:'Banglanews24', u:'https://www.banglanews24.com/', g:'on' },
+  { id:'risingbd', bn:'রাইজিংবিডি', en:'Risingbd', u:'https://www.risingbd.com/', g:'on' },
+  { id:'bbcbangla', bn:'বিবিসি বাংলা', en:'BBC Bangla', u:'https://www.bbc.com/bengali', g:'on' }
+];
+PAPERS.forEach(p => { p.host = hostOf(p.u); });
+const PP = {
+  open: false, grp: store.get('ppGrp', 'all'), edit: false, basketOpen: false,
+  custom: store.get('ppCustom', []), hidden: store.get('ppHidden', []), basket: store.get('ppBasket', []),
+  iab: null, iabOpen: false, iabPaper: null, wired: false, busy: false
+};
+const ppSave = () => { store.set('ppCustom', PP.custom); store.set('ppHidden', PP.hidden); };
+const ppSaveBasket = () => { if(!store.set('ppBasket', PP.basket)){ PP.basket.forEach(x => { x.desc = ''; }); store.set('ppBasket', PP.basket); } };
+const ppName = p => S.lang === 'bn' ? (p.bn || p.en) : (p.en || p.bn);
+const ppAllPapers = () => PAPERS.concat(PP.custom.map(c => Object.assign({ g:'my', host: hostOf(c.u) }, c)));
+function ppPaperOf(url){
+  const h = hostOf(url); if(!h) return null;
+  return ppAllPapers().find(p => p.host && (h === p.host || h.endsWith('.' + p.host) || p.host.endsWith('.' + h))) || null;
+}
+function ppSrc(url){
+  const p = ppPaperOf(url), h = hostOf(url) || '';
+  const n = p ? null : NEWS_SRC.find(s => h === s.d.split('/')[0] || h.endsWith('.' + s.d.split('/')[0]));
+  if(n) return n;
+  return p ? { id: p.id, bn: p.bn || p.en, en: p.en || p.bn, d: p.host } : { id: 'web', bn: h, en: h, d: h };
+}
+/* one story kept in the reel list (stored) → the object the live-news / reel code understands */
+function ppItemObj(x){ return { title: x.title, link: x.link, img: x.img || '', desc: x.desc || '', date: x.date ? parseDate(x.date) : null, src: x.src || ppSrc(x.link) }; }
+function ppKey(u){ try{ const x = new URL(u); return (x.hostname.replace(/^www\d?\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); }catch(e){ return String(u || ''); } }
+function ppHas(u){ const k = ppKey(u); return PP.basket.some(x => ppKey(x.link) === k); }
+function ppLinkOf(p){ const c = p.canonical && /^https?:/.test(p.canonical) && hostOf(p.canonical) === hostOf(p.url) && ppKey(p.canonical).split('/').length > 1 ? p.canonical : p.url; return normalizeUrl(c) || c; }
+function ppAddItem(p){
+  const link = ppLinkOf(p);
+  if(ppHas(link) || ppHas(p.url)) return 0;
+  const s = ppSrc(link);
+  PP.basket.push({ title: norm(cleanTitle(String(p.title || ''), '')) || norm(p.title) || hostOf(link), link, img: p.img || '', desc: shorten(norm(p.desc || ''), 300), date: p.date || '',
+    src: { id: s.id, bn: s.bn, en: s.en, d: s.d } });
+  ppSaveBasket(); ppRenderBasket();
+  return PP.basket.length;
+}
+function ppRemove(u){ const k = ppKey(u); const n = PP.basket.length; PP.basket = PP.basket.filter(x => ppKey(x.link) !== k); ppSaveBasket(); ppRenderBasket(); return n !== PP.basket.length; }
+
+/* ---------------- native in-app browser (Android app only) ---------------- */
+function ppNative(){
+  const C0 = window.Capacitor;
+  try{ return !!(C0 && C0.isNativePlatform && C0.isNativePlatform() && (!C0.isPluginAvailable || C0.isPluginAvailable('InAppBrowser'))); }catch(e){ return false; }
+}
+function ppIab(){
+  if(PP.iab) return PP.iab;
+  const C0 = window.Capacitor; if(!C0) return null;
+  PP.iab = (C0.Plugins && C0.Plugins.InAppBrowser) || (C0.registerPlugin && C0.registerPlugin('InAppBrowser')) || null;
+  return PP.iab;
+}
+
+/* runs inside the newspaper page: a small bar at the bottom (in its own shadow DOM so the site's style cannot break it) */
+function ppInjected(L){
+  var W = window;
+  if(W.__tfpp){ try{ W.__tfpp.ensure(); W.__tfpp.hello(); }catch(e){} return; }
+  var api = {}; W.__tfpp = api;
+  var post = function(type, extra){ var d = extra || {}; d.type = type; try{ W.mobileApp.postMessage({ detail: d }); }catch(e){} };
+  var meta = function(n){ var e = document.querySelector('meta[property="' + n + '"],meta[name="' + n + '"],meta[itemprop="' + n + '"]'); return e ? String(e.getAttribute('content') || '').trim() : ''; };
+  var abs = function(u){ try{ return u ? new URL(u, location.href).href : ''; }catch(e){ return ''; } };
+  var isHome = function(){ var p = location.pathname.replace(/\/+$/, ''); return !p || /^\/(bn|en|bengali|bangla|home|index\.html?|latest|online)$/i.test(p); };
+  function page(withHtml){
+    var can = document.querySelector('link[rel="canonical"]');
+    var o = { url: location.href, canonical: can ? abs(can.getAttribute('href')) : '',
+      title: meta('og:title') || meta('twitter:title') || (document.querySelector('h1') ? document.querySelector('h1').textContent.trim() : '') || document.title || '',
+      img: abs(meta('og:image') || meta('og:image:url') || meta('og:image:secure_url') || meta('twitter:image') || meta('twitter:image:src')),
+      desc: meta('og:description') || meta('description') || meta('twitter:description'),
+      date: meta('article:published_time') || meta('datePublished') || meta('pubdate') || meta('publish-date') || '' };
+    if(!o.img){
+      var ims = document.querySelectorAll('article img, main img, h1 ~ * img, img');
+      for(var i = 0; i < ims.length && i < 60; i++){ var im = ims[i]; if((im.naturalWidth || im.width) >= 300 && /^https?:/.test(im.currentSrc || im.src || '')){ o.img = im.currentSrc || im.src; break; } }
+    }
+    if(withHtml){
+      try{
+        var d = document.documentElement.cloneNode(true);
+        var rm = d.querySelectorAll('script:not([type="application/ld+json"]),style,noscript,iframe,svg,video,audio,canvas,ins,object,embed,template,link:not([rel="canonical"]),#tfpp-host');
+        for(var j = 0; j < rm.length; j++) rm[j].parentNode && rm[j].parentNode.removeChild(rm[j]);
+        var li = d.querySelectorAll('img');
+        for(var k = 0; k < li.length; k++){ var s = li[k].getAttribute('data-src') || li[k].getAttribute('data-lazy-src') || li[k].getAttribute('data-original'); if(s) li[k].setAttribute('src', s); }
+        var h = '<!DOCTYPE html>' + d.outerHTML; if(h.length > 1500000) h = h.slice(0, 1500000);
+        o.html = h;
+      }catch(e){}
+    }
+    return o;
+  }
+  var host = document.createElement('div'); host.id = 'tfpp-host';
+  host.setAttribute('style', 'all:initial;position:fixed;left:0;right:0;bottom:0;z-index:2147483647;pointer-events:none');
+  var root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
+  root.innerHTML = '<style>' +
+    '*{box-sizing:border-box;font-family:system-ui,-apple-system,"Noto Sans Bengali","Hind Siliguri",sans-serif;-webkit-tap-highlight-color:transparent}' +
+    '.w{pointer-events:none;display:flex;flex-direction:column;align-items:stretch;padding:0 8px calc(8px + env(safe-area-inset-bottom))}' +
+    '.bar{pointer-events:auto;display:flex;align-items:center;gap:6px;background:rgba(17,20,28,.96);color:#fff;border-radius:16px;padding:7px;box-shadow:0 6px 24px rgba(0,0,0,.35)}' +
+    '.b{flex:1;min-width:0;border:0;border-radius:12px;padding:11px 8px;font-size:14.5px;font-weight:700;line-height:1.2;background:#2b303b;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.b.pri{background:#1877f2}.b.on{background:#1e8e3e}.b:disabled{opacity:.6}' +
+    '.r{flex:none;background:#fff;color:#111;padding:11px 12px}' +
+    '.m{flex:none;width:34px;height:40px;border:0;border-radius:10px;background:transparent;color:#aab;font-size:20px;line-height:1}' +
+    '.h{flex:1;font-size:13.5px;line-height:1.35;padding:4px 6px;color:#e8eaf0}' +
+    '.fab{pointer-events:auto;align-self:flex-end;width:54px;height:54px;border-radius:50%;border:0;background:#1877f2;color:#fff;font-size:24px;box-shadow:0 6px 20px rgba(0,0,0,.35);position:relative}' +
+    '.fab i{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;border-radius:11px;background:#fff;color:#111;font-style:normal;font-size:12px;font-weight:800;line-height:22px;padding:0 5px}' +
+    '.t{pointer-events:none;align-self:center;margin-bottom:8px;background:rgba(17,20,28,.94);color:#fff;font-size:14px;padding:9px 14px;border-radius:12px;max-width:92%;text-align:center;opacity:0;transform:translateY(6px);transition:all .2s}' +
+    '.t.s{opacity:1;transform:none}.x{display:none!important}' +
+    '</style><div class="w"><div class="t" id="t"></div>' +
+    '<div class="bar" id="bar"><button class="m" id="min" aria-label="hide">&#x2304;</button><div class="h x" id="hint"></div>' +
+    '<button class="b pri" id="card"></button><button class="b" id="add"></button><button class="b r x" id="reel"></button></div>' +
+    '<button class="fab x" id="fab" aria-label="open">&#x2726;<i class="x" id="fn"></i></button></div>';
+  var $ = function(id){ return root.getElementById ? root.getElementById(id) : root.querySelector('#' + id); };
+  var st = { n: 0, nt: '', has: false, busy: false, min: false }, tt = 0;
+  function render(){
+    var home = isHome();
+    $('bar').classList.toggle('x', st.min); $('fab').classList.toggle('x', !st.min);
+    $('hint').textContent = L.hint; $('hint').classList.toggle('x', !home);
+    $('card').classList.toggle('x', home); $('add').classList.toggle('x', home);
+    $('card').textContent = st.busy ? L.wait : '✦ ' + L.card; $('card').disabled = st.busy;
+    $('add').textContent = st.has ? '✓ ' + L.added : '+ ' + L.add; $('add').classList.toggle('on', st.has);
+    $('reel').textContent = '▶ ' + st.nt + ' ' + L.reel; $('reel').classList.toggle('x', !st.n);
+    $('fn').textContent = st.nt; $('fn').classList.toggle('x', !st.n);
+  }
+  function toast(m){ var e = $('t'); e.textContent = m; e.classList.add('s'); clearTimeout(tt); tt = setTimeout(function(){ e.classList.remove('s'); }, 2200); }
+  $('min').addEventListener('click', function(){ st.min = true; render(); });
+  $('fab').addEventListener('click', function(){ st.min = false; render(); });
+  $('card').addEventListener('click', function(){ if(st.busy) return; st.busy = true; render(); post('card', { page: page(true) }); setTimeout(function(){ st.busy = false; render(); }, 15000); });
+  $('add').addEventListener('click', function(){ post(st.has ? 'remove' : 'add', { page: page(false) }); });
+  $('reel').addEventListener('click', function(){ post('reel'); });
+  api.set = function(o){ o = o || {}; if(o.n != null){ st.n = +o.n || 0; st.nt = o.nt || String(st.n); } if(o.has != null) st.has = !!o.has; if(o.busy != null) st.busy = !!o.busy; render(); if(o.msg) toast(o.msg); };
+  api.ensure = function(){ if(document.body && !document.body.contains(host)) document.body.appendChild(host); };
+  var last = '';
+  api.hello = function(){ last = location.href; var p = page(false); post('hello', { page: { url: p.url, canonical: p.canonical } }); render(); };
+  api.ensure(); render(); api.hello();
+  setInterval(function(){ api.ensure(); if(location.href !== last){ st.has = false; st.busy = false; api.hello(); } }, 900);
+}
+function ppScript(){
+  const L = { card: t('ppBarCard'), add: t('ppBarAdd'), added: t('ppBarAdded'), reel: t('ppBarReel'), hint: t('ppBarHint'), wait: t('ppBarWait') };
+  return '(function(){try{(' + ppInjected.toString() + ')(' + JSON.stringify(L) + ');}catch(e){console.error("tfpp",e);}})();';
+}
+function ppTell(o){ const I = ppIab(); if(!I || !PP.iabOpen) return; try{ I.executeScript({ code: 'window.__tfpp&&window.__tfpp.set(' + JSON.stringify(o) + ');' }).catch(() => {}); }catch(e){} }
+function ppState(page, msg){ const n = PP.basket.length; return { n, nt: nwNum(n), has: !!(page && (ppHas(ppLinkOf(page)) || ppHas(page.url))), msg: msg || '' }; }
+async function ppCloseBrowser(){ const I = ppIab(); PP.iabOpen = false; if(!I) return; try{ await I.close(); }catch(e){} }
+function ppWire(){
+  if(PP.wired) return; const I = ppIab(); if(!I || !I.addListener) return; PP.wired = true;
+  const inject = () => { try{ I.executeScript({ code: ppScript() }).catch(() => {}); }catch(e){} };
+  I.addListener('browserPageLoaded', inject);
+  I.addListener('closeEvent', () => { PP.iabOpen = false; ppRenderBasket(); });
+  I.addListener('messageFromWebview', ev => {
+    const d = (ev && (ev.detail || ev)) || {}, p = d.page || {};
+    if(d.type === 'hello') ppTell(ppState(p));
+    else if(d.type === 'add'){
+      const n = ppAddItem(p);
+      ppTell(ppState(p, n ? tf('tPpAdded', { n: nwNum(n) }) : t('tPpHad')));
+    } else if(d.type === 'remove'){ ppRemove(ppLinkOf(p)); ppRemove(p.url || ''); ppTell(ppState(p, t('tPpRemoved'))); }
+    else if(d.type === 'card'){ ppCloseBrowser().then(() => ppCardFromPage(p)); }
+    else if(d.type === 'reel'){ ppCloseBrowser().then(ppMakeReel); }
+  });
+}
+async function ppOpenPaper(p){
+  store.set('ppLast', p.id);
+  if(ppNative() && ppIab()){
+    ppWire(); toast(t('tPpOpening'));
+    try{
+      PP.iabPaper = p; PP.iabOpen = true;
+      await ppIab().openWebView({
+        url: p.u, title: ppName(p), toolbarType: 'navigation', showReloadButton: true, visibleTitle: true,
+        toolbarColor: '#1877f2', toolbarTextColor: '#ffffff', showArrow: true,
+        activeNativeNavigationForWebview: true, openBlankTargetInWebView: true, preventDeeplink: true,
+        backgroundColor: S.theme === 'dark' ? 'black' : 'white'
+      });
+      return;
+    }catch(e){ PP.iabOpen = false; console.error('pp open', e); toast(t('tPpOpenFail')); return; }
+  }
+  try{ window.open(p.u, '_blank', 'noopener'); }catch(e){ location.href = p.u; return; }
+  toast(t('tPpTab'));
+  setTimeout(() => { const i = $('ppLink'); if(i) i.focus({ preventScroll: true }); }, 400);
+}
+
+/* ---------------- making a card / a reel ---------------- */
+async function ppCardFromPage(p){
+  ppClose();
+  const link = ppLinkOf(p);
+  let art = null;
+  if(p.html){ try{ art = extractHtml(p.html, link); }catch(e){ art = null; } }
+  if(art && art.blocks && textCount(art.blocks) >= 100){
+    if(S.editing) toggleEdit(false);
+    if(!art.title) art.title = norm(p.title);
+    if(!art.image && p.img){ art.image = p.img; }
+    art.imageFromAi = false;
+    if(!art.published && p.date) art.published = p.date;
+    if(!/^https?:/.test(art.url || '') || hostOf(art.url) !== hostOf(link)) art.url = link;
+    $('urlInput').value = art.url;
+    if(showArticle(art)){
+      showTab('card');
+      setTimeout(() => { const tw = $('tabsWrap'); if(tw) tw.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 120);
+      toast(t('nwReady'));
+      return;
+    }
+  }
+  nwPick(ppItemObj({ title: norm(p.title) || hostOf(link), link, img: p.img, desc: p.desc, date: p.date }));    // the page could not be read here — fetch it the usual way
+}
+function ppMakeReel(){
+  const list = PP.basket.map(ppItemObj);
+  if(!list.length){ toast(t('rlNeedOne')); return; }
+  if(!window.TFReel){ toast(t('rlNeedOne')); return; }
+  ppClose(true);
+  try{ if(history.state && history.state.pp) history.replaceState({ rl: 1 }, ''); else history.pushState({ rl: 1 }, ''); }catch(e){}
+  window.TFReel.open(list);
+}
+async function ppLinkCard(){
+  const url = normalizeUrl($('ppLink').value);
+  if(!url){ toast(t('tPpBadUrl')); $('ppLink').focus(); return; }
+  $('ppLink').value = '';
+  ppClose();
+  if(S.editing) toggleEdit(false);
+  const before = S.article;
+  $('urlInput').value = url;
+  await runFetch();
+  if(S.article && S.article !== before){ showTab('card'); setTimeout(() => { const tw = $('tabsWrap'); if(tw) tw.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 120); }
+}
+async function ppLinkAdd(){
+  const url = normalizeUrl($('ppLink').value);
+  if(!url){ toast(t('tPpBadUrl')); $('ppLink').focus(); return; }
+  if(ppHas(url)){ toast(t('tPpHad')); $('ppLink').value = ''; return; }
+  if(PP.busy) return; PP.busy = true;
+  const btn = $('ppLinkAdd'), lbl = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+  toast(t('tPpFetching'));
+  let title = '', img = '', desc = '', date = '';
+  try{
+    const a = await Promise.race([fetchArticle(url), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 25000))]);
+    title = a.title || ''; img = a.image && !a.imageFromAi ? a.image : ''; date = a.published || '';
+    desc = shorten(norm((a.blocks || []).filter(b => b.type === 'p').map(b => b.text).join(' ')), 300);
+  }catch(e){}
+  status('');
+  if(!img){ try{ img = await Promise.race([nwFindImg(url), new Promise(r => setTimeout(() => r(''), 12000))]) || ''; }catch(e){} }
+  const n = ppAddItem({ url, title: title || hostOf(url), img, desc, date });
+  btn.disabled = false; btn.innerHTML = lbl; PP.busy = false;
+  $('ppLink').value = '';
+  toast(!title ? t('tPpNoTitle') : n ? tf('tPpAdded', { n: nwNum(n) }) : t('tPpHad'));
+}
+
+/* ---------------- the sheet ---------------- */
+const css = document.createElement('style');
+css.textContent = `
+.ppbox .ppsub{font-size:12.5px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ppbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 12px 16px}
+.pphint{font-size:13px;line-height:1.55;color:var(--muted);margin:2px 2px 10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm,10px);padding:9px 11px}
+.ppgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:9px}
+.pptile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r,14px);padding:13px 6px 11px;color:var(--text);text-align:center;min-height:0}
+.pptile:active{transform:scale(.97)}
+.pptile .pplogo{width:46px;height:46px;border-radius:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:800;font-size:20px;color:#fff}
+.pptile .pplogo img{width:34px;height:34px;object-fit:contain}
+.pptile b{font-size:13px;font-weight:600;line-height:1.3;word-break:break-word}
+.pptile.ppnew .pplogo{background:var(--accent-soft);color:var(--accent);font-size:26px;font-weight:500}
+.pptile .ppx{display:none;position:absolute;top:-7px;right:-7px;width:26px;height:26px;border-radius:50%;border:0;background:var(--danger,#d93025);color:#fff;font-size:16px;line-height:26px;padding:0}
+.ppediting .pptile .ppx{display:block}
+.ppediting .pptile:not(.ppnew){border-style:dashed}
+.ppempty{grid-column:1/-1;color:var(--muted);font-size:13.5px;padding:18px 4px;text-align:center}
+.pprestore{display:block;margin:12px auto 0;border:0;background:none;color:var(--accent);font-size:13.5px;font-weight:600}
+.ppform{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r,14px);padding:12px;margin:0 0 12px}
+.ppform input,.pplink input{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);color:var(--text);font-size:15px;outline:none;min-width:0}
+.ppform .pprow{display:flex;gap:8px;justify-content:flex-end}
+.pplink{display:flex;gap:6px;align-items:center;margin:14px 0 4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r,14px);padding:8px}
+.pplink input{flex:1;border:0;background:transparent;padding:8px 6px}
+.pplink .btn{flex:none;min-height:40px;white-space:nowrap;padding:6px 11px}
+.pplink .btn svg{width:18px;height:18px}
+.ppfoot{flex:none;border-top:1px solid var(--line);background:var(--surface);padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+.ppfoot .pprow{display:flex;align-items:center;gap:8px}
+.ppfoot .ppcount{flex:1;min-width:0;font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ppfoot .btn{min-height:42px;white-space:nowrap}
+.ppblist{max-height:38vh;overflow-y:auto;margin:0 0 8px;display:flex;flex-direction:column;gap:6px}
+.ppbi{display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px}
+.ppbi img,.ppbi .ppth{width:52px;height:38px;border-radius:6px;object-fit:cover;flex:none;background:var(--surface-2)}
+.ppbi .ppbt{flex:1;min-width:0;text-align:left;border:0;background:none;color:var(--text);padding:0}
+.ppbi .ppbt b{display:block;font-size:13.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ppbi .ppbt small{font-size:12px;color:var(--muted)}
+.ppbi .ppdel{flex:none;width:32px;height:32px;border-radius:50%;border:0;background:var(--surface-2);color:var(--muted);font-size:18px;line-height:32px;padding:0}
+.ppclear{border:0;background:none;color:var(--danger,#d93025);font-size:13px;font-weight:600;padding:4px 2px;margin-bottom:6px}
+.qtile.rlwide.pptile2 .qi{background:#e7f0fd;color:#1877f2}
+html[data-theme="dark"] .qtile.rlwide.pptile2 .qi{background:var(--surface-2);color:var(--accent)}
+`;
+document.head.appendChild(css);
+
+const IC_PP = '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 8h3v9a2 2 0 0 1-2 2"/><path d="M7 9h7M7 13h7M7 16h4"/>';
+const sheet = mk('div', 'nsheet hidden no-print'); sheet.id = 'ppSheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
+sheet.innerHTML = `<div class="nsbox ppbox">
+  <div class="nshead"><b id="ppHeadT"></b><span class="ppsub" id="ppSubT"></span><button type="button" class="btn" id="ppEditBtn"></button><button type="button" class="x" id="ppClose" aria-label="close">×</button></div>
+  <div class="nwchips" id="ppChips"></div>
+  <div class="nwtools"><input type="search" id="ppSearch" autocomplete="off"></div>
+  <div class="ppbody" id="ppBody">
+    <p class="pphint" id="ppHint"></p>
+    <div class="ppform hidden" id="ppForm">
+      <input type="text" id="ppNewName" maxlength="40" autocomplete="off">
+      <input type="url" id="ppNewUrl" inputmode="url" autocomplete="off" spellcheck="false">
+      <div class="pprow"><button type="button" class="btn" id="ppFormCancel"></button><button type="button" class="btn primary" id="ppFormSave"></button></div>
+    </div>
+    <div class="ppgrid" id="ppGrid"></div>
+    <button type="button" class="pprestore hidden" id="ppRestore"></button>
+    <div class="pplink"><input type="url" id="ppLink" inputmode="url" autocomplete="off" spellcheck="false">
+      <button type="button" class="btn" id="ppPaste" aria-label="paste">${ic('<rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/>')}</button>
+      <button type="button" class="btn" id="ppLinkAdd"></button><button type="button" class="btn primary" id="ppLinkCard"></button></div>
+  </div>
+  <div class="ppfoot hidden" id="ppFoot">
+    <div class="hidden" id="ppBList"><button type="button" class="ppclear" id="ppBClear"></button><div class="ppblist" id="ppBItems"></div></div>
+    <div class="pprow"><span class="ppcount" id="ppCount"></span><button type="button" class="btn" id="ppBToggle"></button><button type="button" class="btn primary" id="ppReel">${ic('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>')}<span></span></button></div>
+  </div>
+</div>`;
+document.body.appendChild(sheet);
+
+const COLORS = ['#1877f2', '#d93025', '#1e8e3e', '#e37400', '#8430ce', '#0b8a8a', '#c2185b', '#455a64'];
+const colorOf = s => { let h = 0; for(const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return COLORS[h % COLORS.length]; };
+function ppTexts(){
+  $('ppHeadT').textContent = t('ppTitle'); $('ppSubT').textContent = t('ppSub');
+  $('ppEditBtn').textContent = PP.edit ? t('ppDone') : t('ppEdit');
+  $('ppSearch').placeholder = t('ppSearch');
+  $('ppHint').textContent = ppNative() ? t('ppHintApp') : t('ppHintWeb');
+  $('ppNewName').placeholder = t('ppNewName'); $('ppNewUrl').placeholder = t('ppNewUrl');
+  $('ppFormCancel').textContent = t('ppCancel'); $('ppFormSave').textContent = t('ppSave');
+  $('ppRestore').textContent = t('ppRestore');
+  $('ppLink').placeholder = t('ppLinkPh'); $('ppLinkAdd').textContent = '+ ' + t('ppAddReel'); $('ppLinkCard').textContent = t('ppCard');
+  $('ppBClear').textContent = t('ppClear'); $('ppReel').querySelector('span').textContent = t('ppMakeReel');
+  ppChips(); ppRenderBasket();
+}
+function ppChips(){
+  const box = $('ppChips'); box.innerHTML = '';
+  const list = [['all', t('ppAll')], ['p', t('ppNews')], ['tv', t('ppTv')], ['on', t('ppOnline')]];
+  if(PP.custom.length) list.push(['my', t('ppMine')]);
+  if(!list.some(x => x[0] === PP.grp)) PP.grp = 'all';
+  list.forEach(([id, label]) => { const b = mk('button', 'nwchip' + (PP.grp === id ? ' on' : '')); b.type = 'button'; b.dataset.g = id; b.textContent = label; box.appendChild(b); });
+}
+function ppRender(){
+  const q = lower($('ppSearch').value || ''), grid = $('ppGrid');
+  let list = ppAllPapers().filter(p => !PP.hidden.includes(p.id));
+  if(PP.grp !== 'all') list = list.filter(p => p.g === PP.grp);
+  if(q) list = list.filter(p => lower(p.bn + ' ' + p.en + ' ' + p.host).includes(q));
+  grid.classList.toggle('ppediting', PP.edit);
+  grid.innerHTML = '';
+  list.forEach(p => {
+    const b = mk('button', 'pptile'); b.type = 'button'; b.dataset.id = p.id;
+    const name = ppName(p), letter = Array.from(name.trim())[0] || '•';
+    b.innerHTML = '<span class="pplogo" style="background:' + colorOf(p.id) + '"></span><b></b><span class="ppx" role="button" aria-label="remove">×</span>';
+    b.querySelector('b').textContent = name;
+    const lg = b.querySelector('.pplogo'); lg.textContent = letter;
+    if(p.host){
+      const im = new Image(); im.alt = ''; im.referrerPolicy = 'no-referrer'; im.loading = 'lazy';
+      im.onload = () => { if(im.naturalWidth > 16){ lg.textContent = ''; lg.style.background = '#fff'; lg.appendChild(im); } };
+      im.onerror = () => { if(!im.dataset.f){ im.dataset.f = '1'; im.src = 'https://www.google.com/s2/favicons?domain=' + p.host + '&sz=128'; } };
+      im.src = proxImg('www.google.com/s2/favicons?domain=' + p.host + '&sz=128');
+    }
+    grid.appendChild(b);
+  });
+  if(!list.length) grid.appendChild(mk('div', 'ppempty', esc(t('ppEmpty'))));
+  if(!q && (PP.grp === 'all' || PP.grp === 'my')){
+    const add = mk('button', 'pptile ppnew', '<span class="pplogo">+</span><b></b>'); add.type = 'button'; add.id = 'ppAddTile';
+    add.querySelector('b').textContent = t('ppAdd'); grid.appendChild(add);
+  }
+  $('ppRestore').classList.toggle('hidden', !(PP.edit && PP.hidden.length));
+}
+function ppRenderBasket(){
+  if(!$('ppFoot')) return;
+  const n = PP.basket.length;
+  $('ppFoot').classList.toggle('hidden', !n);
+  if(!n) PP.basketOpen = false;
+  $('ppCount').textContent = t('ppBasket') + ': ' + tf('ppBasketN', { n: nwNum(n) });
+  $('ppBToggle').textContent = PP.basketOpen ? t('ppHide') : t('ppShow');
+  $('ppBList').classList.toggle('hidden', !PP.basketOpen);
+  if(!PP.basketOpen) return;
+  const box = $('ppBItems'); box.innerHTML = '';
+  PP.basket.forEach((x, i) => {
+    const row = mk('div', 'ppbi');
+    row.innerHTML = (x.img ? '<img alt="" referrerpolicy="no-referrer">' : '<span class="ppth"></span>') + '<button type="button" class="ppbt"><b></b><small></small></button><button type="button" class="ppdel" aria-label="remove">×</button>';
+    row.querySelector('b').textContent = nwNum(i + 1) + '. ' + x.title;
+    const s = x.src || {}; row.querySelector('small').textContent = (S.lang === 'bn' ? s.bn : s.en) || hostOf(x.link);
+    const im = row.querySelector('img'); if(im){ im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = x.img; } else im.style.visibility = 'hidden'; }; im.src = proxImg(x.img, 160); }
+    row.querySelector('.ppbt').addEventListener('click', () => { ppClose(); nwPick(ppItemObj(x)); });
+    row.querySelector('.ppdel').addEventListener('click', () => { ppRemove(x.link); });
+    box.appendChild(row);
+  });
+}
+function ppOpen(){
+  if(PP.open) return;
+  PP.open = true; PP.edit = false; $('ppForm').classList.add('hidden');
+  sheet.classList.remove('hidden'); document.body.classList.add('nwlock');
+  try{ if(!(history.state && history.state.pp)) history.pushState({ pp: 1 }, ''); }catch(e){}
+  ppTexts(); ppRender();
+  if(ppNative()) ppWire();
+}
+function ppClose(fromPop){
+  if(!PP.open) return;
+  PP.open = false; sheet.classList.add('hidden');
+  if(!$('newsSheet') || $('newsSheet').classList.contains('hidden')) document.body.classList.remove('nwlock');
+  if(fromPop !== true){ try{ if(history.state && history.state.pp) history.back(); }catch(e){} }
+}
+
+$('ppClose').addEventListener('click', () => ppClose());
+sheet.addEventListener('click', e => { if(e.target === sheet) ppClose(); });
+window.addEventListener('popstate', () => { if(PP.open && !(history.state && history.state.pp)) ppClose(true); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && PP.open) ppClose(); });
+$('ppChips').addEventListener('click', e => {
+  const b = e.target.closest('[data-g]'); if(!b) return;
+  PP.grp = b.dataset.g; store.set('ppGrp', PP.grp);
+  $('ppChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
+  ppRender(); $('ppBody').scrollTop = 0;
+});
+$('ppSearch').addEventListener('input', ppRender);
+$('ppEditBtn').addEventListener('click', () => { PP.edit = !PP.edit; $('ppEditBtn').textContent = PP.edit ? t('ppDone') : t('ppEdit'); ppRender(); });
+$('ppGrid').addEventListener('click', e => {
+  const b = e.target.closest('.pptile'); if(!b) return;
+  if(b.id === 'ppAddTile'){ PP.edit = false; ppTexts(); ppRender(); $('ppForm').classList.remove('hidden'); $('ppNewName').focus(); return; }
+  const id = b.dataset.id, p = ppAllPapers().find(x => x.id === id); if(!p) return;
+  if(PP.edit){                       // arranging: tapping a paper removes it (built-in papers can be brought back)
+    if(p.g === 'my') PP.custom = PP.custom.filter(c => c.id !== id);
+    else if(!PP.hidden.includes(id)) PP.hidden.push(id);
+    ppSave(); ppChips(); ppRender();
+    return;
+  }
+  ppOpenPaper(p);
+});
+$('ppRestore').addEventListener('click', () => { PP.hidden = []; ppSave(); ppRender(); });
+$('ppFormCancel').addEventListener('click', () => { $('ppForm').classList.add('hidden'); });
+$('ppFormSave').addEventListener('click', () => {
+  const name = norm($('ppNewName').value), u = normalizeUrl($('ppNewUrl').value);
+  if(!name){ toast(t('tPpNeedName')); $('ppNewName').focus(); return; }
+  if(!u){ toast(t('tPpBadUrl')); $('ppNewUrl').focus(); return; }
+  PP.custom.push({ id: 'c' + Date.now().toString(36), bn: name, en: name, u });
+  ppSave(); $('ppNewName').value = ''; $('ppNewUrl').value = ''; $('ppForm').classList.add('hidden');
+  PP.grp = 'my'; store.set('ppGrp', 'my'); ppChips(); ppRender(); toast(t('tPpSaved'));
+});
+$('ppPaste').addEventListener('click', async () => {
+  try{ const v = await navigator.clipboard.readText(); if(v){ $('ppLink').value = normalizeUrl(v) || v.trim(); } }catch(e){ $('ppLink').focus(); }
+});
+$('ppLink').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); ppLinkCard(); } });
+$('ppLinkCard').addEventListener('click', ppLinkCard);
+$('ppLinkAdd').addEventListener('click', ppLinkAdd);
+$('ppBToggle').addEventListener('click', () => { PP.basketOpen = !PP.basketOpen; ppRenderBasket(); });
+$('ppBClear').addEventListener('click', () => { PP.basket = []; ppSaveBasket(); ppRenderBasket(); });
+$('ppReel').addEventListener('click', ppMakeReel);
+
+/* home tile, right below "multi-news reel" */
+(function addTile(tries){
+  const q = document.querySelector('.v6quick');
+  if(!q || (!q.querySelector('.rlwide') && (tries || 0) < 20)){ if((tries || 0) < 60) setTimeout(() => addTile((tries || 0) + 1), 250); return; }
+  if(q.querySelector('.pptile2')) return;
+  const b = mk('button', 'qtile rlwide pptile2', '<span class="qi">' + ic(IC_PP) + '</span><span class="qt"><b data-i18n="ppTile"></b><small data-i18n="ppTileS"></small></span>'); b.type = 'button';
+  b.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  b.addEventListener('click', ppOpen);
+  const rl = q.querySelector('.rlwide'), big = q.querySelector('.qtile.big');
+  if(rl) rl.after(b); else if(big) big.after(b); else q.prepend(b);
+})();
+const applyI18nPp = applyI18n;
+applyI18n = function(){ applyI18nPp(); try{ if(PP.open){ ppTexts(); ppRender(); } }catch(e){} };
+window.TFPapers = { open: ppOpen, list: PAPERS, basket: () => PP.basket, inject: ppScript };
 })();
 
 })();

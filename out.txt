@@ -1,18 +1,30 @@
-images.prothomalo.com [] ["prothomalo.gumlet.io"]
-www.prothomalo.com ["104.17.145.114","104.17.144.114"] "ENODATA"
-media.prothomalo.com ["172.66.169.65","104.20.26.16"] ["custom-images.assettype.com"]
-gumlet.assettype.com ["172.66.169.65","104.20.26.16"] "ENODATA"
-images.assettype.com ["104.20.26.16","172.66.169.65"] "ENODATA"
 
-img https://images.prothomalo.com/prothomalo-bangla/2026-10-29/du7reuh5/45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg
-direct ERR fetch failed ENOTFOUND getaddrinfo ENOTFOUND images.prothomalo.com
+=== https://media.prothomalo.com/prothomalo-bangla/2026-10-29/ywnv2n6t/Flavio-Bolsonaro.avif
+  direct       200 image/avif   13880B acao=*
+  direct?jpg   200 image/jpeg   37415B acao=*
+  weserv       200 image/jpeg   39026B acao=*
+  wsrv         200 image/jpeg   94249B acao=*
 
-page og:image: https://media.prothomalo.com/prothomalo-bangla%2F2026-10-29%2Fdu7reuh5%2F45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg?rect=0%2C102%2C1600%2C840&amp;w=1200&amp;ar=40%3A21&amp;auto=format%2Ccompress&amp;ogImage=true&amp;mode=crop&amp;overlay=https%3A%2F%2Fmedia.prothomalo.com%2Fprothomalo-bangla%2F2026-09-03%2F99dqhmx6%2Fog-banner-for-sports.png&amp;overlay_position=bottom&amp;overlay_width_pct=1
-image hosts in page: {"media.prothomalo.com":33,"paloimages.prothom-alo.com":58}
-   https://media.prothomalo.com/prothomalo-bangla%2F2026-10-29%2Fdu7reuh5%2F45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg?rect=0%2C72%2C1600%2C900&amp;w=1200&amp;ar=16%3A9&amp;auto=format%2Ccompress&amp;ogIma
-   https://media.prothomalo.com/prothomalo-bangla%2F2026-10-29%2Fdu7reuh5%2F45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg?rect=0%2C102%2C1600%2C840&amp;w=1200&amp;ar=40%3A21&amp;auto=format%2Ccompress&amp;ogI
-   https://media.prothomalo.com/prothomalo-bangla/2026-10-29/yry160mj/abdb7858_3984_4060_a1b9_fb3352e264e1.jpg?w=1200&h=675&auto=format%2Ccompress&fit=max
-   https://media.prothomalo.com/prothomalo-bangla/2026-10-29/oh3kgrtd/63de33b7_3e8e_4673_8d3e_3950654a9270.jpg?w=1200&h=675&auto=format%2Ccompress&fit=max
-gumlet.assettype 200 image/jpeg 31598
-images.assettype 200 image/jpeg 239240
-wsrv-assettype 200 image/jpeg 43480
+=== https://media.prothomalo.com/prothomalo-bangla/2026-10-27/rkmgba0e/Active-Denial-System.avif
+  direct       200 image/avif   46173B acao=*
+  direct?jpg   200 image/jpeg   87485B acao=*
+  weserv       200 image/jpeg   92726B acao=*
+  wsrv         200 image/jpeg   234077B acao=*
+
+=== https://media.prothomalo.com/prothomalo-bangla/2026-10-29/qleb5a69/Motamot-2.PNG
+  direct       200 image/avif   126212B acao=*
+  direct?jpg   200 image/jpeg   216428B acao=*
+  weserv       200 image/jpeg   213800B acao=*
+  wsrv         200 image/jpeg   534721B acao=*
+
+=== https://media.prothomalo.com/prothomalo-bangla/2026-10-29/du7reuh5/45acfc9b-42e5-46f1-abd3-c203711b6ea0.jpg
+  direct       200 image/avif   21406B acao=*
+  direct?jpg   200 image/jpeg   82547B acao=*
+  weserv       200 image/jpeg   88242B acao=*
+  wsrv         200 image/jpeg   149040B acao=*
+
+=== https://media.prothomalo.com/prothomalo-bangla/2026-10-28/xptfvhll/16-holechrom10-holediatonic.jpg
+  direct       200 image/avif   95139B acao=*
+  direct?jpg   200 image/jpeg   305028B acao=*
+  weserv       200 image/jpeg   324072B acao=*
+  wsrv         200 image/jpeg   474619B acao=*

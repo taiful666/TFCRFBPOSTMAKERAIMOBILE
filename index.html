@@ -8407,7 +8407,7 @@ css.textContent = `
 .tfclr svg{width:17px;height:17px;flex:none;color:#e5484d}
 .tfclr:hover{background:var(--surface-2)}
 .tfclr:active{transform:scale(.96)}
-.tfclr.spin svg{animation:tfclrSpin .5s ease}
+.tfclr.tfclr-go svg{animation:tfclrSpin .5s ease}
 @keyframes tfclrSpin{to{transform:rotate(-360deg)}}
 #v7New{display:none!important}
 .topbar .brand{min-width:0}
@@ -8433,7 +8433,7 @@ function clearAll(){
   document.body.classList.remove('nwlock', 'rlsel');
   try{ newSearch(); }catch(e){ console.warn('clear', e); }
   setTimeout(() => { const a = document.activeElement; if(a && a.blur && a.id === 'urlInput') a.blur(); }, 320);   // no keyboard pop-up on phones
-  const b = $('tfClearBtn'); if(b){ b.classList.remove('spin'); void b.offsetWidth; b.classList.add('spin'); }
+  const b = $('tfClearBtn'); if(b){ b.classList.remove('tfclr-go'); void b.offsetWidth; b.classList.add('tfclr-go'); setTimeout(() => b.classList.remove('tfclr-go'), 600); }
   toast(t('clrDone'));
 }
 function labels(){

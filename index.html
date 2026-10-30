@@ -6394,7 +6394,7 @@ Object.assign(T.bn, {
   rlTitleBar:'নিউজ রিল', rlNews:'খবর', rlAi:'AI দিয়ে লিখুন', rlAdd:'আরও খবর যোগ করুন',
   rlIntro:'শুরুর শিরোনাম', rlTitleDef:'আজকের সেরা খবর', rlTicker:'নিচের চলমান লেখা',
   rlTickDef:'সর্বশেষ ও গুরুত্বপূর্ণ খবর সবার আগে পেতে {p} পেজটি ফলো করুন',
-  rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'নিজের ফাইল', rlmNone:'ছাড়া',
+  rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'নিজের ফাইল', rlmNone:'ছাড়া', rlm_beat:'নিউজ বিট', rlm_breaking:'ব্রেকিং নিউজ', rlm_piano:'নরম পিয়ানো', rlm_emotional:'আবেগী', rlm_tension:'টানটান রহস্য', rlm_happy:'হাসিখুশি', rlm_lofi:'লো-ফাই চিল', rlPvPlay:'▶ শুনুন', rlPvStop:'■ থামান',
   rlDesign:'কার্ড ডিজাইন', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
   rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} সেকেন্ডের',
   rlMake:'ভিডিও তৈরি করুন', rlRemake:'আবার তৈরি করুন', rlCancel:'বাতিল', rlSave:'সেভ', rlShare:'শেয়ার', rlCap:'ক্যাপশন', rlCapCopy:'ক্যাপশন কপি',
@@ -6420,7 +6420,7 @@ Object.assign(T.en, {
   rlTitleBar:'News reel', rlNews:'Stories', rlAi:'Write with AI', rlAdd:'Add more stories',
   rlIntro:'Opening title', rlTitleDef:'Top news today', rlTicker:'Scrolling text',
   rlTickDef:'Follow {p} for the latest and most important news first',
-  rlSecs:'Each story', rlSec:'s', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My file', rlmNone:'None',
+  rlSecs:'Each story', rlSec:'s', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My file', rlmNone:'None', rlm_beat:'News beat', rlm_breaking:'Breaking news', rlm_piano:'Soft piano', rlm_emotional:'Emotional', rlm_tension:'Suspense', rlm_happy:'Happy', rlm_lofi:'Lo-fi chill', rlPvPlay:'▶ Listen', rlPvStop:'■ Stop',
   rlDesign:'Card design', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
   rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} seconds',
   rlMake:'Create video', rlRemake:'Create again', rlCancel:'Cancel', rlSave:'Save', rlShare:'Share', rlCap:'Caption', rlCapCopy:'Copy caption',
@@ -6445,7 +6445,7 @@ const IC_FILM = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v
 const RL_MAX = 100, RW = 720, RH = 1280, XT = 0.5, CARD_CY = 590;
 const RL = {
   on: false, open: false, sel: new Map(), items: [], imgs: new Map(), busy: false, cancel: false,
-  secs: store.get('rlSecs', 3), music: store.get('rlMusic', 'beat'), tpl: store.get('rlTpl', 'band'), mixColor: store.get('rlMixColor', true),
+  secs: store.get('rlSecs', 3), music: (m => ['beat','breaking','piano','emotional','tension','happy','lofi','none'].includes(m) ? m : 'beat')(store.get('rlMusic', 'beat')), tpl: store.get('rlTpl', 'band'), mixColor: store.get('rlMixColor', true),
   title: store.get('rlTitle', ''), ticker: store.get('rlTicker', ''), musicAB: null, musicName: '', blob: null, url: '', caption: '', style: null
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -6531,6 +6531,8 @@ html[data-theme="dark"] .rlopts button.on{color:#111}
 .rlstyle span{flex:1;color:var(--muted)}
 .rlmeta{font-size:12.5px;color:var(--muted);margin:2px 2px 0}
 #rlMusicName{color:var(--accent);margin-top:6px;cursor:pointer}
+.rlmh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.rlmh>span{flex:1;font-size:12.5px;color:var(--muted);font-weight:600}
+#rlPvBtn{min-height:34px;padding:4px 12px;font-size:13px}#rlPvBtn.on{background:var(--accent);border-color:var(--accent);color:#fff}html[data-theme="dark"] #rlPvBtn.on{color:#111}
 .rlcap textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);font:14px/1.55 var(--sans);resize:vertical;outline:none}
 .rlfoot{flex:none;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
 .rlfoot .btn{width:100%;min-height:50px;font-size:16px}
@@ -6617,7 +6619,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div class="rlf"><span id="rlLogoL"></span><div class="rllogo" id="rlLogoBox"><img id="rlLogoTh" alt="" class="hidden"><span id="rlLogoMsg"></span><button type="button" class="btn" id="rlLogoBtn"></button></div></div>
       <div class="rlf"><label for="rlTitleIn" id="rlTitleL"></label><input type="text" id="rlTitleIn" maxlength="40" autocomplete="off"></div>
       <div class="rlf"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
-      <div class="rlf"><span id="rlMusicL"></span><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>
+      <div class="rlf"><div class="rlmh"><span id="rlMusicL"></span><button type="button" class="btn" id="rlPvBtn"></button></div><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>
       <div class="rlf"><span id="rlDesignL"></span><div class="rlopts" id="rlDesignO"></div>
         <label class="rlchk"><input type="checkbox" id="rlMixC"><span id="rlMixL"></span></label></div>
       <div class="rlf rlstyle"><span id="rlStyleT"></span><button type="button" class="btn" id="rlShuffle">${ic(IC_SHUF)}<span></span></button></div>
@@ -6649,10 +6651,11 @@ function rlTexts(){
   $('rlShuffle').querySelector('span').textContent = t('rlShuffle'); $('rlTip').textContent = t('rlTip'); $('rlCapT').textContent = t('rlCap');
   $('rlMake').querySelector('span').textContent = RL.blob ? t('rlRemake') : t('rlMake');
   opts('rlSecsO', [2, 3, 4, 5].map(n => [n, nwNum(n) + ' ' + t('rlSec')]), RL.secs, v => { RL.secs = v; store.set('rlSecs', v); rlMeta(); });
-  opts('rlMusicO', [['beat', t('rlmBeat')], ['file', t('rlmFile')], ['none', t('rlmNone')]], RL.music, v => {
-    if(v === 'file' && !RL.musicAB){ $('rlMusicFile').click(); opts('rlMusicO', [['beat', t('rlmBeat')], ['file', t('rlmFile')], ['none', t('rlmNone')]], RL.music, () => {}); rlTexts(); return; }
-    RL.music = v; if(v !== 'file') store.set('rlMusic', v); rlMeta();
+  opts('rlMusicO', rlMusicOpts(), RL.music, v => {
+    if(v === 'file' && !RL.musicAB){ $('rlMusicFile').click(); opts('rlMusicO', rlMusicOpts(), RL.music, () => {}); rlTexts(); return; }
+    rlPvStop(); RL.music = v; if(v !== 'file') store.set('rlMusic', v); rlMeta(); rlPvUi();
   });
+  rlPvUi();
   opts('rlDesignO', [['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
   $('rlMixC').checked = !!RL.mixColor;
   rlMeta();
@@ -6680,7 +6683,7 @@ function rlClose(fromPop){
   if(!RL.open) return;
   if(RL.busy) RL.cancel = true;
   rlSyncTexts();
-  RL.open = false; sheet.classList.add('hidden'); document.body.classList.remove('nwlock');
+  rlPvStop(); RL.open = false; sheet.classList.add('hidden'); document.body.classList.remove('nwlock');
   const v = $('rlVideo'); try{ v.pause(); }catch(e){}
   if(!fromPop){ try{ if(history.state && history.state.rl) history.back(); }catch(e){} }
 }
@@ -6726,11 +6729,33 @@ $('rlAdd').addEventListener('click', () => {
   nwOpen(); setMode(true);
 });
 $('rlMusicName').addEventListener('click', () => $('rlMusicFile').click());
+/* ---- listen to the chosen music before making the reel (~10 s) ---- */
+function rlPvUi(){ const b = $('rlPvBtn'); if(!b) return; b.textContent = RL.pv ? t('rlPvStop') : t('rlPvPlay'); b.classList.toggle('on', !!RL.pv); b.disabled = RL.music === 'none'; }
+function rlPvStop(){
+  const P = RL.pv; if(!P) return; RL.pv = null; clearTimeout(P.to);
+  try{ P.stop && P.stop(); }catch(e){} try{ P.ac.close(); }catch(e){} rlPvUi();
+}
+async function rlPvPlay(){
+  if(RL.pv){ rlPvStop(); return; }
+  if(RL.music === 'none' || RL.busy) return;
+  const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+  const ac = new AC(), P = { ac, stop: null, to: 0 }; RL.pv = P; rlPvUi();
+  try{ await ac.resume(); }catch(e){}
+  const secs = Math.max(2, RL.secs || 3), segs = [{ k: 'intro', s: 0, d: 2.4 }]; let s = 2.4;
+  while(s < 10){ segs.push({ k: 'card', i: segs.length - 1, s, d: secs }); s += secs; }
+  const R = { tl: { segs, total: s }, st: RL.style, musicBuf: null };
+  if(RL.music === 'file' && RL.musicAB){ try{ R.musicBuf = await ac.decodeAudioData(RL.musicAB.slice(0)); }catch(e){} }
+  if(RL.pv !== P) return;
+  P.stop = rlAudio(ac, ac.destination, R, ac.currentTime + 0.08);
+  P.to = setTimeout(rlPvStop, s * 1000 + 400);
+}
+$('rlPvBtn').addEventListener('click', rlPvPlay);
+
 $('liveNewsBtn').addEventListener('click', () => setMode(false));
 $('rlTitleIn').addEventListener('input', () => { rlSyncTexts(); rlCaptionAuto(); });
 $('rlTickIn').addEventListener('input', () => { rlSyncTexts(); rlPreview(); });
 $('rlMixC').addEventListener('change', () => { RL.mixColor = $('rlMixC').checked; store.set('rlMixColor', RL.mixColor); rlPreview(); });
-$('rlShuffle').addEventListener('click', () => { RL.vidStyle = null; RL.style = rlNewStyle(RL.style); rlMeta(); rlPreview(); toast(t('rlStyle') + ': ' + t('tr_' + RL.style.trans)); });
+$('rlShuffle').addEventListener('click', () => { rlPvStop(); RL.vidStyle = null; RL.style = rlNewStyle(RL.style); rlMeta(); rlPreview(); toast(t('rlStyle') + ': ' + t('tr_' + RL.style.trans)); });
 $('rlMusicFile').addEventListener('change', async () => {
   const f = $('rlMusicFile').files[0]; $('rlMusicFile').value = ''; if(!f) return;
   try{
@@ -7150,6 +7175,131 @@ function rlPreview(){
 
 /* ---------------- 5) music ---------------- */
 function noiseBuf(ac){ const b = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = b.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
+/* ---- more original music styles: every note is made here in the app (no songs, no samples) → safe for Facebook & YouTube ---- */
+function rlGenKit(ac, master, R, T0, env, noise, timers){
+  const st = R.st, total = R.tl.total, f = m => 440 * Math.pow(2, (m - 69) / 12);
+  const rnd = k => { const x = Math.sin((k + 1) * 12.9898 + (st.shuffle || 0.3) * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const lp = (fr, out) => { const x = ac.createBiquadFilter(); x.type = 'lowpass'; x.frequency.value = fr; x.connect(out || master); return x; };
+  const hit = (type, freq, t, dur, peak, a, out, det) => {            // plucked / struck note
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = freq; if(det) o.detune.value = det;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + (a || 0.005)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(out || master); o.start(t); o.stop(t + dur + 0.05); return o;
+  };
+  const hold = (type, freq, t, len, peak, att, rel, out, det) => {     // sustained note (pads, strings, drones)
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = freq; if(det) o.detune.value = det;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + att); g.gain.setValueAtTime(peak, t + Math.max(att, len - rel)); g.gain.linearRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(out || master); o.start(t); o.stop(t + len + 0.05); return o;
+  };
+  const kick = (t, p, from) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(from || 150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.11);
+    env(g, t, 0.002, p || 0.8, 0.28); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.34); };
+  const snare = (t, p, fr) => noise(t, 0.18, 'bandpass', fr || 1900, 0.8, p || 0.24, 0.14);
+  const hat = (t, p, d) => noise(t, 0.05, 'highpass', 7500, 0, p || 0.06, d || 0.035);
+  const clap = (t, p) => [0, 0.011, 0.023].forEach(o => noise(t + o, 0.08, 'bandpass', 1400, 1.2, p || 0.18, 0.07));
+  const piano = (m, t, dur, p, out) => { hit('triangle', f(m), t, dur, p, 0.004, out); hit('sine', f(m + 12), t, dur * 0.55, p * 0.3, 0.004, out); };
+  const chord = (ch, sev) => { const a = [0, ch[1] === 'm' ? 3 : 4, 7]; if(sev) a.push(ch[1] === 'm' ? 10 : 11); return a.map(i => ch[0] + i); };
+  const MAJ = [[[0,'M'],[7,'M'],[9,'m'],[5,'M']], [[0,'M'],[5,'M'],[7,'M'],[5,'M']], [[0,'M'],[9,'m'],[5,'M'],[7,'M']], [[0,'M'],[4,'m'],[5,'M'],[7,'M']]];
+  const major = MAJ[Math.floor((st.shuffle || 0) * MAJ.length) % MAJ.length];
+  const bpm = (lo, hi) => lo + ((st.bpm || 100) % (hi - lo + 1));
+  const drumsAt = T0 + Math.max(0, (R.tl.segs[1] ? R.tl.segs[1].s : 2) - 0.6);
+  const loop = (step, fn) => { let n = 0;
+    const sched = () => { const ahead = ac.currentTime + 1.2; while(T0 + n * step < ahead && n * step < total - 0.2){ fn(n, T0 + n * step); n++; } };
+    sched(); timers.push(setInterval(sched, 200)); };
+  const done = () => () => timers.forEach(clearInterval);
+  return { ac, st, total, f, rnd, lp, hit, hold, kick, snare, hat, clap, piano, chord, major, bpm, drumsAt, loop, done, T0 };
+}
+const RL_GEN = {
+  /* urgent, driving — for breaking / big news */
+  breaking(K){
+    const b = 60 / K.bpm(122, 134), e = b / 2, pad = K.lp(900), bass = K.lp(650);
+    K.loop(e, (n, t) => {
+      const bar = Math.floor(n / 8), s = n % 8, ch = K.st.prog[bar % K.st.prog.length], r = K.st.root;
+      if(s === 0) K.chord(ch).forEach(m => [-7, 7].forEach(d => K.hold('sawtooth', K.f(r + 12 + m), t, 8 * e, 0.018, 0.15, 0.3, pad, d)));
+      K.hit('square', K.f(r - 12 + ch[0] + (s === 7 ? 7 : 0)), t, e * 0.85, 0.11, 0.004, bass);
+      if(t >= K.drumsAt){
+        if(s === 0 || s === 4 || (s === 7 && bar % 2)) K.kick(t, 0.8);
+        if(s === 2 || s === 6) K.snare(t, 0.22);
+        K.hat(t, s % 2 ? 0.04 : 0.07);
+        if(s === 0 && bar % 2 === 0) K.hit('sine', K.f(r + 36 + ch[0]), t, 0.35, 0.05);
+      }
+    });
+    return K.done();
+  },
+  /* gentle piano arpeggios — calm stories, soft news */
+  piano(K){
+    const b = 60 / K.bpm(72, 84), e = b / 2, out = K.lp(2600), pat = [0, 2, 4, 2, 5, 4, 2, 1];
+    K.loop(e, (n, t) => {
+      const bar = Math.floor(n / 8), s = n % 8, ch = K.major[bar % 4], r = K.st.root + 12, tones = K.chord(ch);
+      const up = [tones[0], tones[1], tones[2], tones[0] + 12, tones[1] + 12, tones[2] + 12];
+      K.piano(r + 12 + up[pat[s]], t, 1.8, s === 0 ? 0.17 : 0.12, out);
+      if(s === 0){ K.hit('sine', K.f(r - 12 + ch[0]), t, 8 * e, 0.16, 0.02); K.hold('sine', K.f(r + tones[1]), t, 8 * e, 0.025, 0.6, 0.6, out); }
+    });
+    return K.done();
+  },
+  /* slow strings + piano melody — emotional, heart-touching stories */
+  emotional(K){
+    const b = 60 / K.bpm(62, 74), str = K.lp(1500), pno = K.lp(3000);
+    K.loop(b, (n, t) => {
+      const bar = Math.floor(n / 4), s = n % 4, ch = K.st.prog[bar % K.st.prog.length], r = K.st.root, tones = K.chord(ch);
+      if(s === 0){
+        tones.forEach(m => [-8, 8].forEach(d => K.hold('sawtooth', K.f(r + 12 + m), t, 4 * b + 0.3, 0.014, 1.1, 1.0, str, d)));
+        K.hold('sine', K.f(r - 12 + ch[0]), t, 4 * b, 0.13, 0.4, 0.6);
+      }
+      if(s === 0 || s === 2 || (s === 3 && K.rnd(n) > 0.6)){
+        const m = tones[Math.floor(K.rnd(n * 3) * 3)] + 24 + (K.rnd(n * 7) > 0.7 ? 12 : 0);
+        K.piano(r + m, t, 2.6, 0.09, pno);
+      }
+    });
+    return K.done();
+  },
+  /* ticking clock, heartbeat, dark drone — suspense, crime, investigation */
+  tension(K){
+    const b = 60 / K.bpm(84, 96), r = K.st.root, dr = K.lp(500);
+    K.hold('sawtooth', K.f(r - 12), K.T0, K.total, 0.075, 1.5, 1.5, dr, -5);
+    K.hold('sawtooth', K.f(r - 5), K.T0, K.total, 0.045, 2.5, 1.5, dr, 6);
+    const stab = K.lp(1200);
+    K.loop(b, (n, t) => {
+      const bar = Math.floor(n / 4), s = n % 4, ch = K.st.prog[bar % K.st.prog.length];
+      K.hat(t, 0.07, 0.02); K.hit('sine', K.f(r + 48), t, 0.05, 0.02);
+      if(t >= K.drumsAt && s === 0){ K.kick(t, 0.6, 90); K.kick(t + 0.2, 0.42, 80); }
+      if(s === 0 && bar % 2 === 1) K.chord(ch).forEach(m => K.hit('sawtooth', K.f(r + 12 + m), t, 1.2, 0.03, 0.01, stab));
+    });
+    return K.done();
+  },
+  /* bright, happy, claps — good news, achievements, positive stories */
+  happy(K){
+    const b = 60 / K.bpm(110, 122), e = b / 2, pl = K.lp(2400), pad = K.lp(1400);
+    K.loop(e, (n, t) => {
+      const bar = Math.floor(n / 8), s = n % 8, ch = K.major[bar % 4], r = K.st.root, tones = K.chord(ch);
+      if(s === 0) tones.forEach(m => K.hold('triangle', K.f(r + 12 + m), t, 8 * e, 0.025, 0.08, 0.3, pad));
+      K.hit('square', K.f(r + 24 + tones[[0, 1, 2, 1][s % 4]] + (s >= 4 ? 12 : 0)), t, e * 0.9, 0.028, 0.003, pl);
+      if(s % 2 === 0) K.hit('triangle', K.f(r + ch[0] + (s === 6 ? 7 : 0)), t, e * 1.6, 0.22, 0.006);
+      if(t >= K.drumsAt){
+        if(s % 2 === 0) K.kick(t, 0.7);
+        if(s === 2 || s === 6) K.clap(t, 0.17);
+        if(s % 2 === 1) K.hat(t, 0.07, 0.05);
+      }
+    });
+    return K.done();
+  },
+  /* lazy swing, mellow chords, vinyl crackle — chill / everyday stories */
+  lofi(K){
+    const b = 60 / K.bpm(76, 88), e = b / 2, sw = e * 0.18, ch7 = K.lp(950);
+    K.loop(e, (n, t0) => {
+      const bar = Math.floor(n / 8), s = n % 8, t = t0 + (s % 2 ? sw : 0), ch = K.major[bar % 4], r = K.st.root;
+      if(s === 0) K.chord(ch, true).forEach(m => { K.hold('sine', K.f(r + 12 + m), t, 8 * e, 0.035, 0.05, 0.5, ch7); K.hold('triangle', K.f(r + 12 + m), t, 8 * e, 0.012, 0.05, 0.5, ch7, 9); });
+      if(s === 0 || s === 5) K.hit('sine', K.f(r - 12 + ch[0]), t, 3 * e, 0.2, 0.01);
+      if(t0 >= K.drumsAt){
+        if(s === 0 || s === 5) K.kick(t, 0.6, 120);
+        if(s === 2 || s === 6) K.snare(t, 0.13, 1500);
+        K.hat(t, s % 2 ? 0.025 : 0.04, 0.03);
+      }
+      if(K.rnd(n * 5) > 0.82) K.hat(t + K.rnd(n) * e, 0.012, 0.01);
+    });
+    return K.done();
+  }
+};
+const RL_TRACKS = ['beat', 'breaking', 'piano', 'emotional', 'tension', 'happy', 'lofi'];
+function rlMusicOpts(){ return RL_TRACKS.map(k => [k, t('rlm_' + k)]).concat([['file', t('rlmFile')], ['none', t('rlmNone')]]); }
 function rlAudio(ac, dest, R, T0){
   const total = R.tl.total, master = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = 0.85;
   comp.threshold.value = -14; comp.ratio.value = 4; master.connect(comp); comp.connect(dest);
@@ -7177,6 +7327,7 @@ function rlAudio(ac, dest, R, T0){
     s.connect(g); g.connect(master); s.start(T0); s.stop(T0 + total + 0.1);
     return () => {};
   }
+  if(RL.music !== 'beat' && RL_GEN[RL.music]) return RL_GEN[RL.music](rlGenKit(ac, master, R, T0, env, noise, timers));
   // procedural "news beat" — tempo, key and chords change with every reel
   const st = R.st, b = 60 / st.bpm, f = m => 440 * Math.pow(2, (m - 69) / 12), drumsFrom = R.tl.segs[1].s - b;
   const padOut = ac.createBiquadFilter(); padOut.type = 'lowpass'; padOut.frequency.value = 1100; padOut.connect(master);
@@ -7356,6 +7507,7 @@ function rlBusy(on){
 }
 async function rlMake(){
   if(RL.busy || !RL.items.length) return;
+  rlPvStop();
   const mime = rlMime(RL.music !== 'none');
   if(mime === null || !$('rlCanvas').captureStream){ toast(t('rlNoRec')); return; }
   rlSyncTexts(); RL.cancel = false; rlBusy(true);
@@ -7752,6 +7904,7 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape' && RL.open && 
 (window.TFClearHooks = window.TFClearHooks || []).push({
   has: () => RL.sel.size > 0 || RL.items.length > 0 || !!RL.url || RL.on || RL.open,
   clear: () => {
+    try{ rlPvStop(); }catch(e){}
     if(RL.busy) RL.cancel = true;
     if(ED.open){ ED.changed = false; rlEdClose(true); }
     if(RL.open) rlClose(true);

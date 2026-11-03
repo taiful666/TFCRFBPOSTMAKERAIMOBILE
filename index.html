@@ -6640,7 +6640,7 @@ Object.assign(T.bn, {
   rlIntro:'শুরুর শিরোনাম', rlTitleDef:'আজকের সেরা খবর', rlTicker:'নিচের চলমান লেখা',
   rlTickDef:'সর্বশেষ ও গুরুত্বপূর্ণ খবর সবার আগে পেতে {p} পেজটি ফলো করুন',
   rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'আমার মিউজিক', mmTitle:'আমার মিউজিক', mmSafe:'· ফোনে সেভ থাকে, ক্লিয়ার দিলেও মুছবে না', mmAdd:'মিউজিক যোগ করুন', mmDel:'মুছুন', mmDelAsk:'"{n}" মিউজিকটি ফোন থেকে মুছে ফেলবেন?', mmDeleted:'মিউজিক মুছে ফেলা হয়েছে', mmSaved:'মিউজিক ফোনে সেভ হয়েছে — পরেও থাকবে', mmNoSave:'এবার ব্যবহার করা যাবে, কিন্তু ফোনে সেভ করা গেল না (জায়গা কম?)', rlmNone:'ছাড়া', rlm_beat:'নিউজ বিট', rlm_breaking:'ব্রেকিং নিউজ', rlm_piano:'নরম পিয়ানো', rlm_emotional:'আবেগী', rlm_tension:'টানটান রহস্য', rlm_happy:'হাসিখুশি', rlm_lofi:'লো-ফাই চিল', rlm_headline:'টিভি হেডলাইন', rlm_war:'যুদ্ধের দামামা', rlm_alert:'জরুরি আপডেট', rlm_trailer:'এপিক ট্রেলার', rlm_countdown:'কাউন্টডাউন', rlm_march:'মার্চিং ড্রাম', rlPvPlay:'▶ শুনুন', rlPvStop:'■ থামান',
-  rlDesign:'কার্ড ডিজাইন', rldLive:'লাইভ ব্রেকিং', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
+  rlDesign:'কার্ড ডিজাইন', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
   rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} সেকেন্ডের',
   rlMake:'ভিডিও তৈরি করুন', rlRemake:'আবার তৈরি করুন', rlCancel:'বাতিল', rlSave:'সেভ', rlShare:'শেয়ার', rlCap:'ক্যাপশন', rlCapCopy:'ক্যাপশন কপি',
   rlPrep:'ছবি ও কার্ড তৈরি হচ্ছে… {a}/{b}', rlRec:'ভিডিও তৈরি হচ্ছে… {a}/{b} সে. — স্ক্রিন খোলা রাখুন',
@@ -6666,7 +6666,7 @@ Object.assign(T.en, {
   rlIntro:'Opening title', rlTitleDef:'Top news today', rlTicker:'Scrolling text',
   rlTickDef:'Follow {p} for the latest and most important news first',
   rlSecs:'Each story', rlSec:'s', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My music', mmTitle:'My music', mmSafe:'· saved on this phone, Clear does not remove it', mmAdd:'Add music', mmDel:'Delete', mmDelAsk:'Delete "{n}" from this phone?', mmDeleted:'Music deleted', mmSaved:'Music saved on this phone — it will stay', mmNoSave:'Usable now, but could not be saved on the phone (low space?)', rlmNone:'None', rlm_beat:'News beat', rlm_breaking:'Breaking news', rlm_piano:'Soft piano', rlm_emotional:'Emotional', rlm_tension:'Suspense', rlm_happy:'Happy', rlm_lofi:'Lo-fi chill', rlm_headline:'TV headline', rlm_war:'War drums', rlm_alert:'Urgent update', rlm_trailer:'Epic trailer', rlm_countdown:'Countdown', rlm_march:'Military march', rlPvPlay:'▶ Listen', rlPvStop:'■ Stop',
-  rlDesign:'Card design', rldLive:'Live breaking', rlWm:'Blur newspaper names/logos on photos', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
+  rlDesign:'Card design', rldLive:'Live breaking', rldDeck:'Card carousel', rlWm:'Blur newspaper names/logos on photos', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
   rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} seconds',
   rlMake:'Create video', rlRemake:'Create again', rlCancel:'Cancel', rlSave:'Save', rlShare:'Share', rlCap:'Caption', rlCapCopy:'Copy caption',
   rlPrep:'Preparing photos and cards… {a}/{b}', rlRec:'Recording video… {a}/{b} s — keep the screen on',
@@ -6904,7 +6904,7 @@ function rlTexts(){
     rlMeta(); rlPvUi(); mmRender();
   });
   rlPvUi(); mmRender();
-  opts('rlDesignO', [['live', t('rldLive')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
+  opts('rlDesignO', [['live', t('rldLive')], ['deck', t('rldDeck')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
   $('rlMixC').checked = !!RL.mixColor; $('rlWmC').checked = wmOn();
   rlMeta();
 }
@@ -7305,9 +7305,118 @@ function rlBreakBar(ctx, R, g, p, tm){
   ctx.font = 'italic ' + fontStr(S.lang === 'bn' ? 30 : 27, 800, BFAM); ctx.fillText(label, 0, 2, lw - 16);
   ctx.restore();
 }
+/* ---- "কার্ড ক্যারোসেল" design (ranked-list style reel): red→blue background, the page badge on top that flips between
+        page name and date, a dark title band, and one tall card per story — number badge, navy headline box, cream source
+        line, red date box and the photo. The next card slides in from the right and grows into the centre while the
+        previous one shrinks and moves to the left; the neighbours peek in at both edges. ---- */
+const DK = { cw: 500, cy: 745, gap: 462, side: 0.8 };
+function dkCard(R, i){
+  const M = R.dk || (R.dk = new Map()), ph = cardOf(R, i), old = M.get(i);
+  if(old && old.ph === ph) return old.cv;
+  const it = R.items[i] || {}, ed = it.ed || {}, W = DK.cw, pad = 22, iw = W - pad * 2;
+  const cv = document.createElement('canvas'), x = cv.getContext('2d');
+  const text = String(it.text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+  const L = rlWrap(x, text, iw - 40, 40, 700, 4, 26), lh = L.size * 1.3;
+  const numH = 84, nameH = Math.max(100, L.lines.length * lh + 36), creamH = 58, redH = 68, photoH = 360;
+  const H = numH + nameH + creamH + redH + 16 + photoH + pad;
+  cv.width = W; cv.height = H;
+  // card body
+  const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#b0121c'); bg.addColorStop(1, '#740811');
+  x.fillStyle = bg; rr(x, 2, 2, W - 4, H - 4, 22); x.fill();
+  x.strokeStyle = '#e0343c'; x.lineWidth = 4; x.stroke();
+  x.strokeStyle = 'rgba(0,0,0,.25)'; x.lineWidth = 2; rr(x, 8, 8, W - 16, H - 16, 18); x.stroke();
+  // number badge
+  x.beginPath(); x.arc(W / 2, 44, 27, 0, Math.PI * 2); x.fillStyle = '#e3121e'; x.fill();
+  x.lineWidth = 3; x.strokeStyle = 'rgba(255,170,170,.7)'; x.stroke();
+  x.fillStyle = '#fff'; x.font = fontStr(32, 700, BFAM); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(nwNum(i + 1), W / 2, 46);
+  // cream panel with the navy headline box, source line and red date box
+  let y = numH;
+  x.fillStyle = '#fbf4e8'; rr(x, pad, y, iw, nameH + creamH + redH + 4, 14); x.fill();
+  const ng = x.createLinearGradient(0, y, 0, y + nameH); ng.addColorStop(0, '#13285e'); ng.addColorStop(1, '#0a1838');
+  x.fillStyle = ng; rr(x, pad, y, iw, nameH, 14); x.fill(); x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 2; x.stroke();
+  x.fillStyle = '#fff'; x.font = fontStr(L.size, 700, BFAM); x.textBaseline = 'middle';
+  const ty = y + nameH / 2 - (L.lines.length - 1) * lh / 2;
+  L.lines.forEach((l, k) => x.fillText(l, W / 2, ty + k * lh + 2));
+  y += nameH;
+  x.fillStyle = '#1b1b1b'; fitFont(x, it.source || it.host || R.page, iw - 30, 32, 600); x.fillText(it.source || it.host || R.page, W / 2, y + creamH / 2 + 2);
+  y += creamH;
+  x.fillStyle = '#8c0a12'; rr(x, pad + 14, y, iw - 28, redH - 8, 8); x.fill();
+  x.fillStyle = '#fff'; fitFont(x, it.date || R.today, iw - 60, 34, 700); x.fillText(it.date || R.today, W / 2, y + (redH - 8) / 2 + 2);
+  y += redH + 16;
+  // photo box
+  x.save(); rr(x, pad, y, iw, photoH, 14); x.fillStyle = '#fff'; x.fill(); x.clip();
+  if(ph) rlPhoto(x, ph, pad, y, iw, photoH, (ed.zoom || 100) / 100, 0);
+  else rlPlainBg(x, R.col(i)[0], pad, y, iw, photoH);
+  x.restore();
+  x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 2; rr(x, pad, y, iw, photoH, 14); x.stroke();
+  M.set(i, { ph, cv });
+  for(const k of Array.from(M.keys())) if(Math.abs(k - i) > 3){ const o = M.get(k); o.cv.width = o.cv.height = 1; M.delete(k); }
+  return cv;
+}
+function dkBg(ctx, tm){
+  const g = ctx.createLinearGradient(0, 0, RW * 0.4, RH);
+  g.addColorStop(0, '#5a0410'); g.addColorStop(.45, '#760a2c'); g.addColorStop(1, '#2a30a2');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, RW, RH);
+  const lx = RW / 2 + Math.sin(tm * 0.6) * 240, lg = ctx.createRadialGradient(lx, 780, 20, lx, 780, 560);
+  lg.addColorStop(0, 'rgba(255,80,110,.20)'); lg.addColorStop(1, 'rgba(255,80,110,0)');
+  ctx.fillStyle = lg; ctx.fillRect(0, 0, RW, RH);
+}
+function rlDeckScene(ctx, R, g, p, tm){
+  dkBg(ctx, tm);
+  const pos = g.i - 1 + easeIO(p / 0.75), js = [];
+  for(let j = Math.max(0, Math.floor(pos) - 1); j <= Math.min(R.n - 1, Math.ceil(pos) + 1); j++) js.push(j);
+  js.sort((a, b) => Math.abs(b - pos) - Math.abs(a - pos));          // the centre card is drawn last (on top)
+  js.forEach(j => {
+    const d = j - pos, ad = Math.abs(d); if(ad > 1.9) return;
+    const cv = dkCard(R, j), s = 1 - (1 - DK.side) * Math.min(ad, 1), w = cv.width * s, h = cv.height * s;
+    const x = RW / 2 + d * DK.gap - w / 2, y = DK.cy - h / 2;
+    ctx.save();
+    if(ad < 0.5){ ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 34; ctx.shadowOffsetY = 12; }
+    ctx.imageSmoothingQuality = 'medium'; ctx.drawImage(cv, x, y, w, h);
+    ctx.restore();
+    if(ad > 0.05){ ctx.fillStyle = 'rgba(20,0,10,' + (0.28 * Math.min(ad, 1)).toFixed(3) + ')'; rr(ctx, x, y, w, h, 22 * s); ctx.fill(); }
+    if(j === g.i){                                         // a light sweep across the card once it has landed
+      const sp = (p - 0.85) / 0.8;
+      if(sp > 0 && sp < 1){ ctx.save(); rr(ctx, x, y, w, h, 22 * s); ctx.clip(); const sx = x - 120 + sp * (w + 240), gr = ctx.createLinearGradient(sx - 70, y, sx + 70, y + 140);
+        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.28)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = gr; ctx.fillRect(x, y, w, h); ctx.restore(); }
+    }
+  });
+}
+function dkOverlay(ctx, R, g, p, tm){
+  // page badge — flips between the page name and today's date
+  const texts = [R.page, R.today], per = 2.6, idx = Math.floor(tm / per) % 2, lt = tm % per;
+  const fl = lt < 0.3 ? lt / 0.3 : lt > per - 0.3 ? (per - lt) / 0.3 : 1;
+  ctx.font = fontStr(30, 700, BFAM);
+  const lg = C.logoImg ? 56 : 0, bw = Math.min(RW - 120, Math.max(...texts.map(s => ctx.measureText(s).width)) + 56 + lg), bh = 60, bx = RW / 2 - bw / 2, by = 30;
+  ctx.fillStyle = '#16161c'; rr(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.strokeStyle = '#e0121c'; ctx.lineWidth = 3; ctx.stroke();
+  if(lg) rlLogoDisc(ctx, bx + 34, by + bh / 2, 22);
+  ctx.save(); rr(ctx, bx, by, bw, bh, 14); ctx.clip();
+  ctx.translate(RW / 2 + lg / 2, by + bh / 2); ctx.scale(1, Math.max(0.02, fl));
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; fitFont(ctx, texts[idx], bw - 40 - lg, 30, 700); ctx.fillText(texts[idx], 0, 2);
+  ctx.restore();
+  // title band
+  const ty = 122, th = 150;
+  const tg = ctx.createLinearGradient(0, ty, 0, ty + th); tg.addColorStop(0, '#3d0108'); tg.addColorStop(1, '#2a0005');
+  ctx.fillStyle = tg; ctx.fillRect(0, ty, RW, th);
+  ctx.fillStyle = '#e3121e'; ctx.fillRect(0, ty - 6, RW, 6); ctx.fillRect(0, ty + th, RW, 6);
+  const L = rlWrap(ctx, R.title, RW - 70, 52, 700, 2, 30), lh = L.size * 1.25, y0 = ty + th / 2 - (L.lines.length - 1) * lh / 2;
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(L.size, 700, BFAM);
+  ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8;
+  L.lines.forEach((l, k) => ctx.fillText(l, RW / 2, y0 + k * lh + 2));
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  // progress
+  const bw2 = 520, x0 = (RW - bw2) / 2, y1 = 1196, gap = R.n > 20 ? 0 : 6, sw = (bw2 - gap * (R.n - 1)) / R.n;
+  for(let i = 0; i < R.n; i++){
+    const f = i < g.i ? 1 : i === g.i ? clamp(p / g.d, 0, 1) : 0, x = x0 + i * (sw + gap);
+    ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(x, y1, sw, 6);
+    if(f > 0){ ctx.fillStyle = '#ffd200'; ctx.fillRect(x, y1, sw * f, 6); }
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = fontStr(24, 700, BFAM); ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW / 2, y1 + 34);
+}
 function rlScene(ctx, R, g, p){
   ctx.save();
   if(g.k === 'card' && R.live){ rlLiveScene(ctx, R, g, p); ctx.restore(); return; }
+  if(g.k === 'card' && R.deck){ rlDeckScene(ctx, R, g, p, R.tm || 0); ctx.restore(); return; }
   if(g.k === 'intro') rlIntro(ctx, R, p, g.d);
   else if(g.k === 'outro') rlOutro(ctx, R, p, g.d);
   else {
@@ -7533,6 +7642,7 @@ function rlTrans(ctx, R, ga, gb, pb, e){
 }
 function rlOverlay(ctx, R, g, p, tm){
   if(g.k === 'intro') return;                         // the cover stays clean
+  if(R.deck && g.k === 'card'){ dkOverlay(ctx, R, g, p, tm); return; }
   const [ac, hl] = R.col(0);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   // header (not on the opening title)
@@ -7578,14 +7688,15 @@ function rlFrame(ctx, R, t){
   for(let j = 0; j < segs.length; j++){ if(t < segs[j].s + segs[j].d){ k = j; break; } }
   const g = segs[k], p = Math.max(0, t - g.s);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, RW, RH);
-  if(k > 0 && p < XT) rlTrans(ctx, R, segs[k - 1], g, p, p / XT);
+  R.tm = t;
+  if(k > 0 && p < XT && !(R.deck && g.k === 'card' && segs[k - 1].k === 'card')) rlTrans(ctx, R, segs[k - 1], g, p, p / XT);
   else rlScene(ctx, R, g, p);
   rlOverlay(ctx, R, g, p, t);
-  if(C.logoImg && g.k === 'card') rlLogoDisc(ctx, 66, 104, 46);     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
+  if(C.logoImg && g.k === 'card' && !R.deck) rlLogoDisc(ctx, 66, 104, 46);     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
 }
 function rlMakeR(items, st){
   const page = pageName();
-  const R = { live: RL.tpl === 'live', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
+  const R = { live: RL.tpl === 'live', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
     title: RL.title || t('rlTitleDef'), page, today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
   R.tick = rlTickStrip(RL.ticker || rlTickDef(), R.col(0)[0]);
   return R;
@@ -7610,7 +7721,7 @@ function rlPreview(){
     const [ci, c0] = await Promise.all([rlImg(items[fi]), fi === 0 ? null : rlImg(it)]);
     if(tok !== pvTok) return;
     imgs[fi] = ci; const img0 = fi === 0 ? ci : c0;
-    R.bgs[0] = rlBg(img0, R.col(0)[0]); R.bmp.set(0, R.live ? rlLivePhoto(img0) : rlPaintCard(it, 0, RL.style, img0));
+    R.bgs[0] = rlBg(img0, R.col(0)[0]); R.bmp.set(0, (R.live || R.deck) ? rlLivePhoto(img0) : rlPaintCard(it, 0, RL.style, img0));
     draw();
   }, 250);
 }
@@ -8121,7 +8232,7 @@ async function rlMake(){
     const many = n > 20 && 'createImageBitmap' in window;
     for(let i = 0; i < n; i++){
       if(!imgs[i]) miss++;
-      const card = R.live ? (rlLivePhoto(imgs[i]) || (() => { const b = document.createElement('canvas'); b.width = b.height = 2; return b; })()) : rlPaintCard(items[i], i, st, imgs[i]);
+      const card = (R.live || R.deck) ? (rlLivePhoto(imgs[i]) || (() => { const b = document.createElement('canvas'); b.width = b.height = 2; return b; })()) : rlPaintCard(items[i], i, st, imgs[i]);
       R.bgs[i] = rlBg(imgs[i], R.col(i)[0]);
       if(many){ R.cards[i] = await new Promise(res => card.toBlob(res, 'image/jpeg', 0.92)); card.width = card.height = 1; }
       else { R.cards[i] = card; R.bmp.set(i, card); }

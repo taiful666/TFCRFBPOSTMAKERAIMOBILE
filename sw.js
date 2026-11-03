@@ -1,6 +1,6 @@
 /* TF FB Reels & Post Maker service worker — makes the app installable and opens fast/offline */
-const CACHE = 'tfnc-v9-6';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+const CACHE = 'tfnc-v9-7';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'].concat(['400','600','700','800'].flatMap(w => ['bengali', 'latin'].map(s => './fonts/noto-sans-bengali-' + s + '-' + w + '-normal.woff2')));
 const CDN = /^(fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net)$/;
 
 self.addEventListener('install', e => {

@@ -1,6 +1,6 @@
 // Copies the web app (index.html in the repo root) into android-app/www
 // and adds the Android bridge script at the top of <head>.
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -20,5 +20,10 @@ writeFileSync(join(www, 'index.html'), html);
 copyFileSync(join(here, 'native-bridge.js'), join(www, 'native-bridge.js'));
 for (const f of ['manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png']) {
   if (existsSync(join(root, f))) copyFileSync(join(root, f), join(www, f));
+}
+// self-hosted fonts (Noto Sans Bengali) so text looks the same offline inside the app
+if (existsSync(join(root, 'fonts'))) {
+  mkdirSync(join(www, 'fonts'), { recursive: true });
+  for (const f of readdirSync(join(root, 'fonts'))) copyFileSync(join(root, 'fonts', f), join(www, 'fonts', f));
 }
 console.log('www ready');

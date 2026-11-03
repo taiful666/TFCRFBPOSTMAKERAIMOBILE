@@ -7308,110 +7308,217 @@ function rlBreakBar(ctx, R, g, p, tm){
 /* ---- "কার্ড ক্যারোসেল" design (ranked-list style reel): red→blue background, the page badge on top that flips between
         page name and date, a dark title band, and one tall card per story — number badge, navy headline box, cream source
         line, red date box and the photo. The next card slides in from the right and grows into the centre while the
-        previous one shrinks and moves to the left; the neighbours peek in at both edges. ---- */
-const DK = { cw: 500, cy: 745, gap: 462, side: 0.8 };
-function dkCard(R, i){
-  const M = R.dk || (R.dk = new Map()), ph = cardOf(R, i), old = M.get(i);
-  if(old && old.ph === ph) return old.cv;
-  const it = R.items[i] || {}, ed = it.ed || {}, W = DK.cw, pad = 22, iw = W - pad * 2;
+        previous one shrinks and moves to the left; the neighbours peek in at both edges.
+        Phones are slow at blur and big gradients, so the shadows, background and title band are drawn ONCE into
+        pictures and every video frame only places those pictures (no blur per frame). ---- */
+const DK = { cw: 500, cy: 745, gap: 462, side: 0.8, m: 36 };
+function dkBuild(R, i, ph, label){
+  const it = R.items[i] || {}, ed = it.ed || {}, W = DK.cw, M = DK.m, pad = 22, iw = W - pad * 2;
   const cv = document.createElement('canvas'), x = cv.getContext('2d');
   const text = String(it.text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
   const L = rlWrap(x, text, iw - 40, 40, 700, 4, 26), lh = L.size * 1.3;
   const numH = 84, nameH = Math.max(100, L.lines.length * lh + 36), creamH = 58, redH = 68, photoH = 360;
   const H = numH + nameH + creamH + redH + 16 + photoH + pad;
-  cv.width = W; cv.height = H;
-  // card body
+  cv.width = W + M * 2; cv.height = H + M * 2;
+  x.translate(M, M);
+  // card body + its shadow (drawn once here, never per frame)
   const bg = x.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#b0121c'); bg.addColorStop(1, '#740811');
-  x.fillStyle = bg; rr(x, 2, 2, W - 4, H - 4, 22); x.fill();
-  x.strokeStyle = '#e0343c'; x.lineWidth = 4; x.stroke();
+  x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 28; x.shadowOffsetY = 10;
+  x.fillStyle = bg; rr(x, 2, 2, W - 4, H - 4, 22); x.fill(); x.restore();
+  x.strokeStyle = '#e0343c'; x.lineWidth = 4; rr(x, 2, 2, W - 4, H - 4, 22); x.stroke();
   x.strokeStyle = 'rgba(0,0,0,.25)'; x.lineWidth = 2; rr(x, 8, 8, W - 16, H - 16, 18); x.stroke();
-  // number badge
-  x.beginPath(); x.arc(W / 2, 44, 27, 0, Math.PI * 2); x.fillStyle = '#e3121e'; x.fill();
-  x.lineWidth = 3; x.strokeStyle = 'rgba(255,170,170,.7)'; x.stroke();
-  x.fillStyle = '#fff'; x.font = fontStr(32, 700, BFAM); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(nwNum(i + 1), W / 2, 46);
-  // cream panel with the navy headline box, source line and red date box
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  if(label){                                              // cover: a hook label instead of the story number
+    x.font = fontStr(28, 700, BFAM); const lw = Math.min(iw, x.measureText(label).width + 56);
+    x.fillStyle = '#ffd200'; rr(x, W / 2 - lw / 2, 20, lw, 48, 24); x.fill();
+    x.fillStyle = '#5a0008'; fitFont(x, label, lw - 30, 28, 700); x.fillText(label, W / 2, 46);
+  } else {
+    x.beginPath(); x.arc(W / 2, 44, 27, 0, Math.PI * 2); x.fillStyle = '#e3121e'; x.fill();
+    x.lineWidth = 3; x.strokeStyle = 'rgba(255,170,170,.7)'; x.stroke();
+    x.fillStyle = '#fff'; x.font = fontStr(32, 700, BFAM); x.fillText(nwNum(i + 1), W / 2, 46);
+  }
   let y = numH;
   x.fillStyle = '#fbf4e8'; rr(x, pad, y, iw, nameH + creamH + redH + 4, 14); x.fill();
   const ng = x.createLinearGradient(0, y, 0, y + nameH); ng.addColorStop(0, '#13285e'); ng.addColorStop(1, '#0a1838');
   x.fillStyle = ng; rr(x, pad, y, iw, nameH, 14); x.fill(); x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 2; x.stroke();
-  x.fillStyle = '#fff'; x.font = fontStr(L.size, 700, BFAM); x.textBaseline = 'middle';
+  x.fillStyle = '#fff'; x.font = fontStr(L.size, 700, BFAM);
   const ty = y + nameH / 2 - (L.lines.length - 1) * lh / 2;
   L.lines.forEach((l, k) => x.fillText(l, W / 2, ty + k * lh + 2));
   y += nameH;
-  x.fillStyle = '#1b1b1b'; fitFont(x, it.source || it.host || R.page, iw - 30, 32, 600); x.fillText(it.source || it.host || R.page, W / 2, y + creamH / 2 + 2);
+  const src = it.source || it.host || R.page, dt = it.date || R.today;
+  x.fillStyle = '#1b1b1b'; fitFont(x, src, iw - 30, 32, 600); x.fillText(src, W / 2, y + creamH / 2 + 2);
   y += creamH;
   x.fillStyle = '#8c0a12'; rr(x, pad + 14, y, iw - 28, redH - 8, 8); x.fill();
-  x.fillStyle = '#fff'; fitFont(x, it.date || R.today, iw - 60, 34, 700); x.fillText(it.date || R.today, W / 2, y + (redH - 8) / 2 + 2);
+  x.fillStyle = '#fff'; fitFont(x, dt, iw - 60, 34, 700); x.fillText(dt, W / 2, y + (redH - 8) / 2 + 2);
   y += redH + 16;
-  // photo box
   x.save(); rr(x, pad, y, iw, photoH, 14); x.fillStyle = '#fff'; x.fill(); x.clip();
   if(ph) rlPhoto(x, ph, pad, y, iw, photoH, (ed.zoom || 100) / 100, 0);
   else rlPlainBg(x, R.col(i)[0], pad, y, iw, photoH);
   x.restore();
   x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 2; rr(x, pad, y, iw, photoH, 14); x.stroke();
-  M.set(i, { ph, cv });
-  for(const k of Array.from(M.keys())) if(Math.abs(k - i) > 3){ const o = M.get(k); o.cv.width = o.cv.height = 1; M.delete(k); }
   return cv;
 }
-function dkBg(ctx, tm){
-  const g = ctx.createLinearGradient(0, 0, RW * 0.4, RH);
-  g.addColorStop(0, '#5a0410'); g.addColorStop(.45, '#760a2c'); g.addColorStop(1, '#2a30a2');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, RW, RH);
-  const lx = RW / 2 + Math.sin(tm * 0.6) * 240, lg = ctx.createRadialGradient(lx, 780, 20, lx, 780, 560);
-  lg.addColorStop(0, 'rgba(255,80,110,.20)'); lg.addColorStop(1, 'rgba(255,80,110,0)');
-  ctx.fillStyle = lg; ctx.fillRect(0, 0, RW, RH);
+function dkCard(R, i){
+  const Mp = R.dk || (R.dk = new Map()), ph = cardOf(R, i), old = Mp.get(i);
+  if(old && old.ph === ph) return old.cv;
+  if(old) old.cv.width = old.cv.height = 1;
+  const cv = dkBuild(R, i, ph);
+  Mp.set(i, { ph, cv });
+  for(const k of Array.from(Mp.keys())) if(Math.abs(k - i) > 3){ const o = Mp.get(k); o.cv.width = o.cv.height = 1; Mp.delete(k); }
+  return cv;
+}
+function dkPics(R){
+  if(R.dkP) return R.dkP;
+  const P = R.dkP = {};
+  // background
+  const b = P.bg = document.createElement('canvas'); b.width = RW; b.height = RH; let x = b.getContext('2d');
+  const g = x.createLinearGradient(0, 0, RW * 0.4, RH); g.addColorStop(0, '#5a0410'); g.addColorStop(.45, '#760a2c'); g.addColorStop(1, '#2a30a2');
+  x.fillStyle = g; x.fillRect(0, 0, RW, RH);
+  // soft moving light (small picture, moved around each frame)
+  const l = P.light = document.createElement('canvas'); l.width = l.height = 400; x = l.getContext('2d');
+  const lg = x.createRadialGradient(200, 200, 10, 200, 200, 200); lg.addColorStop(0, 'rgba(255,80,110,.22)'); lg.addColorStop(1, 'rgba(255,80,110,0)');
+  x.fillStyle = lg; x.fillRect(0, 0, 400, 400);
+  // title band
+  const ty = 122, th = 150, h = P.head = document.createElement('canvas'); h.width = RW; h.height = 290; x = h.getContext('2d');
+  const tg = x.createLinearGradient(0, ty, 0, ty + th); tg.addColorStop(0, '#3d0108'); tg.addColorStop(1, '#2a0005');
+  x.fillStyle = tg; x.fillRect(0, ty, RW, th);
+  x.fillStyle = '#e3121e'; x.fillRect(0, ty - 6, RW, 6); x.fillRect(0, ty + th, RW, 6);
+  const L = rlWrap(x, R.title, RW - 70, 52, 700, 2, 30), lh = L.size * 1.25, y0 = ty + th / 2 - (L.lines.length - 1) * lh / 2;
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = fontStr(L.size, 700, BFAM);
+  x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 8;
+  L.lines.forEach((s, k) => x.fillText(s, RW / 2, y0 + k * lh + 2));
+  // page badge: the box (with logo) and its two texts
+  x = document.createElement('canvas').getContext('2d'); x.font = fontStr(30, 700, BFAM);
+  const texts = [R.page, R.today], lgw = C.logoImg ? 56 : 0, bw = Math.min(RW - 120, Math.max(...texts.map(s => x.measureText(s).width)) + 56 + lgw), bh = 60;
+  P.bw = bw; P.lgw = lgw;
+  const bx = P.badge = document.createElement('canvas'); bx.width = bw + 8; bx.height = bh + 8; x = bx.getContext('2d');
+  x.fillStyle = '#16161c'; rr(x, 4, 4, bw, bh, 14); x.fill(); x.strokeStyle = '#e0121c'; x.lineWidth = 3; x.stroke();
+  if(lgw) rlLogoDisc(x, 4 + 34, 4 + bh / 2, 22);
+  P.btxt = texts.map(s => { const c = document.createElement('canvas'); c.width = bw - 30 - lgw; c.height = 48; const y = c.getContext('2d');
+    y.fillStyle = '#fff'; y.textAlign = 'center'; y.textBaseline = 'middle'; fitFont(y, s, c.width - 10, 30, 700); y.fillText(s, c.width / 2, 26); return c; });
+  return P;
+}
+function dkBg(ctx, R, tm){
+  const P = dkPics(R);
+  ctx.drawImage(P.bg, 0, 0);
+  ctx.drawImage(P.light, RW / 2 + Math.sin(tm * 0.6) * 240 - 560, 780 - 560, 1120, 1120);
 }
 function rlDeckScene(ctx, R, g, p, tm){
-  dkBg(ctx, tm);
+  dkBg(ctx, R, tm);
   const pos = g.i - 1 + easeIO(p / 0.75), js = [];
   for(let j = Math.max(0, Math.floor(pos) - 1); j <= Math.min(R.n - 1, Math.ceil(pos) + 1); j++) js.push(j);
   js.sort((a, b) => Math.abs(b - pos) - Math.abs(a - pos));          // the centre card is drawn last (on top)
+  ctx.imageSmoothingQuality = 'low';
   js.forEach(j => {
     const d = j - pos, ad = Math.abs(d); if(ad > 1.9) return;
     const cv = dkCard(R, j), s = 1 - (1 - DK.side) * Math.min(ad, 1), w = cv.width * s, h = cv.height * s;
-    const x = RW / 2 + d * DK.gap - w / 2, y = DK.cy - h / 2;
-    ctx.save();
-    if(ad < 0.5){ ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 34; ctx.shadowOffsetY = 12; }
-    ctx.imageSmoothingQuality = 'medium'; ctx.drawImage(cv, x, y, w, h);
-    ctx.restore();
-    if(ad > 0.05){ ctx.fillStyle = 'rgba(20,0,10,' + (0.28 * Math.min(ad, 1)).toFixed(3) + ')'; rr(ctx, x, y, w, h, 22 * s); ctx.fill(); }
+    const x = RW / 2 + d * DK.gap - w / 2, y = DK.cy - h / 2, m = DK.m * s, bx = x + m, by = y + m, bw = w - 2 * m, bh = h - 2 * m;
+    ctx.drawImage(cv, x, y, w, h);
+    if(ad > 0.05){ ctx.fillStyle = 'rgba(20,0,10,' + (0.28 * Math.min(ad, 1)).toFixed(3) + ')'; ctx.fillRect(bx + 4, by + 4, bw - 8, bh - 8); }
     if(j === g.i){                                         // a light sweep across the card once it has landed
       const sp = (p - 0.85) / 0.8;
-      if(sp > 0 && sp < 1){ ctx.save(); rr(ctx, x, y, w, h, 22 * s); ctx.clip(); const sx = x - 120 + sp * (w + 240), gr = ctx.createLinearGradient(sx - 70, y, sx + 70, y + 140);
-        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.28)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = gr; ctx.fillRect(x, y, w, h); ctx.restore(); }
+      if(sp > 0 && sp < 1){ ctx.save(); ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip(); const sx = bx - 120 + sp * (bw + 240), gr = ctx.createLinearGradient(sx - 70, by, sx + 70, by + 140);
+        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.25)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = gr; ctx.fillRect(sx - 160, by, 320, bh); ctx.restore(); }
     }
   });
 }
+function dkTop(ctx, R, tm, still){
+  const P = dkPics(R);
+  ctx.drawImage(P.head, 0, 0);
+  const bx = RW / 2 - P.bw / 2 - 4; ctx.drawImage(P.badge, bx, 26);
+  const per = 2.6, idx = still ? 0 : Math.floor(tm / per) % 2, lt = tm % per;
+  const fl = still ? 1 : lt < 0.3 ? lt / 0.3 : lt > per - 0.3 ? (per - lt) / 0.3 : 1, tc = P.btxt[idx];
+  const th = tc.height * Math.max(0.02, fl), cx = RW / 2 + P.lgw / 2;
+  ctx.drawImage(tc, cx - tc.width / 2, 60 - th / 2, tc.width, th);
+}
 function dkOverlay(ctx, R, g, p, tm){
-  // page badge — flips between the page name and today's date
-  const texts = [R.page, R.today], per = 2.6, idx = Math.floor(tm / per) % 2, lt = tm % per;
-  const fl = lt < 0.3 ? lt / 0.3 : lt > per - 0.3 ? (per - lt) / 0.3 : 1;
-  ctx.font = fontStr(30, 700, BFAM);
-  const lg = C.logoImg ? 56 : 0, bw = Math.min(RW - 120, Math.max(...texts.map(s => ctx.measureText(s).width)) + 56 + lg), bh = 60, bx = RW / 2 - bw / 2, by = 30;
-  ctx.fillStyle = '#16161c'; rr(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.strokeStyle = '#e0121c'; ctx.lineWidth = 3; ctx.stroke();
-  if(lg) rlLogoDisc(ctx, bx + 34, by + bh / 2, 22);
-  ctx.save(); rr(ctx, bx, by, bw, bh, 14); ctx.clip();
-  ctx.translate(RW / 2 + lg / 2, by + bh / 2); ctx.scale(1, Math.max(0.02, fl));
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; fitFont(ctx, texts[idx], bw - 40 - lg, 30, 700); ctx.fillText(texts[idx], 0, 2);
-  ctx.restore();
-  // title band
-  const ty = 122, th = 150;
-  const tg = ctx.createLinearGradient(0, ty, 0, ty + th); tg.addColorStop(0, '#3d0108'); tg.addColorStop(1, '#2a0005');
-  ctx.fillStyle = tg; ctx.fillRect(0, ty, RW, th);
-  ctx.fillStyle = '#e3121e'; ctx.fillRect(0, ty - 6, RW, 6); ctx.fillRect(0, ty + th, RW, 6);
-  const L = rlWrap(ctx, R.title, RW - 70, 52, 700, 2, 30), lh = L.size * 1.25, y0 = ty + th / 2 - (L.lines.length - 1) * lh / 2;
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(L.size, 700, BFAM);
-  ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8;
-  L.lines.forEach((l, k) => ctx.fillText(l, RW / 2, y0 + k * lh + 2));
-  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
-  // progress
+  dkTop(ctx, R, tm);
   const bw2 = 520, x0 = (RW - bw2) / 2, y1 = 1196, gap = R.n > 20 ? 0 : 6, sw = (bw2 - gap * (R.n - 1)) / R.n;
   for(let i = 0; i < R.n; i++){
     const f = i < g.i ? 1 : i === g.i ? clamp(p / g.d, 0, 1) : 0, x = x0 + i * (sw + gap);
     ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(x, y1, sw, 6);
     if(f > 0){ ctx.fillStyle = '#ffd200'; ctx.fillRect(x, y1, sw * f, 6); }
   }
-  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = fontStr(24, 700, BFAM); ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW / 2, y1 + 34);
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = fontStr(24, 700, BFAM); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW / 2, y1 + 34);
+}
+
+/* ---- covers (= the Facebook thumbnail, the very first frame) that match the chosen design. Each shows the most
+        eye-catching story, complete from frame 0, plus the page name/logo and a reason to keep watching. ---- */
+function rlCountBadge(ctx, R, bx, by, r, p, bg, fg){
+  if(R.n < 2) return;
+  r *= 1 + 0.04 * Math.sin(p * 5);
+  ctx.beginPath(); ctx.arc(bx, by, r + 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
+  ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = fontStr(r * 0.8, 700, BFAM); ctx.fillText(nwNum(R.n), bx, by - r * 0.13);
+  ctx.font = fontStr(r * 0.32, 700, BFAM); ctx.fillText(t('rlNews').trim(), bx, by + r * 0.45);
+}
+function dkCover(ctx, R, p, d){
+  const cv = R.cov, z = 1 + 0.03 * clamp(p / d, 0, 1);
+  if(!R.dkCov || R.dkCovKey !== cv.i + '|' + !!cv.img){ R.dkCov = dkBuild(R, cv.i, cv.img, cv.label); R.dkCovKey = cv.i + '|' + !!cv.img; }
+  dkBg(ctx, R, 0);
+  // two more cards peeking behind, tilted — shows it is a list
+  [-1, 1].forEach(sd => {
+    const j = R.n > 1 ? (cv.i + (sd > 0 ? 1 : R.n - 1)) % R.n : -1; if(j < 0 || j === cv.i) return;
+    const c = dkCard(R, j), s = 0.74, w = c.width * s, h = c.height * s;
+    ctx.save(); ctx.translate(RW / 2 + sd * 250, 760); ctx.rotate(sd * 0.09); ctx.drawImage(c, -w / 2, -h / 2, w, h);
+    ctx.fillStyle = 'rgba(20,0,10,.35)'; ctx.fillRect(-w / 2 + DK.m * s, -h / 2 + DK.m * s, w - 2 * DK.m * s, h - 2 * DK.m * s); ctx.restore();
+  });
+  const c = R.dkCov, w = c.width * z, h = c.height * z, top = Math.max(280, 742 - h / 2);
+  ctx.drawImage(c, RW / 2 - w / 2, top, w, h);
+  rlCountBadge(ctx, R, RW / 2 + DK.cw / 2 - 6, top + DK.m + 18, 52, p, '#ffd200', '#5a0008');
+  dkTop(ctx, R, 0, true);
+  rlCta(ctx, R.cov.cta, 1212, '#8c0a12', '#ffd200', p);
+}
+function lvCover(ctx, R, p, d){
+  const cv = R.cov, [ac, hl] = R.col(cv.i), z = 1 + 0.05 * clamp(p / d, 0, 1), ph = 640;
+  ctx.fillStyle = '#070a14'; ctx.fillRect(0, 0, RW, RH);
+  if(cv.img) rlPhoto(ctx, cv.img, 0, 0, RW, ph, z, 0); else rlPlainBg(ctx, ac, 0, 0, RW, ph);
+  const g = ctx.createLinearGradient(0, 0, 0, 170); g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, RW, 170);
+  rlBrand(ctx, R, 70, true);
+  if(cv.img && cv.src){ ctx.font = fontStr(19, 600, BFAM); const lb = t('photoBy') + cv.src, w = ctx.measureText(lb).width + 22;
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, 18, ph - 48, w, 32, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lb, 29, ph - 31); }
+  // channel strip
+  ctx.fillStyle = hl; ctx.fillRect(0, ph, RW, 5); ctx.fillStyle = shade(ac, -0.15); ctx.fillRect(0, ph + 5, RW, 58);
+  ctx.fillStyle = '#e11d2a'; rr(ctx, 20, ph + 17, 96, 34, 6); ctx.fill();
+  ctx.beginPath(); ctx.arc(39, ph + 34, 7, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = fontStr(20, 800, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('LIVE', 52, ph + 35);
+  ctx.font = fontStr(25, 700, BFAM); ctx.fillText(cv.label, 132, ph + 35, RW - 132 - 30);
+  // headline — complete from the first frame
+  const hy = ph + 63, hh = 1088 - hy;
+  const pg = ctx.createLinearGradient(0, hy, 0, hy + hh); pg.addColorStop(0, shade(ac, -0.72)); pg.addColorStop(1, '#060a18'); ctx.fillStyle = pg; ctx.fillRect(0, hy, RW, hh);
+  const L = rlWrap(ctx, cv.text, RW - 70, 62, 700, 4, 34), lh = L.size * 1.3, y0 = hy + hh / 2 - (L.lines.length - 1) * lh / 2;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(L.size, 700, BFAM);
+  L.lines.forEach((s, k) => { ctx.fillStyle = (L.lines.length > 1 && k === L.lines.length - 1) ? hl : '#fff'; ctx.fillText(s, RW / 2, y0 + k * lh); });
+  // red BREAKING bar with the call-to-action
+  const by = 1088, bh = 72, lw = 230;
+  const rg = ctx.createLinearGradient(0, by, 0, by + bh); rg.addColorStop(0, '#ef2b2b'); rg.addColorStop(1, '#b3080f'); ctx.fillStyle = rg; ctx.fillRect(0, by, RW, bh);
+  ctx.fillStyle = hl; ctx.fillRect(0, by - 3, RW, 3); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(0, by, lw, bh);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'italic ' + fontStr(S.lang === 'bn' ? 30 : 26, 800, BFAM); ctx.fillText(S.lang === 'bn' ? t('rlBreak') : 'BREAKING NEWS', lw / 2, by + bh / 2 + 2, lw - 16);
+  ctx.font = fontStr(26, 700, BFAM); ctx.fillText('▶ ' + cv.cta, lw + (RW - lw) / 2, by + bh / 2 + 2, RW - lw - 24);
+  ctx.fillStyle = '#05070f'; ctx.fillRect(0, by + bh, RW, RH - by - bh);
+  rlCountBadge(ctx, R, RW - 86, ph - 70, 56, p, hl, '#111');
+}
+function cdCover(ctx, R, p, d){
+  const cv = R.cov, [ac, hl] = R.col(cv.i), z = 1 + 0.025 * clamp(p / d, 0, 1);
+  if(!R.covBg || R.covBgKey !== cv.i + '|' + !!cv.img){ R.covBg = rlBg(cv.img, ac); R.covBgKey = cv.i + '|' + !!cv.img; }
+  drawBg(ctx, R.covBg, p / d); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(0, 0, RW, RH);
+  rlBrand(ctx, R, 78, false);
+  // hook title
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const size = fitFont(ctx, R.title, RW - 80, 54, 700), tw = Math.min(RW - 80, ctx.measureText(R.title).width);
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 12; ctx.fillStyle = '#fff'; ctx.fillText(R.title, RW / 2, 178); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  ctx.fillStyle = hl; ctx.fillRect(RW / 2 - tw / 2, 178 + size * 0.72, tw, 6);
+  // the most eye-catching story's card, in the chosen design
+  const s = 664 * z, x = RW / 2 - s / 2, y = 268 + (664 - s) / 2;
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(x + 8, y + 14, s, s);
+  ctx.fillStyle = hl; ctx.fillRect(x - 8, y - 8, s + 16, s + 16);
+  if(R.covCard){ ctx.imageSmoothingQuality = 'high'; ctx.drawImage(R.covCard, x, y, s, s); }
+  else if(cv.img) rlPhoto(ctx, cv.img, x, y, s, s, 1, 0); else rlPlainBg(ctx, ac, x, y, s, s);
+  rlChip(ctx, cv.label, 40, 268 + 664 + 62, ac, '#fff', 28, 'left', p);
+  rlCountBadge(ctx, R, RW - 78, 268 + 8, 58, p, hl, '#111');
+  rlCta(ctx, cv.cta, 1130, ac, hl, p);
 }
 function rlScene(ctx, R, g, p){
   ctx.save();
@@ -7442,10 +7549,20 @@ function rlScene(ctx, R, g, p){
 /* ---- the opening "cover": the very first frame is what Facebook shows before anyone taps, so it must be sharp and complete
         from frame 0 — the most talked-about story's real photo, a big headline, a label and a reason to watch. The layout,
         label and call-to-action change from reel to reel. ---- */
+/* how eye-catching a headline is: strong words, numbers, quotes, a question/exclamation */
+const RL_HOOK = /হুঁশিয়ারি|হুমকি|বিস্ফোরক|চাঞ্চল্যকর|ভয়াবহ|মৃত্যু|নিহত|হামলা|ধস|রেকর্ড|প্রথমবার|অবশেষে|গ্রেপ্তার|আটক|পদত্যাগ|ফাঁস|দুর্নীতি|লোকসান|কোটি|ক্ষোভ|বিক্ষোভ|যুদ্ধ|সংঘর্ষ|আল্টিমেটাম|নিষেধাজ্ঞা|জরুরি|বড় খবর|চমক|কঠোর|বিপদ|সতর্ক|উদ্বেগ|শঙ্কা|উত্তেজনা/g;
+function rlCatchy(text){
+  const s = String(text || ''); let q = (s.match(RL_HOOK) || []).length;
+  if(/[০-৯0-9]/.test(s)) q += 1;
+  if(/[?!？！]/.test(s)) q += 1;
+  if(/[‘“"']/.test(s)) q += 1;
+  const n = s.split(/\s+/).length; if(n >= 6 && n <= 16) q += 1;
+  return q;
+}
 function rlFeatured(items, st, has){
-  const c = items.map((it, i) => ({ i, h: nwHot(it.o || {}), ok: has(i) })).filter(x => x.ok);
+  const c = items.map((it, i) => ({ i, h: nwHot(it.o || {}) * 2 + rlCatchy(it.text), ok: has(i) })).filter(x => x.ok);
   if(!c.length) return 0;
-  const top = Math.max(...c.map(x => x.h)), best = c.filter(x => x.h === top).slice(0, 4);
+  const top = Math.max(...c.map(x => x.h)), best = c.filter(x => x.h >= top - 1).sort((a, b) => b.h - a.h).slice(0, 2);
   return best[Math.floor(st.feat * best.length)].i;
 }
 function rlCoverData(R, items, imgs){
@@ -7529,7 +7646,11 @@ function rlLogoDisc(ctx, cx, cy, r){
   ctx.restore();
 }
 function rlIntro(ctx, R, p, d){
-  const cv = R.cov || (R.cov = rlCoverData(R, R.items, [])), [ac, hl] = R.col(cv.i), img = cv.img, z = 1 + 0.06 * clamp(p / d, 0, 1);
+  if(!R.cov) R.cov = rlCoverData(R, R.items, []);
+  if(R.deck) return dkCover(ctx, R, p, d);
+  if(R.live) return lvCover(ctx, R, p, d);
+  if(!R.oldCover) return cdCover(ctx, R, p, d);
+  const cv = R.cov, [ac, hl] = R.col(cv.i), img = cv.img, z = 1 + 0.06 * clamp(p / d, 0, 1);
   const lay = img ? R.st.cover : (R.st.cover === 'full' || R.st.cover === 'count' ? 'top' : R.st.cover);
   if(lay === 'top'){                                         // photo on top, headline panel below
     ctx.fillStyle = '#0d0f14'; ctx.fillRect(0, 0, RW, RH);
@@ -7722,6 +7843,7 @@ function rlPreview(){
     if(tok !== pvTok) return;
     imgs[fi] = ci; const img0 = fi === 0 ? ci : c0;
     R.bgs[0] = rlBg(img0, R.col(0)[0]); R.bmp.set(0, (R.live || R.deck) ? rlLivePhoto(img0) : rlPaintCard(it, 0, RL.style, img0));
+    if(!R.live && !R.deck) R.covCard = fi === 0 ? R.bmp.get(0) : rlPaintCard(items[fi], fi, RL.style, ci);
     draw();
   }, 250);
 }
@@ -8241,6 +8363,11 @@ async function rlMake(){
     }
     if(miss) toast(tf('rlNoImg', { n: nwNum(miss) }));
     R.cov = rlCoverData(R, items, imgs);
+    if(!R.live && !R.deck){                              // the cover shows this story's card in the chosen design
+      const cc = R.cards[R.cov.i];
+      if(cc && many){ try{ R.covCard = await createImageBitmap(cc); bmps.push(R.covCard); }catch(e){ R.covCard = null; } }
+      else R.covCard = cc || null;
+    }
     const want = async i => { if(!many || i < 0 || i >= n || R.bmp.has(i)) return; R.bmp.set(i, null); try{ const bm = await createImageBitmap(R.cards[i]); bmps.push(bm); R.bmp.set(i, bm); }catch(e){ R.bmp.delete(i); } };
     const keepNear = ci => { if(!many) return; for(const [i, bm] of R.bmp){ if(i < ci - 1 || i > ci + 2){ R.bmp.delete(i); if(bm && bm.close) try{ bm.close(); }catch(e){} } } [ci, ci + 1, ci + 2].forEach(want); };
     if(many){ await Promise.all([0, 1, 2].map(want)); }
@@ -8278,9 +8405,12 @@ async function rlMake(){
         rlFrame(ctx, R, tt);
         const now = performance.now();
         if(now - lastP > 300){ lastP = now; prog(tf('rlRec', { a: nwNum(Math.floor(tt)), b: nwNum(Math.round(total)) }), tt / total); }
-        requestAnimationFrame(loop);
+        nextF();
       };
-      requestAnimationFrame(loop);
+      // next frame: normally the screen's own timing; if the phone holds that back (busy graphics), a timer keeps the video moving
+      let fid = 0;
+      const nextF = () => { const id = ++fid, go = () => { if(id === fid){ fid++; loop(); } }; requestAnimationFrame(go); setTimeout(go, 70); };
+      nextF();
     });
     await sleep(RL.cancel || loopErr ? 0 : 300);
     try{ rec.stop(); }catch(e){}

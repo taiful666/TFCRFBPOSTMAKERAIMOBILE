@@ -392,6 +392,10 @@ body.nwlock{overflow:hidden}
 .nwchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 html[data-theme="dark"] .nwchip.on{color:#111}
 .nwtools{padding:4px 14px 6px;flex:none}
+.nwcats{padding:2px 14px 6px}
+.nwcats .nwchip{padding:5px 11px;font-size:13px}
+.nwnear{display:block;margin:2px 0 6px;color:var(--muted);font-size:13px}
+#nwGsBtn{margin-top:8px}
 .nwtools input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--text);font-size:15px;outline:none}
 .nwstate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:2px 14px 6px;flex:none}
 .nwfail{color:var(--faint)}
@@ -1531,7 +1535,8 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
   <div class="nsbox">
     <div class="nshead"><b id="nwTitleTxt" data-i18n="nwTitle">📰 লাইভ নিউজ</b><span id="nwUpd" class="nwupd"></span><button type="button" class="btn hidden" id="nwGuideBtn" data-i18n="nwGuideBtn">⚙️ প্রক্সি</button><button type="button" class="btn" id="nwRefresh" title="refresh">🔄</button><button type="button" class="x" id="nwClose" aria-label="close">×</button></div>
     <div id="nwChips" class="nwchips"></div>
-    <div class="nwtools"><input type="search" id="nwSearch" autocomplete="off" placeholder="শিরোনামে খুঁজুন…"></div>
+    <div class="nwtools"><input type="search" id="nwSearch" autocomplete="off" placeholder="কিওয়ার্ড বা বিষয় লিখুন…" enterkeyhint="search"></div>
+    <div id="nwCats" class="nwchips nwcats"></div>
     <p class="nwhint"><span data-i18n="nwHint">যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।</span> · <span data-i18n="nwAuto">প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়</span></p>
     <div id="nwGuide" class="nwguide hidden">
       <h4><span data-i18n="nwGTitle"></span><button type="button" class="x" id="nwGuideClose" aria-label="close">×</button></h4>
@@ -4296,7 +4301,7 @@ async function findAndSetImage(a){
    ===================================================================== */
 Object.assign(T.bn, {
   nwOpen:'📰 লাইভ নিউজ — সর্বশেষ খবর থেকে এক চাপে কার্ড', nwTitle:'📰 লাইভ নিউজ', nwAll:'⭐ সব পত্রিকা', nwQuotes:'❝ উক্তি ও মন্তব্য', nwQ:'❝ উক্তি',  nwGoogle:'🌐 গুগল নিউজ (শীর্ষ খবর)',
-  nwSearch:'শিরোনামে খুঁজুন…', nwLoading:'সর্বশেষ খবর আনা হচ্ছে…', nwEmpty:'এই মুহূর্তে কোনো খবর পাওয়া যায়নি — 🔄 চেপে আবার চেষ্টা করুন।',
+  nwSearch:'খুঁজুন — যেমন: খেলা, ডলার, বন্যা…', nwLoading:'সর্বশেষ খবর আনা হচ্ছে…', nwEmpty:'এই মুহূর্তে কোনো খবর পাওয়া যায়নি — 🔄 চেপে আবার চেষ্টা করুন।',
   nwUpd:'হালনাগাদ', nwNew:'নতুন', nwMin:'মিনিট আগে', nwHr:'ঘণ্টা আগে', nwDay:'দিন আগে', nwJust:'এইমাত্র',
   nwOpening:'খবর ও ছবি আনা হচ্ছে…', nwPartial:'পুরো খবর আনা যায়নি — শিরোনাম, সারাংশ ও ছবি দিয়ে কার্ড তৈরি হয়েছে',
   nwReady:'✅ কার্ড তৈরি হয়েছে', nwHint:'যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।',
@@ -4306,7 +4311,7 @@ Object.assign(T.bn, {
 });
 Object.assign(T.en, {
   nwOpen:'📰 Live news — make a card from the latest news in one tap', nwTitle:'📰 Live news', nwAll:'⭐ All papers', nwQuotes:'❝ Quotes & statements', nwQ:'❝ quote',  nwGoogle:'🌐 Google News (top stories)',
-  nwSearch:'Search headlines…', nwLoading:'Fetching the latest news…', nwEmpty:'No news found right now — tap 🔄 to try again.',
+  nwSearch:'Search — e.g. cricket, dollar, flood…', nwLoading:'Fetching the latest news…', nwEmpty:'No news found right now — tap 🔄 to try again.',
   nwUpd:'Updated', nwNew:'New', nwMin:'min ago', nwHr:'h ago', nwDay:'d ago', nwJust:'just now',
   nwOpening:'Fetching article and photo…', nwPartial:'Full article unavailable — card made from the headline, summary and photo',
   nwReady:'✅ Card ready', nwHint:'Tap any headline — the article, photo and source go straight into a photo card.',
@@ -4609,28 +4614,171 @@ function nwRefresh(force, auto){
     Promise.allSettled(live.map(s => nwLoad(s, force))).then(() => { if(tok === NW.tok) nwSchedule(); });
   });
 }
+
+/* ---------- smart search: keyword + category + near-match ---------- */
+const NW_CATS = [
+  { id:'politics', bn:'রাজনীতি', en:'Politics', al:['রাজনীতি','রাজনৈতিক','politics','political'], path:/politic|rajniti/i,
+    kw:/বিএনপি|জামায়াত|আওয়ামী|নির্বাচন|সংসদ|মন্ত্রী|প্রধানমন্ত্রী|সরকার|ভোট|এমপি|প্রার্থী|এনসিপি|জাতীয় পার্টি|উপদেষ্টা|সংবিধান|রাজনীতি|রাজনৈতিক|সমাবেশ|হরতাল|আন্দোলন|দলীয়|মহাসচিব|স্পিকার|শপথ|জুলাই সনদ|গণভোট/ },
+  { id:'economy', bn:'অর্থনীতি', en:'Economy', al:['অর্থনীতি','অর্থনৈতিক','ব্যবসা','বাণিজ্য','অর্থ','economy','business'], path:/econom|business|bank|trade|finance/i,
+    kw:/টাকা|ডলার|দাম|বাজার|ব্যাংক|ঋণ|রপ্তানি|আমদানি|বিনিয়োগ|শেয়ার|পুঁজিবাজার|মূল্যস্ফীতি|জিডিপি|বাজেট|রাজস্ব|এনবিআর|শুল্ক|সোনা|বেতন|ব্যবসা|অর্থনীতি|বাণিজ্য|রিজার্ভ|কর\b|আইএমএফ|বিশ্বব্যাংক/ },
+  { id:'intl', bn:'আন্তর্জাতিক', en:'International', al:['আন্তর্জাতিক','বিশ্ব','বিদেশ','বিদেশি','international','world'], path:/world|international|antorjatik|bishwo|global/i,
+    kw:/যুক্তরাষ্ট্র|আমেরিকা|ট্রাম্প|ভারত|পাকিস্তান|চীন|রাশিয়া|ইউক্রেন|ইসরায়েল|গাজা|ফিলিস্তিন|ইরান|জাতিসংঘ|ইউরোপ|ব্রিটেন|জাপান|আন্তর্জাতিক|বিশ্ব|নেপাল|মিয়ানমার|রোহিঙ্গা|তালেবান|আফগানিস্তান|সৌদি/, intl:true },
+  { id:'sports', bn:'খেলাধুলা', en:'Sports', al:['খেলাধুলা','খেলা','ক্রীড়া','ক্রিকেট','ফুটবল','sports','sport','cricket','football'], path:/sport|khela|cricket|football/i,
+    kw:/ক্রিকেট|ফুটবল|ম্যাচ|টেস্ট|ওয়ানডে|টি-টোয়েন্টি|বিশ্বকাপ|লিগ|গোল|কোচ|খেলোয়াড়|টাইগার|মেসি|রোনালদো|বিপিএল|সাকিব|তামিম|মুশফিক|আইপিএল|এশিয়া কাপ|টুর্নামেন্ট|ক্রীড়া|খেলা|ব্যাটার|বোলার|উইকেট|সিরিজ|অলিম্পিক/ },
+  { id:'entertain', bn:'বিনোদন', en:'Entertainment', al:['বিনোদন','সিনেমা','চলচ্চিত্র','নাটক','গান','entertainment','movie','film'], path:/entertain|binodon|showbiz|cinema|lifestyle-entertain/i,
+    kw:/সিনেমা|চলচ্চিত্র|নায়ক|নায়িকা|অভিনেতা|অভিনেত্রী|গান|শিল্পী|নাটক|বলিউড|হলিউড|ঢালিউড|কনসার্ট|সংগীত|তারকা|ওটিটি|ওয়েব সিরিজ|পরিচালক|মুক্তি/ },
+  { id:'crime', bn:'অপরাধ', en:'Crime', al:['অপরাধ','আইন','আদালত','পুলিশ','খুন','crime','court','police'], path:/crime|court|law-|police/i,
+    kw:/হত্যা|খুন|ধর্ষণ|গ্রেপ্তার|গ্রেফতার|পুলিশ|মামলা|আদালত|ডাকাতি|চুরি|লাশ|নিহত|আটক|র্যাব|দুর্নীতি|প্রতারণা|মাদক|ইয়াবা|আসামি|রিমান্ড|কারাগার|জামিন|রায়|অভিযুক্ত/ },
+  { id:'edu', bn:'শিক্ষা', en:'Education', al:['শিক্ষা','পরীক্ষা','স্কুল','কলেজ','ভর্তি','education','exam','school'], path:/educat|shikkha|campus|admission/i,
+    kw:/স্কুল|কলেজ|বিশ্ববিদ্যালয়|ভর্তি|পরীক্ষা|এসএসসি|এইচএসসি|শিক্ষার্থী|শিক্ষক|ফলাফল|ঢাবি|বুয়েট|শিক্ষা|ক্লাস|ছাত্র|ক্যাম্পাস|শিক্ষামন্ত্রী|জবি|জাবি|চবি|রাবি/ },
+  { id:'tech', bn:'প্রযুক্তি', en:'Tech', al:['প্রযুক্তি','টেক','মোবাইল','ইন্টারনেট','technology','tech','ai'], path:/tech|science|gadget|digital/i,
+    kw:/প্রযুক্তি|মোবাইল|ফোন|ইন্টারনেট|এআই|কৃত্রিম বুদ্ধিমত্তা|অ্যাপ|সফটওয়্যার|গুগল|অ্যাপল|ফেসবুক|সাইবার|স্মার্টফোন|ডিজিটাল|রোবট|টেলিকম|গ্রামীণফোন|স্যামসাং|চ্যাটজিপিটি|ইলন মাস্ক|ফোর জি|ফাইভ জি/ },
+  { id:'health', bn:'স্বাস্থ্য', en:'Health', al:['স্বাস্থ্য','চিকিৎসা','হাসপাতাল','রোগ','health','medical'], path:/health|medical|swasthya/i,
+    kw:/স্বাস্থ্য|হাসপাতাল|চিকিৎসা|চিকিৎসক|ডাক্তার|রোগ|ডেঙ্গু|করোনা|ভাইরাস|ওষুধ|টিকা|ক্যানসার|হার্ট|ডায়াবেটিস|রোগী|সংক্রমণ|ডেঙ্গুতে/ },
+  { id:'religion', bn:'ধর্ম', en:'Religion', al:['ধর্ম','ইসলাম','ধর্মীয়','হজ','religion','islam'], path:/relig|islam|dhormo/i,
+    kw:/ইসলাম|মসজিদ|হজ|রমজান|ঈদ|নামাজ|ধর্ম|মাদ্রাসা|আলেম|মুসলিম|হিন্দু|পূজা|মন্দির|ওয়াজ|মাহফিল|উমরাহ|কোরআন|হাদিস/ },
+  { id:'weather', bn:'আবহাওয়া', en:'Weather', al:['আবহাওয়া','বৃষ্টি','ঝড়','বন্যা','weather','rain','storm'], path:/weather|abohawa/i,
+    kw:/আবহাওয়া|বৃষ্টি|বন্যা|ঝড়|সাইক্লোন|ঘূর্ণিঝড়|ভূমিকম্প|তাপপ্রবাহ|নিম্নচাপ|শৈত্যপ্রবাহ|কুয়াশা|তাপমাত্রা|বজ্রপাত|জলোচ্ছ্বাস/ },
+  { id:'accident', bn:'দুর্ঘটনা', en:'Accident', al:['দুর্ঘটনা','আগুন','সড়ক','accident','fire'], path:/accident|road/i,
+    kw:/দুর্ঘটনা|আগুন|অগ্নিকাণ্ড|সড়ক|নৌকাডুবি|ট্রেন|বাস|ট্রাক|সংঘর্ষ|ডুবে|বিস্ফোরণ|ধসে|পড়ে মৃত্যু|নিহত/ }
+];
+NW.cat = '';
+function nwQN(s){
+  return lower(s).replace(/[‌‍]/g, '').replace(/য়/g, 'য়').replace(/ড়/g, 'ড়').replace(/ঢ়/g, 'ঢ়')
+    .replace(/[‘’“”"'`.,;:!?()\[\]{}|।–—\-_\/\\]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+const NW_SUF = ['গুলোর','গুলোতে','গুলো','গুলি','দেরকে','দের','েরা','কে','তে','ের','টির','টি','টা','রা','য়','র','ে','ও','ই'];
+function nwStem(w){ for(const x of NW_SUF){ if(w.length - x.length >= 2 && w.endsWith(x)) return w.slice(0, -x.length); } return w; }
+function nwDist(a, b, max){
+  if(Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({length:b.length + 1}, (_, i) => i);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i]; let min = i;
+    for(let j = 1; j <= b.length; j++){ const v = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1)); cur[j] = v; if(v < min) min = v; }
+    if(min > max) return max + 1; prev = cur;
+  }
+  return prev[b.length];
+}
+function nwPrep(o){
+  if(o._h) return o._h;
+  let path = ''; try{ path = decodeURIComponent(new URL(o.link).pathname); }catch(e){}
+  const body = nwQN(o.title + ' ' + (o.desc || '').slice(0, 400) + ' ' + nwSrcName(o) + ' ' + path.replace(/[\/_\-.]+/g, ' '));
+  const title = nwQN(o.title);
+  const words = [...new Set(body.split(' ').filter(w => w.length > 1).map(nwStem))];
+  o._h = { body, title, words, path: path.toLowerCase() };
+  return o._h;
+}
+function nwInCat(o, c){
+  o._c = o._c || {};
+  if(o._c[c.id] != null) return o._c[c.id];
+  const h = nwPrep(o);
+  let v = 0;
+  if(c.path.test(h.path)) v = 3;
+  else if(c.kw.test(h.title)) v = 2;
+  else if(c.kw.test(nwQN((o.desc || '').slice(0, 300)))) v = 1;
+  if(c.intl && !v && nwIsForeign(o)) v = 2;
+  if(c.id === 'politics' && !v && nwHot(o) >= 1) v = 2;
+  return (o._c[c.id] = v);
+}
+function nwTokScore(o, tk, lenient){
+  const h = nwPrep(o), ts = nwStem(tk);
+  if(h.title.includes(tk)) return 5;
+  if(h.body.includes(tk)) return 3;
+  let best = 0;
+  for(const w of h.words){
+    if(w === ts) return 4;
+    if(ts.length >= 2 && (w.startsWith(ts) || (w.length >= 3 && ts.startsWith(w) && ts.length - w.length <= 2))) best = Math.max(best, 2);
+    else if(ts.length >= 4 && best < 1){
+      const max = lenient ? (ts.length >= 6 ? 2 : 1) : (ts.length >= 7 ? 2 : 1);
+      if(nwDist(ts, w, max) <= max) best = 1;
+      else if(lenient && ts.length >= 4 && w.length >= 4 && ts.slice(0, 3) === w.slice(0, 3)) best = 0.5;
+    }
+  }
+  return best;
+}
+function nwAliasCats(tk){
+  const ts = nwStem(tk);
+  return NW_CATS.filter(c => c.al.some(a => a === tk || a === ts || nwStem(a) === ts || (ts.length >= 4 && nwDist(ts, nwStem(a), 1) <= 1) || (ts.length >= 3 && a.startsWith(ts))));
+}
+/* returns {list, level}: level 0 = exact, 1 = any word, 2 = near matches */
+function nwSmart(all, qraw){
+  const cat = NW.cat ? NW_CATS.find(c => c.id === NW.cat) : null;
+  if(cat) all = all.filter(o => nwInCat(o, cat) > 0);
+  const toks = nwQN(qraw).split(' ').filter(Boolean);
+  if(!toks.length) return { list: all, level: 0, cat };
+  const alias = toks.map(nwAliasCats);
+  const score = (o, tk, i, lenient) => {
+    let sc = nwTokScore(o, tk, lenient);
+    alias[i].forEach(c => { const v = nwInCat(o, c); if(v) sc = Math.max(sc, 1.5 + v * 0.5); });
+    return sc;
+  };
+  const run = (mode, lenient) => {
+    const out = [];
+    all.forEach(o => {
+      const sc = toks.map((tk, i) => score(o, tk, i, lenient));
+      const ok = mode === 'and' ? sc.every(x => x > 0) : sc.some(x => x > 0);
+      if(ok) out.push([o, sc.reduce((a, b) => a + b, 0)]);
+    });
+    return out;
+  };
+  let level = 0, res = run('and', false);
+  if(!res.length){ level = 1; res = run('or', false); }
+  if(!res.length){ level = 2; res = run('or', true); }
+  res.sort((a, b) => b[1] - a[1]);
+  return { list: res.map(x => x[0]), level, cat, scored: true };
+}
+function nwCatChips(){
+  const box = $('nwCats'); if(!box) return; box.innerHTML = '';
+  const mk = (id, label) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (NW.cat === id ? ' on' : ''); b.dataset.cat = id; b.textContent = label; box.appendChild(b); };
+  mk('', S.lang === 'bn' ? 'সব বিষয়' : 'All topics');
+  NW_CATS.forEach(c => mk(c.id, S.lang === 'bn' ? c.bn : c.en));
+}
+async function nwGoogleSearch(){
+  const q = ($('nwSearch').value || '').trim(), cat = NW_CATS.find(c => c.id === NW.cat);
+  const query = [q, cat && !q ? cat.bn : ''].filter(Boolean).join(' ') + ' when:3d';
+  if(!q && !cat) return;
+  const btn = $('nwGsBtn'); if(btn){ btn.disabled = true; btn.textContent = '⏳ ' + t('nwLoading'); }
+  const gsrc = Object.assign({}, NW_GOOGLE, { id:'gsearch', gn: gnUrl(query) });
+  try{
+    await nwFeed(gsrc.gn, gsrc, items => {
+      const map = new Map((NW.items.gsearch || []).map(o => [o.link, o]));
+      items.forEach(o => { if(!map.has(o.link)) map.set(o.link, o); });
+      NW.items.gsearch = [...map.values()];
+    });
+  }catch(e){ toast(S.lang === 'bn' ? 'গুগল নিউজ থেকে এখন আনা যায়নি' : 'Could not reach Google News'); }
+  nwSchedule();
+}
 /* ---------- UI ---------- */
 let nwRaf = 0;
 function nwSchedule(){ if(nwRaf) return; nwRaf = requestAnimationFrame(() => { nwRaf = 0; nwRender(); }); }
 function nwSrcName(o){ const s = o.src || {}; if(s.id === 'google') return o.gsrc || (S.lang === 'bn' ? s.bn : s.en); return S.lang === 'bn' ? s.bn : s.en; }
 function nwRender(){
   if(!NW.open) return;
-  const srcs = nwSources(), q = lower($('nwSearch').value || '');
+  const srcs = nwSources(), q = $('nwSearch').value || '';
+  const searching = !!(nwQN(q) || NW.cat);
+  // while searching, every loaded paper (and Google News search results) is searched, not just the selected one
+  const pool = searching && (NW.src === 'all' || NW.src === 'quotes') ? NEWS_SRC.concat([NW_GOOGLE, { id:'gsearch' }]) : srcs;
   const seen = new Set(); let all = [];
-  srcs.forEach(s => (NW.items[s.id] || []).forEach(o => {
+  pool.forEach(s => (NW.items[s.id] || []).forEach(o => {
     const k = lower(o.title).replace(/[^\p{L}\p{N}]+/gu, '').slice(0, 60);
     if(seen.has(k) || seen.has(o.link)) return; seen.add(k); seen.add(o.link); all.push(o);
   }));
-  if(q) all = all.filter(o => lower(o.title).includes(q) || lower(nwSrcName(o)).includes(q));
   const now = Date.now();
   all = all.filter(o => !o.date || o.date.getTime() < now + 3600000);     // drop wrong future dates
+  let smart = null;
+  if(searching){ smart = nwSmart(all, q); all = smart.list; }
   // দেশের খবর আগে: foreign stories are pushed back by 12 hours, so today's Bangladesh news leads the feed
   if(NW.src === 'quotes') all = all.filter(o => nwHot(o) >= 2);
   // stories with a photo always come first (a photo found earlier on this phone counts too); stories without one go to the end
   const nwHasImg = o => { if(!o.img){ try{ const m = nwImgMem[o.link]; if(m) o.img = m; }catch(e){} } return o.img ? 1 : 0; };
   // within each group: Bangladesh political statements ("কে কী বললেন") first, then statements, then political news; foreign news is pushed back
   const nwKey = o => (o.date ? o.date.getTime() : 0) - (nwIsForeign(o) ? 12 * 3600000 : 0) + [0, 3, 8, 14][nwHot(o)] * 3600000;
-  all.sort((a, b) => nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
+  if(!smart) all.sort((a, b) => nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
+  else {   // best match first; equally good matches: with photo, then newest
+    const rank = new Map(all.map((o, i) => [o, i]));
+    const grp = i => Math.floor(i / 6);
+    all.sort((a, b) => grp(rank.get(a)) - grp(rank.get(b)) || nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
+  }
   NW.list = all;
   const busy = srcs.some(s => NW.busy[s.id]) || !!NW.gemBusy;
   const doneN = srcs.filter(s => (NW.items[s.id] || []).length).length;
@@ -4644,6 +4792,12 @@ function nwRender(){
   } else {
     st.innerHTML = (busy ? '<span class="spin"></span> ' : '') + esc(nwNum(all.length) + t('nwCount')) + (srcs.length > 1 ? esc(' · ' + nwNum(doneN) + '/' + nwNum(srcs.length) + ' ' + t('nwPapers')) : '') +
       (failed.length ? ' · <span class="nwfail">' + esc(t('nwSome') + failed.join(', ')) + '</span>' : '');
+  }
+  if(searching){
+    const near = smart && smart.level > 0 && all.length ? '<span class="nwnear">' + esc(S.lang === 'bn' ? 'হুবহু মিল নেই — কাছাকাছি খবর দেখানো হচ্ছে' : 'No exact match — showing close results') + '</span>' : '';
+    const none = !all.length && !busy ? esc(S.lang === 'bn' ? 'এই বিষয়ে এখন কোনো খবর পাওয়া যায়নি।' : 'Nothing found for this yet.') : '';
+    st.innerHTML = (all.length ? st.innerHTML : (none || st.innerHTML)) + near +
+      '<div><button type="button" class="btn" id="nwGsBtn">' + esc(S.lang === 'bn' ? '🌐 গুগল নিউজে আরও খুঁজুন' : '🌐 Search more on Google News') + '</button></div>';
   }
   const last = Math.max(0, ...srcs.map(s => NW.at[s.id] || 0));
   $('nwUpd').textContent = last ? t('nwUpd') + ': ' + nwAgo(new Date(last)) : '';
@@ -4803,13 +4957,21 @@ function nwInit(){
   $('nwRefresh').addEventListener('click', () => nwRefresh(true));
   $('nwMore').addEventListener('click', () => { NW.shown += 40; nwRender(); });
   $('nwSearch').addEventListener('input', () => { NW.shown = 40; nwSchedule(); });
+  $('nwSearch').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('nwSearch').blur(); } });
+  nwCatChips();
+  $('nwCats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if(!b) return;
+    NW.cat = b.dataset.cat; NW.shown = 40;
+    $('nwCats').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
+    $('nwList').scrollTop = 0; nwSchedule();
+  });
   $('nwChips').addEventListener('click', e => {
     const b = e.target.closest('[data-src]'); if(!b) return;
     NW.src = b.dataset.src; store.set('nwSrc', NW.src);
     $('nwChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
     $('nwList').scrollTop = 0; nwRefresh(false);
   });
-  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn') nwGuide(true); });
+  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn') nwGuide(true); if(e.target.id === 'nwGsBtn') nwGoogleSearch(); });
   $('nwGuideBtn').addEventListener('click', () => nwGuide($('nwGuide').classList.contains('hidden')));
   $('nwGuideClose').addEventListener('click', () => nwGuide(false));
   $('nwCopyCode').addEventListener('click', async () => {
@@ -4826,7 +4988,7 @@ function nwInit(){
   if(saved === 'all' || saved === 'google' || NEWS_SRC.some(s => s.id === saved)) NW.src = saved;
   $('nwSearch').placeholder = t('nwSearch');
   const langBtns = document.querySelectorAll('[data-lang], #langBtn');
-  langBtns.forEach(b => b.addEventListener('click', () => setTimeout(() => { $('nwSearch').placeholder = t('nwSearch'); if(NW.open){ nwChips(); nwRender(); } }, 0)));
+  langBtns.forEach(b => b.addEventListener('click', () => setTimeout(() => { $('nwSearch').placeholder = t('nwSearch'); nwCatChips(); if(NW.open){ nwChips(); nwRender(); } }, 0)));
 }
 Object.assign(T.bn, {
   nwGTitle:'⚙️ নিজের ফ্রি প্রক্সি — একবার সেটআপ, সব পত্রিকা চলবে',

@@ -395,6 +395,8 @@ html[data-theme="dark"] .nwchip.on{color:#111}
 .nwcats{padding:2px 14px 6px}
 .nwcats .nwchip{padding:5px 11px;font-size:13px}
 .nwnear{display:block;margin:2px 0 6px;color:var(--muted);font-size:13px}
+.nwrel{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}.nwrel span{font-size:12.5px;color:var(--muted)}
+.nwrel button{border:0;border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;font-weight:600;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);cursor:pointer}
 #nwGsBtn{margin-top:8px}
 .nwtools input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--text);font-size:15px;outline:none}
 .nwstate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:2px 14px 6px;flex:none}
@@ -1557,6 +1559,202 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script id="tfTopic">
+/* ===== TF smart topic search — shared by TF FB Reels & Post Maker and TF News Studio =====
+   Type one word (ইসরায়েল / Iran / যুক্তরাষ্ট্র / মধ্যপ্রাচ্য / চট্টগ্রাম …) and every story about it,
+   about the people and places tied to it, and about the closely linked topics is found.
+   Spelling differences (ইসরায়েল / ইসরাইল, ঈ/ই, ণ/ন, শ/ষ/স …) and word endings (‑এর, ‑কে, ‑তে, ‑ি …) don't matter.
+   Tiers: 3 = the topic itself · 2 = its people / places / members · 1 = linked topics */
+(function(){
+'use strict';
+if(window.TFTopic)return;
+/* id:label | names (the topic itself) | core (people, places, groups inside it) | related topic ids | member topic ids (regions) */
+const DATA=`
+israel:ইসরায়েল|ইসরায়েল,ইসরাইল,ইসরাঈল,ইজরায়েল,ইহুদি রাষ্ট্র,israel,israeli|নেতানিয়াহু,নেতানিয়াহু,তেল আবিব,জেরুজালেম,জেরুসালেম,আইডিএফ,মোসাদ,জায়নবাদী,জায়োনিস্ট,ইহুদিবাদী,আয়রন ডোম,নেসেট,হাইফা,netanyahu,tel aviv,jerusalem,idf,mossad,zionist|palestine iran lebanon syria yemen middleeast|
+palestine:ফিলিস্তিন|ফিলিস্তিন,ফিলিস্তিনি,প্যালেস্টাইন,গাজা,palestine,palestinian,gaza|হামাস,পশ্চিম তীর,রাফাহ,রাফা,খান ইউনিস,আল-আকসা,আল আকসা,আল-আকসা,ইউএনআরডব্লিউএ,ত্রাণ বহর,ফ্লোটিলা,হানিয়া,সিনওয়ার,hamas,west bank,rafah,al-aqsa,unrwa,flotilla|israel middleeast egypt|
+iran:ইরান|ইরান,ইরানি,তেহরান,iran,iranian,tehran|খামেনি,খামেনেই,পেজেশকিয়ান,আরাঘচি,রাইসি,রেভল্যুশনারি গার্ড,বিপ্লবী গার্ড,আইআরজিসি,হরমুজ,ইসফাহান,ফোরদো,নাতাঞ্জ,khamenei,pezeshkian,araghchi,irgc,hormuz|israel middleeast iraq lebanon yemen syria|
+middleeast:মধ্যপ্রাচ্য|মধ্যপ্রাচ্য,মধ্য প্রাচ্য,আরব বিশ্ব,আরব দেশ,উপসাগরীয়,পারস্য উপসাগর,middle east,gulf states,arab world|ওপেক,আরব লিগ,opec,arab league|war|israel palestine iran iraq syria lebanon yemen saudi uae qatar kuwait oman bahrain jordan egypt turkey
+lebanon:লেবানন|লেবানন,লেবাননি,বৈরুত,lebanon,lebanese,beirut|হিজবুল্লাহ,হিজবুল্লা,hezbollah|israel iran syria middleeast|
+syria:সিরিয়া|সিরিয়া,সিরীয়,দামেস্ক,syria,syrian,damascus|আল-শারা,আহমেদ আল শারা,জোলানি,আসাদ,আলেপ্পো,ইদলিব,assad,aleppo|israel turkey iran middleeast|
+iraq:ইরাক|ইরাক,ইরাকি,বাগদাদ,iraq,iraqi,baghdad|কুর্দিস্তান,ইরবিল,মসুল,বসরা,kurdistan|iran middleeast|
+yemen:ইয়েমেন|ইয়েমেন,ইয়ামেন,ইয়েমেনি,yemen,yemeni|হুতি,হুথি,হাউছি,লোহিত সাগর,এডেন,houthi,houthis,red sea|saudi iran israel middleeast|
+saudi:সৌদি আরব|সৌদি আরব,সৌদি,রিয়াদ,saudi,riyadh|মক্কা,মদিনা,বিন সালমান,এমবিএস,আরামকো,হজ,উমরাহ,জেদ্দা,mecca,makkah,medina,aramco,jeddah|middleeast uae qatar yemen|
+uae:সংযুক্ত আরব আমিরাত|সংযুক্ত আরব আমিরাত,আরব আমিরাত,আমিরাত,ইউএই,দুবাই,আবুধাবি,uae,emirates,dubai,abu dhabi|শারজাহ,sharjah|middleeast saudi|
+qatar:কাতার|কাতার,কাতারি,qatar,qatari|আল জাজিরা,আল-জাজিরা,al jazeera,doha|middleeast|
+kuwait:কুয়েত|কুয়েত,কুয়েতি,kuwait||middleeast|
+oman:ওমান|ওমান,মাসকট,oman,muscat||middleeast|
+bahrain:বাহরাইন|বাহরাইন,bahrain||middleeast|
+jordan:জর্ডান|জর্ডান,আম্মান,jordan,amman||middleeast palestine|
+egypt:মিসর|মিসর,মিশর,মিসরীয়,কায়রো,egypt,egyptian,cairo|সুয়েজ,suez|middleeast palestine|
+turkey:তুরস্ক|তুরস্ক,তুর্কি,তুর্কিয়ে,আঙ্কারা,ইস্তাম্বুল,turkey,turkish,türkiye,turkiye,ankara,istanbul|এরদোয়ান,এরদোগান,erdogan|middleeast syria europe|
+usa:যুক্তরাষ্ট্র|যুক্তরাষ্ট্র,মার্কিন,আমেরিকা,আমেরিকান,ইউএসএ,ইউএস,usa,united states,america,american|ওয়াশিংটন,হোয়াইট হাউস,পেন্টাগন,ক্যাপিটল,ট্রাম্প,ভ্যান্স,রুবিও,হেগসেথ,বাইডেন,কমলা হ্যারিস,ওবামা,ইলন মাস্ক,নিউইয়র্ক,নিউ ইয়র্ক,ক্যালিফোর্নিয়া,টেক্সাস,ফ্লোরিডা,শিকাগো,লস অ্যাঞ্জেলেস,মার্কিন কংগ্রেস,সিনেট,ডেমোক্র্যাট,ডেমোক্রেটিক,রিপাবলিকান,এফবিআই,সিআইএ,ফেডারেল রিজার্ভ,ফেড,স্টেট ডিপার্টমেন্ট,ভিসা নীতি,গ্রিন কার্ড,washington,white house,pentagon,trump,vance,rubio,biden,new york,california,texas,fbi,cia,republican,democrat|canada|
+trump:ট্রাম্প|ট্রাম্প,trump|হোয়াইট হাউস,ভ্যান্স,মাগা,white house,maga|usa|
+canada:কানাডা|কানাডা,কানাডীয়,canada,canadian|অটোয়া,টরন্টো,মন্ট্রিল,কার্নি,ট্রুডো,ottawa,toronto|usa|
+india:ভারত|ভারত,ভারতীয়,ইন্ডিয়া,দিল্লি,নয়াদিল্লি,নয়াদিল্লি,india,indian,delhi|মোদি,মোদী,বিজেপি,রাহুল গান্ধী,কংগ্রেস নেতা,অমিত শাহ,জয়শঙ্কর,কলকাতা,পশ্চিমবঙ্গ,মমতা,আসাম,ত্রিপুরা,মেঘালয়,মণিপুর,মুম্বাই,কাশ্মীর,বিএসএফ,সীমান্ত হত্যা,ভিসা সেন্টার,modi,bjp,kolkata,west bengal,mumbai,kashmir,bsf|pakistan|
+pakistan:পাকিস্তান|পাকিস্তান,পাকিস্তানি,ইসলামাবাদ,pakistan,pakistani,islamabad|শাহবাজ,নওয়াজ শরিফ,ইমরান খান,পিটিআই,আসিম মুনির,লাহোর,করাচি,বেলুচিস্তান,খাইবার,imran khan,lahore,karachi|india afghanistan|
+afghanistan:আফগানিস্তান|আফগানিস্তান,আফগান,কাবুল,afghanistan,afghan,kabul|তালেবান,তালেবান,taliban|pakistan|
+china:চীন|চীন,চীনা,চায়না,বেইজিং,china,chinese,beijing|সি চিন পিং,শি জিনপিং,শি জিন পিং,হংকং,সাংহাই,হুয়াওয়ে,xi jinping,hong kong,shanghai,huawei|taiwan|
+taiwan:তাইওয়ান|তাইওয়ান,তাইপে,taiwan,taipei||china|
+russia:রাশিয়া|রাশিয়া,রুশ,মস্কো,russia,russian,moscow|পুতিন,ক্রেমলিন,লাভরভ,putin,kremlin,lavrov|ukraine europe|
+ukraine:ইউক্রেন|ইউক্রেন,ইউক্রেনীয়,কিয়েভ,কিয়েভ,কিভ,ukraine,ukrainian,kyiv,kiev|জেলেনস্কি,জেলেনস্কি,দনবাস,দোনেৎস্ক,খারকিভ,ক্রিমিয়া,zelensky,zelenskyy,donbas,crimea|russia europe nato|
+europe:ইউরোপ|ইউরোপ,ইউরোপীয়,ইউরোপীয় ইউনিয়ন,ইইউ,eu,europe,european union,european|ব্রাসেলস,brussels|uk nato ukraine|uk france germany italy spain
+uk:যুক্তরাজ্য|যুক্তরাজ্য,ব্রিটেন,ব্রিটিশ,ইংল্যান্ড,লন্ডন,uk,britain,british,england,london|স্টারমার,ডাউনিং স্ট্রিট,টিউলিপ,স্কটল্যান্ড,ওয়েলস,বিবিসি,starmer,downing street,tulip|europe|
+france:ফ্রান্স|ফ্রান্স,ফরাসি,প্যারিস,france,french,paris|ম্যাক্রোঁ,মাখোঁ,macron|europe|
+germany:জার্মানি|জার্মানি,জার্মান,বার্লিন,germany,german,berlin|মের্জ,merz|europe|
+italy:ইতালি|ইতালি,ইতালীয়,italy,italian|মেলোনি,meloni|europe|
+spain:স্পেন|স্পেন,স্প্যানিশ,মাদ্রিদ,spain,madrid||europe|
+nato:ন্যাটো|ন্যাটো,nato|রুটে,rutte|europe ukraine russia usa|
+un:জাতিসংঘ|জাতিসংঘ,জাতিসংঘের,united nations,un|গুতেরেস,নিরাপত্তা পরিষদ,সাধারণ পরিষদ,ইউনিসেফ,ইউএনএইচসিআর,ইউনেসকো,বিশ্ব স্বাস্থ্য সংস্থা,শান্তিরক্ষী,guterres,unicef,unhcr,unesco|world|
+japan:জাপান|জাপান,জাপানি,টোকিও,japan,japanese,tokyo|জাইকা,jica||
+korea:কোরিয়া|কোরিয়া,দক্ষিণ কোরিয়া,উত্তর কোরিয়া,সিউল,পিয়ংইয়ং,korea,seoul,pyongyang|কিম জং উন,kim jong un||
+myanmar:মিয়ানমার|মিয়ানমার,মায়ানমার,বার্মা,myanmar,burma|রাখাইন,আরাকান আর্মি,আরাকান,জান্তা,নেপিদো,ইয়াঙ্গুন,সু চি,rakhine,arakan,junta|rohingya|
+rohingya:রোহিঙ্গা|রোহিঙ্গা,rohingya|উখিয়া,টেকনাফ,ভাসানচর,প্রত্যাবাসন,শরণার্থী শিবির,আশ্রয়শিবির,repatriation|myanmar|
+nepal:নেপাল|নেপাল,নেপালি,কাঠমান্ডু,nepal,kathmandu|||
+bhutan:ভুটান|ভুটান,থিম্পু,bhutan|||
+srilanka:শ্রীলঙ্কা|শ্রীলঙ্কা,শ্রীলংকা,কলম্বো,sri lanka|||
+maldives:মালদ্বীপ|মালদ্বীপ,maldives|||
+malaysia:মালয়েশিয়া|মালয়েশিয়া,মালয়েশীয়,কুয়ালালামপুর,malaysia,kuala lumpur|আনোয়ার ইব্রাহিম,anwar ibrahim|migrants|
+singapore:সিঙ্গাপুর|সিঙ্গাপুর,singapore||migrants|
+indonesia:ইন্দোনেশিয়া|ইন্দোনেশিয়া,জাকার্তা,indonesia,jakarta|||
+thailand:থাইল্যান্ড|থাইল্যান্ড,ব্যাংকক,thailand,bangkok|||
+australia:অস্ট্রেলিয়া|অস্ট্রেলিয়া,অস্ট্রেলীয়,সিডনি,মেলবোর্ন,australia,sydney,melbourne|||
+world:বিশ্ব|আন্তর্জাতিক,বিশ্ব!,বিদেশ,international,world,global|জাতিসংঘ,ন্যাটো,জি-২০,জি২০,জি-৭,ব্রিকস,বিশ্বব্যাংক,আইএমএফ,g20,brics|un|usa israel iran china russia ukraine india pakistan europe uk middleeast myanmar
+war:যুদ্ধ|যুদ্ধ,যুদ্ধবিরতি,সংঘাত,war,ceasefire,conflict|বিমান হামলা,ক্ষেপণাস্ত্র,মিসাইল,ড্রোন হামলা,গোলাবর্ষণ,বোমা হামলা,স্থল অভিযান,সেনা মোতায়েন,পারমাণবিক,missile,airstrike,drone strike,nuclear|israel palestine iran ukraine russia|
+migrants:প্রবাসী|প্রবাসী,প্রবাস,রেমিট্যান্স,প্রবাসী আয়,অভিবাসী,অভিবাসন,remittance,migrant,expatriate|শ্রমবাজার,শ্রমিক পাঠানো,বিদেশে কর্মী,জনশক্তি রপ্তানি,বিএমইটি,মানব পাচার,ভূমধ্যসাগর,অবৈধ অভিবাসী|saudi malaysia uae qatar italy|
+bnp:বিএনপি|বিএনপি,bnp|তারেক রহমান,খালেদা জিয়া,মির্জা ফখরুল,ফখরুল,রিজভী,আমীর খসরু,সালাহউদ্দিন,ছাত্রদল,যুবদল,স্বেচ্ছাসেবক দল,জিয়াউর রহমান,ধানের শীষ|election awami jamaat|
+awami:আওয়ামী লীগ|আওয়ামী লীগ,আওয়ামী,আ.লীগ,আ. লীগ,awami league|শেখ হাসিনা,হাসিনা,ছাত্রলীগ,যুবলীগ,ওবায়দুল কাদের,শেখ মুজিব,বঙ্গবন্ধু,সজীব ওয়াজেদ জয়|bnp election|
+jamaat:জামায়াত|জামায়াত,জামায়াতে ইসলামী,jamaat|শিবির,ইসলামী ছাত্রশিবির,শফিকুর রহমান,দাঁড়িপাল্লা,গোলাম পরওয়ার|bnp election|
+ncp:এনসিপি|এনসিপি,জাতীয় নাগরিক পার্টি,ncp|নাহিদ ইসলাম,হাসনাত আবদুল্লাহ,হাসনাত,সারজিস,আখতার হোসেন,নাসীরুদ্দীন পাটওয়ারী,শাপলা|election|
+election:নির্বাচন|নির্বাচন,ভোট,গণভোট,election,vote,referendum|নির্বাচন কমিশন,ইসি,সিইসি,প্রার্থী,মনোনয়ন,ভোটকেন্দ্র,ব্যালট,ভোটার,প্রতীক,ইশতেহার,তফসিল,পোলিং|bnp jamaat ncp awami|
+govt:সরকার|অন্তর্বর্তী সরকার,সরকার,উপদেষ্টা পরিষদ,government|ইউনূস,প্রধান উপদেষ্টা,উপদেষ্টা,সচিবালয়,মন্ত্রণালয়,প্রধানমন্ত্রী,মন্ত্রিসভা,yunus|election|
+yunus:ড. ইউনূস|ইউনূস,প্রধান উপদেষ্টা,yunus|অন্তর্বর্তী সরকার,প্রেস সচিব,শফিকুল আলম|govt|
+army:সেনাবাহিনী|সেনাবাহিনী,সেনাপ্রধান,সশস্ত্র বাহিনী,army|ওয়াকার-উজ-জামান,ওয়াকার,আইএসপিআর,সেনাসদস্য,ক্যান্টনমেন্ট,সেনানিবাস,বিজিবি,নৌবাহিনী,বিমানবাহিনী|police|
+police:পুলিশ|পুলিশ,র‍্যাব,র‌্যাব,র্যাব,police,rab|ডিএমপি,আইজিপি,থানা,ওসি,ডিবি,যৌথ বাহিনী,অভিযান|crime army|
+crime:অপরাধ|অপরাধ,খুন,হত্যা,crime,murder|লাশ,ছুরিকাঘাত,গুলি!,ধর্ষণ,ডাকাতি,ছিনতাই,চাঁদাবাজি,অপহরণ,গ্রেপ্তার,গ্রেফতার,মামলা,আসামি,রিমান্ড|police court|
+court:আদালত|আদালত,হাইকোর্ট,সুপ্রিম কোর্ট,ট্রাইব্যুনাল,court|রায়,জামিন,আপিল বিভাগ,প্রধান বিচারপতি,বিচারপতি,আইনজীবী,শুনানি,মৃত্যুদণ্ড,কারাদণ্ড|crime|
+economy:অর্থনীতি|অর্থনীতি,অর্থনৈতিক,economy|ডলার,টাকার মান,রিজার্ভ,বাংলাদেশ ব্যাংক,মূল্যস্ফীতি,জিডিপি,বাজেট,রাজস্ব,এনবিআর,আইএমএফ,বিশ্বব্যাংক,রপ্তানি,আমদানি,বিনিয়োগ,ঋণ,শেয়ারবাজার,পুঁজিবাজার,ব্যাংক খাত,inflation,imf,reserve|price migrants garments|
+price:দ্রব্যমূল্য|দ্রব্যমূল্য,দাম,বাজারদর,মূল্যবৃদ্ধি,price|চাল,পেঁয়াজ,আলু,ডিম,সবজি,সয়াবিন তেল,ভোজ্যতেল,চিনি,মাছ,মুরগি,গরুর মাংস,টিসিবি|economy|
+gold:সোনা|সোনা!,স্বর্ণ,সোনার দাম,gold|রুপা,বাজুস,ভরি|price|
+fuel:জ্বালানি|জ্বালানি,জ্বালানি তেল,তেলের দাম,জ্বালানির দাম,fuel,oil price|ডিজেল,পেট্রল,অকটেন,এলপিজি,গ্যাস সংকট,বিদ্যুৎ,লোডশেডিং,ওপেক,opec|economy middleeast|
+garments:পোশাকশিল্প|পোশাকশিল্প,পোশাক খাত,গার্মেন্টস,তৈরি পোশাক,garments,rmg|পোশাক শ্রমিক,বিজিএমইএ,কারখানা,শ্রমিক বিক্ষোভ,bgmea|economy|
+cricket:ক্রিকেট|ক্রিকেট,cricket|টাইগার,বিসিবি,বিপিএল,টেস্ট,ওয়ানডে,টি-টোয়েন্টি,টি টোয়েন্টি,আইপিএল,উইকেট,সেঞ্চুরি,মিরাজ,লিটন,মুশফিক,সাকিব,তামিম,তাসকিন,মোস্তাফিজ,bcb,bpl,ipl|sports|
+football:ফুটবল|ফুটবল,football,soccer|ফিফা,বিশ্বকাপ,মেসি,রোনালদো,নেইমার,এমবাপ্পে,আর্জেন্টিনা,ব্রাজিল,রিয়াল মাদ্রিদ,বার্সেলোনা,প্রিমিয়ার লিগ,হামজা,বাফুফে,fifa,messi,ronaldo|sports|
+sports:খেলাধুলা|খেলাধুলা,খেলা!,ক্রীড়া,sports,sport|ক্রিকেট,ফুটবল,হকি,অলিম্পিক,টুর্নামেন্ট,ম্যাচ,কোচ,খেলোয়াড়|cricket football|
+weather:আবহাওয়া|আবহাওয়া,weather|বৃষ্টি,বন্যা,ঝড়,ঘূর্ণিঝড়,সাইক্লোন,নিম্নচাপ,লঘুচাপ,তাপপ্রবাহ,শৈত্যপ্রবাহ,শীত,কুয়াশা,বজ্রপাত,জলোচ্ছ্বাস,তাপমাত্রা,cyclone,flood,rain|disaster|
+disaster:দুর্যোগ|দুর্যোগ,দুর্ঘটনা,disaster,accident|বন্যা,ভূমিকম্প,ভূমিধস,পাহাড়ধস,আগুন,অগ্নিকাণ্ড,সড়ক দুর্ঘটনা,নৌকাডুবি,লঞ্চডুবি,ট্রেন দুর্ঘটনা,বিস্ফোরণ,ভবন ধস,earthquake,fire|weather|
+health:স্বাস্থ্য|স্বাস্থ্য,চিকিৎসা,health|হাসপাতাল,ডাক্তার,চিকিৎসক,ডেঙ্গু,করোনা,ভাইরাস,টিকা,ওষুধ,ক্যানসার,রোগী,dengue|dengue|
+dengue:ডেঙ্গু|ডেঙ্গু,dengue|এডিস,মশা,চিকুনগুনিয়া|health|
+edu:শিক্ষা|শিক্ষা,education|স্কুল,কলেজ,বিশ্ববিদ্যালয়,ভর্তি,পরীক্ষা,এসএসসি,এইচএসসি,শিক্ষার্থী,শিক্ষক,ফলাফল,ঢাবি,বুয়েট,ডাকসু,ক্যাম্পাস|students|
+students:শিক্ষার্থী|শিক্ষার্থী,ছাত্র,students|ছাত্রদল,শিবির,বৈষম্যবিরোধী,ডাকসু,জাকসু,রাকসু,চাকসু,ক্যাম্পাস|edu|
+religion:ধর্ম|ধর্ম,ইসলাম,ধর্মীয়,religion,islam|মসজিদ,হজ,রমজান,ঈদ,নামাজ,মাদ্রাসা,আলেম,মুসলিম,ওয়াজ,কোরআন,হাদিস,পূজা,মন্দির,হিন্দু,বৌদ্ধ,খ্রিষ্টান,হেফাজত|saudi|
+tech:প্রযুক্তি|প্রযুক্তি,technology,tech|এআই,কৃত্রিম বুদ্ধিমত্তা,মোবাইল,স্মার্টফোন,ইন্টারনেট,গুগল,অ্যাপল,ফেসবুক,চ্যাটজিপিটি,ওপেনএআই,ইলন মাস্ক,স্টারলিংক,সাইবার,ai,chatgpt,openai,starlink|
+entertain:বিনোদন|বিনোদন,entertainment|সিনেমা,চলচ্চিত্র,নাটক,গান,অভিনেতা,অভিনেত্রী,নায়ক,নায়িকা,বলিউড,হলিউড,ঢালিউড,কনসার্ট,ওটিটি,শাকিব খান,শাহরুখ|
+dhaka:ঢাকা|ঢাকা,রাজধানী,dhaka|মিরপুর,উত্তরা!,গুলশান,বনানী,ধানমন্ডি,মোহাম্মদপুর,যাত্রাবাড়ী,পুরান ঢাকা,মতিঝিল,শাহবাগ,ফার্মগেট,বাড্ডা,রামপুরা,খিলগাঁও,সাভার,কেরানীগঞ্জ,ডিএনসিসি,ডিএসসিসি,মেট্রোরেল,গাজীপুর,নারায়ণগঞ্জ,নরসিংদী,মানিকগঞ্জ,মুন্সিগঞ্জ,টাঙ্গাইল,কিশোরগঞ্জ,ফরিদপুর,গোপালগঞ্জ,মাদারীপুর,রাজবাড়ী,শরীয়তপুর||
+ctg:চট্টগ্রাম|চট্টগ্রাম,চট্রগ্রাম,চাটগাঁ,বন্দরনগরী,chattogram,chittagong|কক্সবাজার,কুমিল্লা,ফেনী,নোয়াখালী,লক্ষ্মীপুর,চাঁদপুর,ব্রাহ্মণবাড়িয়া,রাঙামাটি,বান্দরবান,খাগড়াছড়ি,পার্বত্য চট্টগ্রাম,সীতাকুণ্ড,হাটহাজারী,মিরসরাই,চট্টগ্রাম বন্দর,টেকনাফ,সেন্ট মার্টিন||
+sylhet:সিলেট|সিলেট,sylhet|মৌলভীবাজার,হবিগঞ্জ,সুনামগঞ্জ,শ্রীমঙ্গল,কোম্পানীগঞ্জ,জাফলং||
+rajshahi:রাজশাহী|রাজশাহী,rajshahi|নওগাঁ,নাটোর,চাঁপাইনবাবগঞ্জ,পাবনা,সিরাজগঞ্জ,বগুড়া,জয়পুরহাট,রাবি||
+khulna:খুলনা|খুলনা,khulna|বাগেরহাট,সাতক্ষীরা,যশোর,ঝিনাইদহ,মাগুরা,নড়াইল,কুষ্টিয়া,চুয়াডাঙ্গা,মেহেরপুর,সুন্দরবন,মোংলা||
+barishal:বরিশাল|বরিশাল,barishal,barisal|বরগুনা,পটুয়াখালী,ভোলা,ঝালকাঠি,পিরোজপুর,কুয়াকাটা||
+rangpur:রংপুর|রংপুর,rangpur|দিনাজপুর,গাইবান্ধা,কুড়িগ্রাম,লালমনিরহাট,নীলফামারী,পঞ্চগড়,ঠাকুরগাঁও,তিস্তা||
+mymensingh:ময়মনসিংহ|ময়মনসিংহ,mymensingh|জামালপুর,নেত্রকোনা,শেরপুর||
+`;
+const BAD_SFX='(?:দের|ের|এর|কে|কেও|তে|তেও|েই|েও|ে|র|রা|ও|ই|া|ার|িয়|সহ|s)?';
+/* loose form: same text however it is spelled */
+function L(s){
+  return String(s==null?'':s).normalize('NFC').toLowerCase()
+    .replace(/[‌‍]/g,'')
+    .replace(/য়/g,'য়').replace(/ড়/g,'ড়').replace(/ঢ়/g,'ঢ়')
+    .replace(/ী/g,'ি').replace(/ূ/g,'ু').replace(/ঈ/g,'ই').replace(/ঊ/g,'উ')
+    .replace(/ণ/g,'ন').replace(/[শষ]/g,'স').replace(/ৎ/g,'ত').replace(/ঙ/g,'ং')
+    .replace(/[্ঁ]/g,'').replace(/য/g,'জ').replace(/[ড়ঢ়]/g,'র')
+    .replace(/[‘’“”"'`.,;:!?()\[\]{}|।॥–—\-_\/\\#*+=<>@&%৷]+/g,' ').replace(/\s+/g,' ').trim();
+}
+const cps=s=>[...s].length;
+const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const T={},ORDER=[],STRICT=new Set();
+DATA.trim().split('\n').forEach(line=>{
+  const [head,names,core,rel,mem]=line.split('|');if(!head)return;const [id,label]=head.split(':');
+  const list=s=>[...new Set(String(s||'').split(',').map(x=>x.trim()).filter(Boolean).map(x=>{if(x.endsWith('!')){x=x.slice(0,-1);STRICT.add(L(x));}return x;}))];
+  T[id]={id,label,names:list(names),core:list(core),rel:String(rel||'').split(/\s+/).filter(Boolean),mem:String(mem||'').split(/\s+/).filter(Boolean)};ORDER.push(id);
+});
+ORDER.forEach(id=>{const t=T[id];t.nL=[...new Set(t.names.map(L).filter(Boolean))];t.cL=[...new Set(t.core.map(L).filter(Boolean))];});
+/* one pattern for a list of words: word must START with the term (Bangla endings allowed); very short terms only take common endings */
+function rx(terms){
+  terms=[...new Set(terms.filter(Boolean))].sort((a,b)=>b.length-a.length);if(!terms.length)return null;
+  const sh=t=>cps(t)<=3||STRICT.has(t);const longT=terms.filter(t=>!sh(t)).map(escRe),shortT=terms.filter(sh).map(escRe);
+  const parts=[];if(longT.length)parts.push('(?:'+longT.join('|')+')');if(shortT.length)parts.push('(?:'+shortT.join('|')+')'+BAD_SFX+'(?![\\p{L}\\p{M}])');
+  try{return new RegExp('(?<![\\p{L}\\p{M}\\p{N}])(?:'+parts.join('|')+')','u');}catch(e){return null;}
+}
+/* does a query word mean this term? (typing in progress, endings, a 1-letter slip) */
+function dist(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];let m=i;for(let j=1;j<=b.length;j++){const v=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));c[j]=v;if(v<m)m=v;}if(m>max)return max+1;p=c;}return p[b.length];}
+function wordMeans(w,term){
+  if(w===term)return 3;
+  const lw=cps(w),lt=cps(term);
+  if(lt>=3&&w.startsWith(term)&&lw-lt<=4)return 2;          // ইসরায়েলের → ইসরায়েল
+  if(lw>=3&&term.startsWith(w)&&!term.includes(' '))return 1; // ইসরা… (still typing)
+  if(lt>=5&&lw>=5&&dist(w,term,1)<=1)return 1;               // one-letter slip
+  return 0;
+}
+const cache=new Map();
+function analyze(q){
+  const qL=L(q);if(cache.has(qL))return cache.get(qL);
+  let words=qL.split(' ').filter(Boolean);const used=new Array(words.length).fill(false);const picks=[];
+  // 1) multi-word names/terms first (সৌদি আরব, দক্ষিণ কোরিয়া, তারেক রহমান…)
+  const phr=[];ORDER.forEach(id=>{const t=T[id];t.nL.forEach(n=>{if(n.includes(' '))phr.push([n,id,'n']);});t.cL.forEach(n=>{if(n.includes(' '))phr.push([n,id,'c']);});});
+  phr.sort((a,b)=>b[0].length-a[0].length);
+  phr.forEach(([n,id,k])=>{const nw=n.split(' ');for(let i=0;i+nw.length<=words.length;i++){if(used.slice(i,i+nw.length).some(Boolean))continue;
+    if(nw.every((x,j)=>j<nw.length-1?words[i+j]===x:wordMeans(words[i+j],x)>=2)){for(let j=0;j<nw.length;j++)used[i+j]=true;picks.push({id,kind:k,term:n,q:words.slice(i,i+nw.length).join(' ')});}}});
+  // 2) single words
+  words.forEach((w,i)=>{if(used[i]||cps(w)<2)return;let best=null;
+    ORDER.forEach(id=>{const t=T[id];
+      t.nL.forEach(n=>{if(n.includes(' '))return;const m=wordMeans(w,n);if(m&&(!best||m*2>best.s))best={id,kind:'n',term:n,s:m*2};});
+      t.cL.forEach(n=>{if(n.includes(' '))return;const m=wordMeans(w,n);if(m&&(!best||m*2-1>best.s))best={id,kind:'c',term:n,s:m*2-1};});});
+    if(best&&best.s>=2){used[i]=true;picks.push({id:best.id,kind:best.kind,term:best.term,q:w});}});
+  const rest=words.filter((w,i)=>!used[i]);
+  // build the groups (one per thing asked for)
+  const groups=[],labels=[],relSeen=new Set();
+  const seen=new Set();
+  picks.forEach(p=>{const key=p.id+'|'+p.kind+'|'+(p.kind==='c'?p.term:'');if(seen.has(key))return;seen.add(key);const t=T[p.id];
+    let d,c,r=[];const relIds=[];
+    if(p.kind==='n'){
+      d=t.nL;c=t.cL.slice();t.mem.forEach(m=>{const mt=T[m];if(mt){c=c.concat(mt.nL,mt.cL);}});
+      t.rel.forEach(rid=>{const rt=T[rid];if(!rt)return;relIds.push(rid);r=r.concat(rt.nL);if(!rt.mem.length)r=r.concat(rt.cL.filter(x=>cps(x)>=4));});
+    }else{ // a person / place inside a topic: that word first, then the topic
+      d=[p.term];c=t.nL;relIds.push(t.id);t.rel.slice(0,3).forEach(rid=>{const rt=T[rid];if(rt){r=r.concat(rt.nL);relIds.push(rid);}});
+      if(!labels.includes(t.label))labels.push(t.label);
+    }
+    const dS=new Set(d);c=c.filter(x=>!dS.has(x));const cS=new Set(c);r=r.filter(x=>!dS.has(x)&&!cS.has(x));
+    groups.push({id:p.id,label:p.kind==='n'?t.label:p.q,r3:rx(d),r2:rx(c),r1:rx(r),terms:d.concat(c,r)});
+    relIds.forEach(id=>{if(id!==p.id&&T[id])relSeen.add(id);});
+  });
+  const asked=new Set(picks.filter(p=>p.kind==='n').map(p=>p.id));
+  const related=[...relSeen].filter(id=>!asked.has(id)).map(id=>({id,label:T[id].label}));
+  const all=groups.flatMap(g=>g.terms);
+  const res={q:qL,groups,rest,related,topics:groups.map(g=>g.label),hl:rx(all.concat(rest.filter(w=>cps(w)>=2)))};
+  if(cache.size>200)cache.clear();cache.set(qL,res);return res;
+}
+/* score one story: title & body are plain text. Returns {s: score, tier: 3/2/1/0} */
+function score(A,title,body,prepped){
+  const tL=prepped&&prepped.t!=null?prepped.t:L(title),bL=prepped&&prepped.b!=null?prepped.b:L(body);let s=0,tier=0;
+  A.groups.forEach(g=>{let gs=0,gt=0;
+    if(g.r3){if(g.r3.test(tL)){gs=12;gt=3;}else if(g.r3.test(bL)){gs=8;gt=3;}}
+    if(g.r2&&gs<12){if(g.r2.test(tL)){gs=Math.max(gs,7);gt=Math.max(gt,2);}else if(g.r2.test(bL)){gs=Math.max(gs,gt===3?gs:4);gt=Math.max(gt,2);}}
+    if(g.r1&&!gt){if(g.r1.test(tL)){gs=3.5;gt=1;}else if(g.r1.test(bL)){gs=2;gt=1;}}
+    s+=gs;if(gt>tier)tier=gt;});
+  return{s,tier};
+}
+/* Google News search text: the topic + its strongest links joined with OR */
+function googleQuery(A,raw){
+  if(!A.groups.length)return raw;
+  const bn=a=>a.filter(x=>/[ঀ-৿]/.test(x));const parts=[];
+  A.groups.forEach(g=>{const t=T[g.id];if(!t)return;parts.push(...bn(t.names).slice(0,t.mem.length?1:2));(t.mem.length?t.mem.slice(0,6):t.rel.slice(0,3)).forEach(r=>{if(T[r])parts.push(bn(T[r].names)[0]);});});
+  const uniq=[...new Set(parts.filter(Boolean))].slice(0,7);
+  const extra=A.rest.join(' ');
+  return(uniq.length>1?'('+uniq.join(' OR ')+')':uniq[0]||'')+(extra?' '+extra:'');
+}
+window.TFTopic={L,analyze,score,googleQuery,topics:T};
+})();
+</script>
 <script>
 'use strict';
 (function(){
@@ -4765,6 +4963,25 @@ function nwSmart(all, qraw){
   const toks = nwQN(qraw).split(' ').filter(Boolean);
   if(!toks.length) return { list: all, level: 0, cat };
   const alias = toks.map(nwAliasCats);
+  const A = window.TFTopic ? TFTopic.analyze(qraw) : null;
+  if(A && A.groups.length){
+    // topic search: the topic itself, its people/places, and closely linked topics (ইসরায়েল → ইরান, গাজা, লেবানন …)
+    const restIdx = toks.map((tk, i) => A.rest.includes(TFTopic.L(tk)) ? i : -1).filter(i => i >= 0);
+    const out = [];
+    all.forEach(o => {
+      if(!o._tl){ let path = ''; try{ path = decodeURIComponent(new URL(o.link).pathname).replace(/[\/_\-.]+/g, ' '); }catch(e){} o._tl = { t: TFTopic.L(o.title), b: TFTopic.L((o.desc || '') + ' ' + path) }; }
+      const ts = TFTopic.score(A, o.title, '', o._tl);
+      let rs = 0;
+      restIdx.forEach(i => { let sc = nwTokScore(o, toks[i], false); alias[i].forEach(c => { const v = nwInCat(o, c); if(v) sc = Math.max(sc, 1.5 + v * 0.5); }); rs += sc; });
+      if(ts.s > 0 || rs > 0){
+        const top = [0, 3.5, 7, 12][ts.tier] || 0;
+        out.push([o, ts.tier * 2 + (ts.tier && ts.s >= top ? 1 : 0), ts.s + rs * 2]);
+      }
+    });
+    out.sort((a, b) => b[1] - a[1] || b[2] - a[2]);
+    const tier = new Map(out.map(x => [x[0], x[1]]));
+    return { list: out.map(x => x[0]), level: 0, cat, scored: true, tier, topic: A };
+  }
   const score = (o, tk, i, lenient) => {
     let sc = nwTokScore(o, tk, lenient);
     alias[i].forEach(c => { const v = nwInCat(o, c); if(v) sc = Math.max(sc, 1.5 + v * 0.5); });
@@ -4793,7 +5010,9 @@ function nwCatChips(){
 }
 async function nwGoogleSearch(){
   const q = ($('nwSearch').value || '').trim(), cat = NW_CATS.find(c => c.id === NW.cat);
-  const query = [q, cat && !q ? cat.bn : ''].filter(Boolean).join(' ') + ' when:3d';
+  const gq = q && window.TFTopic ? TFTopic.googleQuery(TFTopic.analyze(q), q) : q;
+  const query = [gq, cat && !q ? cat.bn : ''].filter(Boolean).join(' ') + ' when:3d';
+  if(nwGoogleSearch.last === query) return; nwGoogleSearch.last = query;
   if(!q && !cat) return;
   const btn = $('nwGsBtn'); if(btn){ btn.disabled = true; btn.textContent = '⏳ ' + t('nwLoading'); }
   const gsrc = Object.assign({}, NW_GOOGLE, { id:'gsearch', gn: gnUrl(query) });
@@ -4834,8 +5053,8 @@ function nwRender(){
   if(!smart) all.sort((a, b) => nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
   else {   // best match first; equally good matches: with photo, then newest
     const rank = new Map(all.map((o, i) => [o, i]));
-    const grp = i => Math.floor(i / 6);
-    all.sort((a, b) => grp(rank.get(a)) - grp(rank.get(b)) || nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
+    const grp = smart.tier ? (o => -smart.tier.get(o)) : (o => Math.floor(rank.get(o) / 6));
+    all.sort((a, b) => grp(a) - grp(b) || nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
   }
   NW.list = all;
   const busy = srcs.some(s => NW.busy[s.id]) || !!NW.gemBusy;
@@ -4854,7 +5073,8 @@ function nwRender(){
   if(searching){
     const near = smart && smart.level > 0 && all.length ? '<span class="nwnear">' + esc(S.lang === 'bn' ? 'হুবহু মিল নেই — কাছাকাছি খবর দেখানো হচ্ছে' : 'No exact match — showing close results') + '</span>' : '';
     const none = !all.length && !busy ? esc(S.lang === 'bn' ? 'এই বিষয়ে এখন কোনো খবর পাওয়া যায়নি।' : 'Nothing found for this yet.') : '';
-    st.innerHTML = (all.length ? st.innerHTML : (none || st.innerHTML)) + near +
+    const rel = smart && smart.topic && smart.topic.related.length ? '<div class="nwrel"><span>' + esc(S.lang === 'bn' ? 'সাথে খোঁজা হচ্ছে:' : 'Also searching:') + '</span>' + smart.topic.related.slice(0, 8).map(r => '<button type="button" data-rq="' + esc(r.label) + '">' + esc(r.label) + '</button>').join('') + '</div>' : '';
+    st.innerHTML = rel + (all.length ? st.innerHTML : (none || st.innerHTML)) + near +
       '<div><button type="button" class="btn" id="nwGsBtn">' + esc(S.lang === 'bn' ? '🌐 গুগল নিউজে আরও খুঁজুন' : '🌐 Search more on Google News') + '</button></div>';
   }
   const last = Math.max(0, ...srcs.map(s => NW.at[s.id] || 0));
@@ -5014,7 +5234,9 @@ function nwInit(){
   $('nwClose').addEventListener('click', () => nwClose());
   $('nwRefresh').addEventListener('click', () => nwRefresh(true));
   $('nwMore').addEventListener('click', () => { NW.shown += 40; nwRender(); });
-  $('nwSearch').addEventListener('input', () => { NW.shown = 40; nwSchedule(); });
+  $('nwSearch').addEventListener('input', () => { NW.shown = 40; nwSchedule();
+    clearTimeout(nwGoogleSearch.t); const v = nwQN($('nwSearch').value || '');
+    if(v.length >= 3) nwGoogleSearch.t = setTimeout(() => { if(NW.open && nwQN($('nwSearch').value || '') === v) nwGoogleSearch(); }, 1600); });
   $('nwSearch').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('nwSearch').blur(); } });
   nwCatChips();
   $('nwCats').addEventListener('click', e => {
@@ -5029,7 +5251,8 @@ function nwInit(){
     $('nwChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
     $('nwList').scrollTop = 0; nwRefresh(false);
   });
-  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn') nwGuide(true); if(e.target.id === 'nwGsBtn') nwGoogleSearch(); });
+  $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn') nwGuide(true); if(e.target.id === 'nwGsBtn'){ nwGoogleSearch.last = ''; nwGoogleSearch(); }
+    const rq = e.target.closest('[data-rq]'); if(rq){ const s = $('nwSearch'); s.value = rq.dataset.rq; s.dispatchEvent(new Event('input')); } });
   $('nwGuideBtn').addEventListener('click', () => nwGuide($('nwGuide').classList.contains('hidden')));
   $('nwGuideClose').addEventListener('click', () => nwGuide(false));
   $('nwCopyCode').addEventListener('click', async () => {

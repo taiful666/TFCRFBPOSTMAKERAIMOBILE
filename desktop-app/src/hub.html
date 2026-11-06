@@ -22,6 +22,7 @@ input:focus{border-color:var(--teal)}
 .btn:hover{background:rgba(255,255,255,.14)}.btn:disabled{opacity:.35;cursor:default}
 select{background:#0a1330;border:1px solid var(--line);color:var(--ink);padding:7px 8px;border-radius:9px;font-size:13px;max-width:150px}
 .pick{border-color:var(--gold);color:var(--gold);font-weight:700;padding:7px 14px}
+.btn.ab-on{background:rgba(31,182,166,.25);border-color:var(--teal)}
 .pick.on{background:var(--gold);color:#1b1500}
 #live{flex:1;overflow-y:auto;padding:12px 16px 24px}
 body.paper #live{display:none}
@@ -81,6 +82,7 @@ aside h3 .n{background:var(--gold);color:#1b1500;border-radius:999px;font-size:1
    <button class="btn" id="bk">←</button><button class="btn" id="fw">→</button><button class="btn" id="rl">⟳</button>
    <select id="pp"></select>
    <input class="url" id="url" spellcheck="false" placeholder="ঠিকানা লিখে Enter চাপুন">
+   <button class="btn" id="ab" title="পত্রিকায় বিজ্ঞাপন কমান">বিজ্ঞাপন বন্ধ</button>
    <button class="btn pick" id="pk">বাছাই</button>
   </div>
   <div id="live">
@@ -134,6 +136,7 @@ function applyState(s){
   $('#bk').disabled=!S.canBack;$('#fw').disabled=!S.canFwd;
   if(document.activeElement!==$('#url'))$('#url').value=S.url||'';
   $('#pk').classList.toggle('on',S.picking);$('#pk').textContent=S.picking?'বাছাই চালু — খবরে ক্লিক করুন':'বাছাই বন্ধ';
+  $('#ab').classList.toggle('ab-on',!!S.adblock);$('#ab').textContent=S.adblock?'বিজ্ঞাপন বন্ধ ✓':'বিজ্ঞাপন চালু';
   renderBasket()}
 async function load(force){try{const r=await hub.live(force);if(r&&r.items){LIVE=r;renderChips();renderList()}else $('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}catch(e){$('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}}
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>hub.setSub(b.dataset.s));
@@ -150,6 +153,7 @@ $('#clr').onclick=()=>hub.clear();
 $('#bk').onclick=()=>hub.paperCmd('back');$('#fw').onclick=()=>hub.paperCmd('forward');$('#rl').onclick=()=>hub.paperCmd('reload');
 $('#url').addEventListener('keydown',e=>{if(e.key==='Enter')hub.paperGo(e.target.value)});$('#url').addEventListener('focus',e=>e.target.select());
 $('#pp').onchange=e=>{if(e.target.value)hub.paperGo(e.target.value);e.target.selectedIndex=0};
+$('#ab').onclick=()=>hub.setAdblock(!S.adblock);
 $('#pk').onclick=()=>hub.setPick(!S.picking);
 hub.onState(applyState);hub.onToast(t=>toast(t.msg,t.ms));
 hub.state().then(s=>{applyState(s);load(false)});

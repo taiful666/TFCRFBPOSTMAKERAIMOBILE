@@ -3,7 +3,16 @@
 //  - images from other websites stay usable on the canvas (keeps video/card export working)
 //  - gives the page one safe door to the shell: open the mother "খবর" tab
 const { webFrame, contextBridge, ipcRenderer } = require('electron');
-contextBridge.exposeInMainWorld('tfShell', { openHub: () => ipcRenderer.send('tf:switch', 'hub') });
+contextBridge.exposeInMainWorld('tfShell', {
+  openHub: () => ipcRenderer.send('tf:switch', 'hub'),
+  render: {
+    available: () => ipcRenderer.invoke('render:available'),
+    start: (o) => ipcRenderer.invoke('render:start', o),
+    frame: (b) => ipcRenderer.invoke('render:frame', b),
+    finish: (o) => ipcRenderer.invoke('render:finish', o),
+    cancel: () => ipcRenderer.invoke('render:cancel')
+  }
+});
 webFrame.executeJavaScript('(' + function () {
   try {
     var d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');

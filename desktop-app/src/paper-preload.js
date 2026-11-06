@@ -113,7 +113,7 @@ document.addEventListener('mousemove', (e) => {
 function block(e) {
   if (!on) return;
   const s = storyAt(e.clientX, e.clientY);
-  if (!s) { if (e.type === 'click') say('খবরের লিংক পাওয়া যায়নি — অন্য জায়গায় ক্লিক করুন', e.clientX, e.clientY, false); return; }
+  if (!s) return; // menus, ads and other links work normally
   e.preventDefault(); e.stopImmediatePropagation();
   if (e.type === 'click') {
     say('খবর আনা হচ্ছে…', e.clientX, e.clientY);
@@ -134,3 +134,12 @@ ipcRenderer.on('tf:pick-mode', (e, v) => {
     (document.head || document.documentElement).appendChild(st);
   } else if (!on) { if (st) st.remove(); hide(); if (tip) tip.style.display = 'none'; }
 });
+
+// ---- cosmetic ad hiding ----
+const AD_CSS = 'ins.adsbygoogle,[id^="google_ads"],[id^="div-gpt-ad"],[class*="adsbygoogle"],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[id^="google_ads"],[class~="ad"],[class~="ads"],[class~="advert"],[class~="advertisement"],[class*="ad-slot"],[class*="adslot"],[class*="ad-container"],[class*="ad-wrapper"],[class*="banner-ad"],[class*="sticky-ad"],[id*="advert"],[class*="dfp"],[class*="taboola"],[id*="taboola"],[class*="outbrain"],[class*="popup-ad"],[class*="floating-ad"],[class*="ad_box"],[class*="adbox"],[class*="addvert"]{display:none !important;visibility:hidden !important;height:0 !important;min-height:0 !important}';
+function setAds(v) {
+  let st = document.getElementById('__tf_ad_css');
+  if (v && !st) { st = document.createElement('style'); st.id = '__tf_ad_css'; st.textContent = AD_CSS; (document.head || document.documentElement).appendChild(st); }
+  else if (!v && st) st.remove();
+}
+ipcRenderer.on('tf:adblock', (e, v) => setAds(!!v));

@@ -8,6 +8,7 @@
 const { app, BaseWindow, WebContentsView, session, protocol, net, ipcMain, shell, Menu, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const { spawn } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const { extract, cleanUrl } = require('./extract');
 
@@ -41,6 +42,17 @@ const views = {};
 let activeTab = 'hub';
 let hubSub = 'live';
 let picking = false;
+let adblock = true;
+const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
+function loadSettings() { try { const j = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); if (typeof j.adblock === 'boolean') adblock = j.adblock; } catch (e) {} }
+function saveSettings() { try { fs.writeFileSync(settingsFile(), JSON.stringify({ adblock })); } catch (e) {} }
+const AD_HOSTS = ['doubleclick.net','googlesyndication.com','googleadservices.com','adservice.google.com','pagead2.googlesyndication.com','googletagservices.com','google-analytics.com','googletagmanager.com','adnxs.com','taboola.com','outbrain.com','criteo.com','criteo.net','pubmatic.com','rubiconproject.com','openx.net','adsrvr.org','amazon-adsystem.com','moatads.com','scorecardresearch.com','quantserve.com','facebook.net','connect.facebook.net','hotjar.com','clarity.ms','mgid.com','revcontent.com','popads.net','propellerads.com','adsterra.com','exoclick.com','onesignal.com','zedo.com','smartadserver.com','teads.tv','adform.net','yieldmo.com','sharethrough.com','media.net','casalemedia.com','indexww.com','lijit.com','sovrn.com','2mdn.net','serving-sys.com','adroll.com','chartbeat.com','chartbeat.net','ads-twitter.com','analytics.tiktok.com','ads.pubmatic.com','bidswitch.net','contextweb.com','gumgum.com','inmobi.com','adcolony.com','vdo.ai','vidazoo.com','dable.io','adskeeper.com','ad.gt','richaudience.com','tynt.com','sitescout.com','yandex.ru','mc.yandex.ru'];
+function isAdUrl(u) {
+  try { const x = new URL(u); const h = x.hostname.toLowerCase();
+    if (AD_HOSTS.some((d) => h === d || h.endsWith('.' + d))) return true;
+    return /^(ads?|adserver|adservice|banner|banners|track|tracking|stats)\./.test(h) || /\/(ads?|adserve|banners?)\/.*\.(js|gif|png|jpg)(\?|$)/i.test(x.pathname);
+  } catch (e) { return false; }
+}
 let basket = [];
 const loaded = {};
 let liveCache = { at: 0, data: null };
@@ -69,7 +81,7 @@ function srcNameOf(link, site) {
 function hubState() {
   const pv = alive(views.paper) ? views.paper.webContents : null;
   return {
-    sub: hubSub, picking, basket, papers: PAPERS,
+    sub: hubSub, picking, adblock, basket, papers: PAPERS,
     url: pv ? pv.getURL() : '',
     canBack: !!(pv && pv.navigationHistory.canGoBack()),
     canFwd: !!(pv && pv.navigationHistory.canGoForward())
@@ -109,6 +121,7 @@ function showTab(tab) {
   applyVisibility(); layout();
   (tab === 'hub' && hubSub === 'paper' ? views.paper : views[tab]).webContents.focus();
   if (tab !== 'hub' && picking) setPicking(false);
+  if (tab === 'hub' && hubSub === 'paper' && !picking) setPicking(true);
   pushState();
   try { fs.writeFileSync(path.join(app.getPath('userData'), 'last-tab.json'), JSON.stringify({ tab })); } catch (e) {}
 }
@@ -117,7 +130,13 @@ function setSub(sub) {
   hubSub = sub;
   if (sub === 'paper' && !loaded.paper) { loaded.paper = true; views.paper.webContents.loadURL(PAPERS[0][1]); }
   if (sub !== 'paper' && picking) setPicking(false);
+  if (sub === 'paper' && !picking) setPicking(true);
   applyVisibility(); layout(); pushState();
+}
+function setAdblock(on) {
+  adblock = !!on; saveSettings();
+  if (alive(views.paper)) { views.paper.webContents.send('tf:adblock', adblock); views.paper.webContents.reload(); }
+  pushState();
 }
 function setPicking(on) {
   picking = !!on;
@@ -206,6 +225,10 @@ function setupAppSession(ses) {
 }
 function setupPaperSession(ses) {
   ses.setUserAgent(UA());
+  ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
+    if (adblock && d.resourceType !== 'mainFrame' && isAdUrl(d.url)) return cb({ cancel: true });
+    cb({});
+  });
   ses.setPermissionRequestHandler((wc, perm, cb) => cb(false));
   ses.setPermissionCheckHandler(() => false);
   ses.on('will-download', (e) => e.preventDefault());
@@ -408,7 +431,7 @@ function createWindow() {
 
   const pw = views.paper.webContents;
   for (const ev of ['did-navigate', 'did-navigate-in-page', 'did-stop-loading']) pw.on(ev, pushState);
-  pw.on('did-finish-load', () => { if (picking) pw.send('tf:pick-mode', true); });
+  pw.on('did-finish-load', () => { if (picking) pw.send('tf:pick-mode', true); pw.send('tf:adblock', adblock); });
   pw.on('context-menu', (e, p) => {
     if (p.mediaType === 'image' && isHttpUrl(p.srcURL)) {
       Menu.buildFromTemplate([
@@ -439,6 +462,7 @@ ipcMain.on('tf:show-file', (e, p) => { if (from(e, 'bar') && typeof p === 'strin
 ipcMain.handle('hub:state', (e) => (from(e, 'hub') ? hubState() : null));
 ipcMain.handle('hub:live', async (e, force) => { if (!from(e, 'hub')) return null; try { return await fetchLive(force); } catch (err) { return null; } });
 ipcMain.on('hub:sub', (e, s) => { if (from(e, 'hub')) setSub(String(s)); });
+ipcMain.on('hub:adblock', (e, on) => { if (from(e, 'hub')) setAdblock(!!on); });
 ipcMain.on('hub:pick', (e, on) => { if (from(e, 'hub')) setPicking(!!on); });
 ipcMain.on('hub:paper-go', (e, url) => {
   if (!from(e, 'hub')) return;
@@ -468,6 +492,79 @@ ipcMain.on('tf:collect', async (e, d) => {
 });
 ipcMain.on('tf:pick-exit', (e) => { if (from(e, 'paper')) setPicking(false); });
 
+
+/* ---------- fast render engine (FFmpeg) ---------- */
+// The apps draw every frame themselves (deterministic) and hand them over here; FFmpeg turns them into an MP4
+// together with the mixed audio. This is several times faster than recording in real time and never drops frames.
+let ffmpegBin = null;
+function getFfmpeg() {
+  if (ffmpegBin !== null) return ffmpegBin;
+  ffmpegBin = '';
+  try {
+    let p = require('ffmpeg-static');
+    if (p) { p = p.replace(/app\.asar([\\/])/, 'app.asar.unpacked$1'); if (fs.existsSync(p)) ffmpegBin = p; }
+  } catch (e) {}
+  if (!ffmpegBin && SELFTEST && process.env.TF_FFMPEG) ffmpegBin = process.env.TF_FFMPEG;
+  return ffmpegBin;
+}
+let job = null;
+function cleanJob() { if (!job) return; const d = job.dir; job = null; try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) {} }
+const fromApp = (e) => from(e, 'news') || from(e, 'post');
+ipcMain.handle('render:available', (e) => (fromApp(e) ? !!getFfmpeg() : false));
+ipcMain.handle('render:start', async (e, o) => {
+  if (!fromApp(e) || !o || typeof o !== 'object') return { ok: false };
+  if (job) return { ok: false, msg: 'আরেকটি ভিডিও তৈরি হচ্ছে' };
+  const bin = getFfmpeg(); if (!bin) return { ok: false, msg: 'রেন্ডার ইঞ্জিন পাওয়া যায়নি' };
+  const w = Math.round(+o.w), h = Math.round(+o.h), fps = Math.round(+o.fps);
+  if (!(w >= 16 && w <= 4096 && h >= 16 && h <= 4096 && fps >= 1 && fps <= 60)) return { ok: false, msg: 'ভিডিওর মাপ ঠিক নয়' };
+  const wav = o.wav ? Buffer.from(o.wav) : null;
+  if (wav && wav.length > 900 * 1024 * 1024) return { ok: false, msg: 'অডিও অনেক বড়' };
+  try {
+    const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'tfms-'));
+    const out = path.join(dir, 'out.mp4'), wavPath = path.join(dir, 'audio.wav');
+    if (wav) fs.writeFileSync(wavPath, wav);
+    const args = ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', 'pipe:0'];
+    if (wav) args.push('-i', wavPath);
+    args.push('-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19', '-r', String(fps), '-g', String(fps * 2));
+    if (wav) args.push('-af', 'loudnorm=I=-16:TP=-1.5:LRA=11', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest'); else args.push('-an');
+    args.push('-movflags', '+faststart', out);
+    const proc = spawn(bin, args, { stdio: ['pipe', 'ignore', 'pipe'], windowsHide: true });
+    const j = { proc, dir, out, err: '', name: String(o.name || 'video').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '_').slice(0, 100) || 'video' };
+    j.done = new Promise((res) => { proc.on('close', (code) => res(code)); proc.on('error', () => res(-1)); });
+    proc.stderr.on('data', (d) => { j.err = (j.err + d).slice(-1500); });
+    proc.stdin.on('error', () => {});
+    job = j;
+    return { ok: true };
+  } catch (err) { return { ok: false, msg: 'শুরু করা যায়নি' }; }
+});
+ipcMain.handle('render:frame', async (e, buf) => {
+  if (!fromApp(e) || !job) return false;
+  const b = Buffer.from(buf); if (b.length > 40 * 1024 * 1024) return false;
+  const st = job.proc.stdin;
+  if (st.destroyed || !st.writable) return false;
+  if (!st.write(b)) await new Promise((res) => { const f = () => res(); st.once('drain', f); st.once('close', f); });
+  return true;
+});
+ipcMain.handle('render:finish', async (e, opts) => {
+  if (!fromApp(e) || !job) return { ok: false };
+  const j = job;
+  try { j.proc.stdin.end(); } catch (err) {}
+  const code = await j.done;
+  if (code !== 0 || !fs.existsSync(j.out)) { const m = j.err; cleanJob(); return { ok: false, msg: 'ভিডিও বানানো যায়নি' + (m ? ' (' + m.split('\n').pop().slice(0, 120) + ')' : '') }; }
+  if (opts && opts.bytes === true) {                       // the app wants the finished file itself (reel preview / share)
+    try { const data = fs.readFileSync(j.out); cleanJob(); return { ok: true, bytes: data }; } catch (err) { cleanJob(); return { ok: false, msg: 'ফাইল পড়া যায়নি' }; }
+  }
+  try {
+    const dir = path.join(app.getPath('downloads'), 'TF Media Studio'); fs.mkdirSync(dir, { recursive: true });
+    const dest = uniquePath(dir, j.name.replace(/\.mp4$/i, '') + '.mp4');
+    try { fs.renameSync(j.out, dest); } catch (err) { fs.copyFileSync(j.out, dest); }
+    cleanJob();
+    say('ভিডিও সেভ হয়েছে: ' + path.basename(dest), { folder: dest });
+    return { ok: true, path: dest };
+  } catch (err) { cleanJob(); return { ok: false, msg: 'ফাইল সেভ করা যায়নি' }; }
+});
+ipcMain.handle('render:cancel', (e) => { if (!fromApp(e) || !job) return false; try { job.proc.kill(); } catch (err) {} cleanJob(); return true; });
+
 /* ---------- start ---------- */
 protocol.registerSchemesAsPrivileged([
   { scheme: 'tfapp', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
@@ -479,7 +576,8 @@ else {
   app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
-    loadBasket();
+    loadBasket(); loadSettings();
+    try { const t = app.getPath('temp'); for (const d of fs.readdirSync(t)) if (/^tfms-/.test(d)) fs.rmSync(path.join(t, d), { recursive: true, force: true }); } catch (e) {}   // leftovers of an interrupted render
     for (const n of ['news', 'post']) { const ses = session.fromPartition(PARTS[n]); registerAppProtocol(ses); setupAppSession(ses); }
     registerThumbProtocol(session.fromPartition(PARTS.hub));
     setupPaperSession(session.fromPartition(PARTS.paper));

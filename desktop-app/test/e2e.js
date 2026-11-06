@@ -219,7 +219,8 @@ module.exports = async (T) => {
     await sleep(800);
     await shot('paper', '12-paper.png');
     console.log('    paper pick css:', await ev('paper', "!!document.getElementById('__tf_pick_css')"), 'state picking:', T.state().picking);
-    const r = await ev('paper', "(()=>{const a=document.querySelectorAll('.c a')[2].getBoundingClientRect();return [a.left+40,a.top+40]})()");
+    const r = await ev('paper', "(()=>{const el=document.querySelectorAll('.c a')[2];el.scrollIntoView({block:'center',inline:'center'});const a=el.getBoundingClientRect();return [Math.round(a.left+40),Math.round(a.top+40),innerWidth,innerHeight]})()");
+    console.log('    click at', JSON.stringify(r)); await sleep(300);
     views.paper.webContents.sendInputEvent({ type: 'mouseMove', x: r[0], y: r[1] }); await sleep(100);
     views.paper.webContents.sendInputEvent({ type: 'mouseDown', x: r[0], y: r[1], button: 'left', clickCount: 1 });
     views.paper.webContents.sendInputEvent({ type: 'mouseUp', x: r[0], y: r[1], button: 'left', clickCount: 1 });
@@ -228,7 +229,7 @@ module.exports = async (T) => {
       // some test machines do not turn simulated mouse presses into a click; send the click event itself
       how = 'dom-click';
       views.paper.webContents.focus();
-      await ev('paper', `(()=>{const [x,y]=${JSON.stringify(r)};const el=document.elementFromPoint(x,y);el.dispatchEvent(new MouseEvent('click',{clientX:x,clientY:y,bubbles:true,cancelable:true,button:0}));return el.tagName})()`);
+      await ev('paper', `(()=>{const [x,y]=${JSON.stringify(r.slice(0, 2))};const el=document.elementFromPoint(x,y);if(!el)return 'none';el.dispatchEvent(new MouseEvent('click',{clientX:x,clientY:y,bubbles:true,cancelable:true,button:0}));return el.tagName})()`);
       await until(() => T.basket.length === 1, 30000);
     }
     console.log('    paper click path:', how, 'basket:', T.basket.length);

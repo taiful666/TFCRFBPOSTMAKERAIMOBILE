@@ -1,6 +1,6 @@
 // Runs the end-to-end check of TF Media Studio on a clean, throw-away profile (Windows or Linux).
 // Usage: npm run test:e2e        (Linux needs xvfb-run; Windows runs it directly)
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, mkdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -11,6 +11,9 @@ const out = process.env.TF_OUT || join(root, 'test', 'out');
 rmSync(out, { recursive: true, force: true }); mkdirSync(out, { recursive: true });
 const profile = mkdtempSync(join(tmpdir(), 'tfms-test-'));
 const electron = join(root, 'node_modules', 'electron', 'dist', process.platform === 'win32' ? 'electron.exe' : 'electron');
+if (!existsSync(electron)) {   // npm can skip Electron's own download step; fetch it now
+  spawnSync(process.execPath, [join(root, 'node_modules', 'electron', 'install.js')], { stdio: 'inherit', cwd: join(root, 'node_modules', 'electron') });
+}
 if (!existsSync(electron)) { console.error('electron is not installed (run npm ci)'); process.exit(2); }
 const env = Object.assign({}, process.env, {
   TF_SELFTEST: '1', TF_OUT: out,

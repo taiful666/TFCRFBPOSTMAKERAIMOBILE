@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: file:">
+<title>TF Media Studio</title>
+<style>
+:root{--bg:#070d22;--panel:#0d1736;--panel2:#12204a;--ink:#eef2ff;--mute:#8d9cc6;--gold:#f5bd3c;--teal:#1fb6a6;--red:#e5391b;--line:rgba(255,255,255,.08)}
+*{box-sizing:border-box;margin:0;font-family:"Noto Sans Bengali","Nirmala UI","Segoe UI",sans-serif;user-select:none}
+html,body{height:100%}
+body{background:radial-gradient(1200px 600px at 85% -10%,rgba(31,182,166,.12),transparent 60%),radial-gradient(900px 500px at -10% 0%,rgba(229,57,27,.10),transparent 60%),var(--bg);color:var(--ink);overflow-y:auto}
+body::-webkit-scrollbar{width:10px}body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:10px}
+.wrap{max-width:1240px;margin:0 auto;padding:30px 36px 48px}
+.top{display:flex;align-items:center;gap:16px;margin-bottom:30px}
+.top img{width:54px;height:54px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.top h1{font-size:24px;font-weight:800;letter-spacing:.2px}.top h1 i{font-style:normal;color:var(--gold)}
+.sp{flex:1}
+.ghost{border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);padding:10px 18px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:9px;transition:.15s}
+.ghost:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.18)}
+svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+h2{font-size:15px;font-weight:700;color:var(--mute);letter-spacing:.3px;margin-bottom:14px}
+.create{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:38px}
+.c{position:relative;height:150px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel2),var(--panel));color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:18px;text-align:left;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s}
+.c:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.2);box-shadow:0 14px 30px rgba(0,0,0,.45)}
+.c:active{transform:translateY(-1px) scale(.99)}
+.c .ic{position:absolute;top:16px;left:16px;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.08)}
+.c .ic svg{width:24px;height:24px}
+.c b{font-size:16.5px;font-weight:700}
+.c .r{position:absolute;top:18px;right:16px;font-size:12px;font-weight:700;color:var(--mute);border:1px solid var(--line);border-radius:7px;padding:2px 8px}
+.c.hero{background:linear-gradient(150deg,#ff5a36,#c8261a 70%);border-color:transparent}
+.c.hero .ic{background:rgba(255,255,255,.18)}.c.hero .r{color:#fff;border-color:rgba(255,255,255,.4)}
+.c.t1 .ic{color:#ff8a6b}.c.t2 .ic{color:var(--gold)}.c.t3 .ic{color:#8ab4ff}.c.t4 .ic{color:var(--teal)}.c.t5 .ic{color:#c9a6ff}
+.ph{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ph h2{margin:0}.ph .n{font-size:13px;color:var(--mute)}
+.q{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--ink);border-radius:11px;padding:9px 14px;font-size:14px;outline:none;width:240px;user-select:text}
+.q:focus{border-color:var(--teal)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.p{border-radius:16px;background:var(--panel);border:1px solid var(--line);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s;position:relative}
+.p:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18);box-shadow:0 14px 30px rgba(0,0,0,.45)}
+.p .th{aspect-ratio:16/9;background:#050a1a center/contain no-repeat;display:grid;place-items:center;color:#2a3a68;border-bottom:1px solid var(--line)}
+.p .th svg{width:40px;height:40px}
+.p .bd{padding:12px 14px 13px}
+.p .nm{font-size:14.5px;font-weight:700;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:42px}
+.p .mt{font-size:12.5px;color:var(--mute);margin-top:6px;display:flex;gap:8px;align-items:center}
+.p .mt .dot{width:3px;height:3px;border-radius:50%;background:var(--mute)}
+.p .act{position:absolute;top:10px;right:10px;display:flex;gap:6px;opacity:0;transition:.15s}
+.p:hover .act,.p:focus-within .act{opacity:1}
+.p .act button{width:34px;height:34px;border-radius:10px;border:0;background:rgba(5,10,26,.82);color:#fff;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(6px)}
+.p .act button:hover{background:#1c2c5c}.p .act button.del:hover{background:var(--red)}
+.p .act button svg{width:17px;height:17px}
+.p .act button.sure{width:auto;padding:0 12px;background:var(--red);font-size:13px;font-weight:700}
+.p .tag{position:absolute;top:10px;left:10px;font-size:11.5px;font-weight:700;background:rgba(5,10,26,.82);border-radius:7px;padding:3px 8px;display:flex;gap:5px;align-items:center}
+.p .tag svg{width:13px;height:13px}
+.p input.rn{width:100%;background:#050a1a;border:1px solid var(--teal);color:var(--ink);border-radius:8px;padding:6px 9px;font-size:14px;font-weight:700;outline:none;user-select:text}
+.empty{border:1px dashed rgba(255,255,255,.14);border-radius:18px;padding:48px 20px;text-align:center;color:var(--mute);font-size:15px}
+.empty svg{width:44px;height:44px;margin-bottom:10px;color:#2f416f}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#0d1736;border:1px solid var(--teal);padding:10px 18px;border-radius:12px;font-size:14px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+@media (max-width:1180px){.create{grid-template-columns:repeat(3,1fr)}}
+</style></head>
+<body>
+<div class="wrap">
+ <div class="top">
+  <img src="logo.png" alt="">
+  <h1><i>TF</i> Media Studio</h1>
+  <div class="sp"></div>
+  <button class="ghost" id="imp"><svg viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7H4z"/></svg>প্রজেক্ট ফাইল খুলুন</button>
+ </div>
+
+ <h2>নতুন প্রজেক্ট</h2>
+ <div class="create">
+  <button class="c hero" data-k="video"><span class="ic"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M10 9.3v5.4l4.6-2.7z"/></svg></span><span class="r">১৬:৯</span><b>নিউজ ভিডিও</b></button>
+  <button class="c t1" data-k="short"><span class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 10v4l3-2z"/></svg></span><span class="r">৯:১৬</span><b>শর্টস ভিডিও</b></button>
+  <button class="c t2" data-k="reel"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 8h18M8 3l3 5M14 3l3 5"/><path d="M10.5 12.5v4l3.5-2z"/></svg></span><b>নিউজ রিল</b></button>
+  <button class="c t3" data-k="card"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="9" cy="9" r="1.7"/><path d="M4 17l5-5 4 4 2.5-2.5L20 18"/></svg></span><b>ফটো কার্ড</b></button>
+  <button class="c t4" data-k="live"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/></svg></span><b>লাইভ খবর</b></button>
+  <button class="c t5" data-k="paper"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 5h13a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg></span><b>পত্রিকা</b></button>
+ </div>
+
+ <div class="ph"><h2>সাম্প্রতিক প্রজেক্ট</h2><span class="n" id="cnt"></span><div class="sp"></div><input class="q" id="q" placeholder="প্রজেক্ট খুঁজুন" spellcheck="false"></div>
+ <div id="list"></div>
+</div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),BN='০১২৩৪৫৬৭৮৯',bn=x=>String(x).replace(/\d/g,d=>BN[d]);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const IC={
+ open:'<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg>',
+ ren:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/></svg>',
+ del:'<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+ mic:'<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+ film:'<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M10 9.3v5.4l4.6-2.7z"/></svg>'};
+function ago(t){const m=Math.round((Date.now()-t)/60000);if(m<1)return 'এইমাত্র';if(m<60)return bn(m)+' মিনিট আগে';const h=Math.round(m/60);if(h<24)return bn(h)+' ঘণ্টা আগে';const d=Math.round(h/24);if(d<30)return bn(d)+' দিন আগে';return new Date(t).toLocaleDateString('bn-BD')}
+let P=[],sure=null,renaming=null,tt=null;
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',2600)}
+function render(){
+  const q=$('#q').value.trim().toLowerCase();const L=P.filter(p=>!q||String(p.name).toLowerCase().includes(q));
+  $('#cnt').textContent=P.length?bn(P.length)+'টি':'';
+  if(!P.length){$('#list').innerHTML=`<div class="empty">${IC.film}<br>এখনো কোনো প্রজেক্ট নেই</div>`;return}
+  if(!L.length){$('#list').innerHTML=`<div class="empty">কিছু পাওয়া যায়নি</div>`;return}
+  $('#list').innerHTML='<div class="grid">'+L.map(p=>`<div class="p" data-id="${esc(p.id)}" tabindex="0">
+    <div class="th" style="${p.thumb?`background-image:url('${p.thumb}')`:''}">${p.thumb?'':IC.film}</div>
+    <span class="tag">${bn(esc(p.aspect||'16:9'))}${p.voice?IC.mic:''}</span>
+    <div class="act"><button data-a="ren" title="নাম বদলান">${IC.ren}</button>${sure===p.id?'<button class="sure" data-a="del2">মুছে ফেলুন</button>':`<button class="del" data-a="del" title="মুছুন">${IC.del}</button>`}</div>
+    <div class="bd">${renaming===p.id?`<input class="rn" value="${esc(p.name)}" maxlength="90">`:`<div class="nm">${esc(p.name)}</div>`}
+    <div class="mt"><span>${bn(p.scenes||0)}টি দৃশ্য</span><span class="dot"></span><span>${ago(p.updated)}</span></div></div></div>`).join('')+'</div>';
+  const rn=document.querySelector('input.rn');if(rn){rn.focus();rn.select();
+    const done=async ok=>{const id=renaming;renaming=null;if(ok&&rn.value.trim())await home.rename(id,rn.value.trim());render()};
+    rn.onkeydown=e=>{if(e.key==='Enter')done(true);if(e.key==='Escape')done(false)};rn.onblur=()=>done(true);rn.onclick=e=>e.stopPropagation()}
+}
+$('#list').onclick=async e=>{const card=e.target.closest('.p');if(!card)return;const id=card.dataset.id;const a=e.target.closest('[data-a]');
+  if(a){e.stopPropagation();const k=a.dataset.a;
+    if(k==='ren'){renaming=id;sure=null;render()}
+    else if(k==='del'){sure=id;render();setTimeout(()=>{if(sure===id){sure=null;render()}},4000)}
+    else if(k==='del2'){sure=null;await home.remove(id);toast('প্রজেক্ট মুছে ফেলা হয়েছে')}
+    return}
+  if(renaming)return;
+  await home.open(id)};
+$('#list').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList.contains('p'))home.open(e.target.dataset.id)});
+document.querySelectorAll('.c').forEach(b=>b.onclick=()=>home.create(b.dataset.k));
+$('#imp').onclick=async()=>{const ok=await home.importFile();if(ok===false)toast('ফাইলটি খোলা যায়নি')};
+$('#q').oninput=render;
+home.onState(s=>{P=s.projects||[];if(!renaming)render()});
+home.state().then(s=>{if(s){P=s.projects||[];render()}});
+setInterval(()=>{if(!renaming&&!sure)render()},60000);
+</script>
+</body></html>

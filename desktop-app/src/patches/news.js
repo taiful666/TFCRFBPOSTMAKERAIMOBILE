@@ -209,4 +209,39 @@
       return r;
     };
   } catch (e) {}
+  // 7) Desktop project flow: "নতুন" goes to the home screen (where a new project is chosen), the save button keeps the project
+  //    in the home screen's project list, and an opened project gets its voice back.
+  try {
+    freshStart = async function () { try { window.tfShell.openHome(); } catch (e) {} };
+    document.querySelectorAll('.freshStart').forEach((b) => { b.onclick = () => freshStart(); });
+    const _sp = saveProject;
+    saveProject = async function () {
+      try { const r = await window.tfShell.saveProject(); if (r) { if (typeof toast === 'function') toast('প্রজেক্ট সেভ হয়েছে — হোম স্ক্রিনে পাবেন', 'ok'); else alert('প্রজেক্ট সেভ হয়েছে'); return; } }
+      catch (e) {}
+      return _sp.apply(this, arguments);
+    };
+    const top = document.getElementById('projSave'); if (top) top.onclick = () => saveProject();
+    document.querySelectorAll('#tfTopBtns .tbtn').forEach((b) => {
+      const t = b.textContent.trim();
+      if (t === 'নতুন') { b.lastChild.textContent = 'নতুন প্রজেক্ট'; b.onclick = () => freshStart(); }
+      if (t === 'সেভ') { b.onclick = () => saveProject(); b.title = 'প্রজেক্ট সেভ করুন'; }
+    });
+    (async () => {
+      const v = await window.tfShell.pendingVoice();
+      if (!v || !v.data) return;
+      const inp = document.getElementById('audioFile'); if (!inp) return;
+      const ext = /mpeg|mp3/.test(v.type) ? 'mp3' : /webm/.test(v.type) ? 'webm' : /ogg/.test(v.type) ? 'ogg' : 'wav';
+      const f = new File([v.data], 'voice.' + ext, { type: v.type });
+      const dt = new DataTransfer(); dt.items.add(f); inp.files = dt.files;
+      if (!scenes.length && document.getElementById('script').value.trim()) { try { build(true); } catch (e) {} }
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+    })().catch(() => {});
+  } catch (e) { console.error('project flow', e); }
+
+  // 8) Clean look inside the combined app: the shell already shows the brand, so the editor's own logo/name row is hidden.
+  try {
+    const st = document.createElement('style');
+    st.textContent = '#tfTop .brand{display:none!important}';
+    document.head.appendChild(st);
+  } catch (e) {}
 })();

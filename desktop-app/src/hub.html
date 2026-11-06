@@ -21,6 +21,7 @@ input:focus{border-color:var(--teal)}
 .btn{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);padding:7px 11px;border-radius:9px;font-size:14px;cursor:pointer;transition:.15s;white-space:nowrap}
 .btn:hover{background:rgba(255,255,255,.14)}.btn:disabled{opacity:.35;cursor:default}
 select{background:#0a1330;border:1px solid var(--line);color:var(--ink);padding:7px 8px;border-radius:9px;font-size:13px;max-width:150px}
+.back{display:inline-flex;align-items:center;gap:6px;font-weight:700;margin-right:6px}.back svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .pick{border-color:var(--gold);color:var(--gold);font-weight:700;padding:7px 14px}
 .btn.ab-on{background:rgba(31,182,166,.25);border-color:var(--teal)}
 .pick.on{background:var(--gold);color:#1b1500}
@@ -74,6 +75,7 @@ aside h3 .n{background:var(--gold);color:#1b1500;border-radius:999px;font-size:1
 <div id="app">
  <div id="main">
   <div class="top">
+   <button class="btn back" id="back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span id="backT">হোমে ফিরুন</span></button>
    <div class="seg"><button data-s="live" class="on">লাইভ খবর</button><button data-s="paper">পত্রিকা</button></div>
    <div class="sp"></div>
    <input class="q" id="q" placeholder="খবর খুঁজুন" spellcheck="false">
@@ -136,6 +138,7 @@ function applyState(s){
   $('#bk').disabled=!S.canBack;$('#fw').disabled=!S.canFwd;
   if(document.activeElement!==$('#url'))$('#url').value=S.url||'';
   $('#pk').classList.toggle('on',S.picking);$('#pk').textContent=S.picking?'বাছাই চালু — খবরে ক্লিক করুন':'বাছাই বন্ধ';
+  if(S.back)$('#backT').textContent=S.back;
   $('#ab').classList.toggle('ab-on',!!S.adblock);$('#ab').textContent=S.adblock?'বিজ্ঞাপন বন্ধ ✓':'বিজ্ঞাপন চালু';
   renderBasket()}
 async function load(force){try{const r=await hub.live(force);if(r&&r.items){LIVE=r;renderChips();renderList()}else $('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}catch(e){$('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}}
@@ -153,6 +156,7 @@ $('#clr').onclick=()=>hub.clear();
 $('#bk').onclick=()=>hub.paperCmd('back');$('#fw').onclick=()=>hub.paperCmd('forward');$('#rl').onclick=()=>hub.paperCmd('reload');
 $('#url').addEventListener('keydown',e=>{if(e.key==='Enter')hub.paperGo(e.target.value)});$('#url').addEventListener('focus',e=>e.target.select());
 $('#pp').onchange=e=>{if(e.target.value)hub.paperGo(e.target.value);e.target.selectedIndex=0};
+$('#back').onclick=()=>hub.back();
 $('#ab').onclick=()=>hub.setAdblock(!S.adblock);
 $('#pk').onclick=()=>hub.setPick(!S.picking);
 hub.onState(applyState);hub.onToast(t=>toast(t.msg,t.ms));

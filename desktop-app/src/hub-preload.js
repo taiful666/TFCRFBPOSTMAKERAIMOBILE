@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('hub', {
   setSub: (s) => ipcRenderer.send('hub:sub', String(s)),
   paperGo: (u) => ipcRenderer.send('hub:paper-go', String(u)),
   paperCmd: (c) => ipcRenderer.send('hub:paper-cmd', String(c)),
+  back: () => ipcRenderer.send('hub:back'),
   setAdblock: (on) => ipcRenderer.send('hub:adblock', !!on),
   setPick: (on) => ipcRenderer.send('hub:pick', !!on),
   add: (item) => call('hub:add', item),

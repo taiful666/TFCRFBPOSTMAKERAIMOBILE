@@ -15,7 +15,7 @@ mkdirSync(join(out, 'post'), { recursive: true });
 mkdirSync(join(out, 'news'), { recursive: true });
 
 // ---- POST app (TF FB Reels & Post Maker) ----
-let post = readFileSync(join(SRC_POST, 'index.html'), 'utf8');
+let post = readFileSync(join(SRC_POST, 'index.html'), 'utf8').replace(/\r\n/g, '\n');
 // Use a bundled copy of Readability instead of the CDN, so it also works offline.
 const tag = /<script[^>]*src="https:\/\/cdn\.jsdelivr\.net\/npm\/@mozilla\/readability@0\.5\.0\/Readability\.js"[^>]*><\/script>/;
 if (!tag.test(post)) throw new Error('Readability tag not found in post app');
@@ -109,7 +109,7 @@ for (const [fam, pkg, base, weights, subsets] of fontSets) {
 writeFileSync(join(out, 'post', 'fonts', 'extra-fonts.css'), css);
 
 // ---- NEWS app (TF News Studio) ----
-let news = readFileSync(join(SRC_NEWS, 'index.html'), 'utf8');
+let news = readFileSync(join(SRC_NEWS, 'index.html'), 'utf8').replace(/\r\n/g, '\n');
 // Desktop: a fresh start (or "reset all") must stay empty. The sample story appears only when the user presses "ডেমো".
 news = mustReplace(news, "$('#script').value=s||SAMPLE;", "$('#script').value=s||'';");
 // Desktop: hand the voice/music timeline helpers (private to the app's studio block) to the fast export engine.

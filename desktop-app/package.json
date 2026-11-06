@@ -1,0 +1,54 @@
+{
+  "name": "tf-media-studio",
+  "productName": "TF Media Studio",
+  "version": "1.0.0",
+  "description": "TF Media Studio - TF News Studio + TF FB Reels & Post Maker in one Windows app",
+  "main": "src/main.js",
+  "private": true,
+  "author": "Taiful Islam",
+  "scripts": {
+    "prepare-apps": "node scripts/prepare-apps.mjs",
+    "start": "npm run prepare-apps && electron .",
+    "dist": "npm run prepare-apps && electron-builder --win --x64 --publish never"
+  },
+  "dependencies": {
+    "@fontsource/noto-serif-bengali": "5.3.0",
+    "@fontsource/tiro-bangla": "5.3.0",
+    "@mozilla/readability": "0.6.0"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.taiful.tfmediastudio",
+    "productName": "TF Media Studio",
+    "artifactName": "TF-Media-Studio-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "apps/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "TF Media Studio"
+    }
+  }
+}

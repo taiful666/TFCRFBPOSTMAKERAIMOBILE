@@ -1,0 +1,7 @@
+node_modules/
+dist/
+apps/
+*.key
+*.jks
+*.keystore
+.env

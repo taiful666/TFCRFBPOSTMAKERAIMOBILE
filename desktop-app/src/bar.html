@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: file:">
+<title>TF Media Studio</title>
+<style>
+:root{--bg:#0e1a3a;--bg2:#13234d;--ink:#eaf0ff;--mute:#9fb0d8;--gold:#f5bd3c;--teal:#1fb6a6;--line:rgba(255,255,255,.1)}
+*{box-sizing:border-box;margin:0;font-family:"Noto Sans Bengali","Nirmala UI","Segoe UI",sans-serif;user-select:none}
+body{background:var(--bg);color:var(--ink);height:100vh;overflow:hidden}
+.row{height:56px;display:flex;align-items:center;gap:6px;padding:0 12px;border-bottom:1px solid var(--line)}
+.row2{height:44px;display:none;align-items:center;gap:6px;padding:0 12px;background:var(--bg2);border-bottom:1px solid var(--line)}
+body.paper .row2{display:flex}
+.brand{display:flex;align-items:center;gap:9px;margin-right:14px;font-weight:800;letter-spacing:.2px}
+.brand img{width:32px;height:32px;border-radius:8px}
+.brand span b{color:var(--gold)}
+.tab{border:0;background:transparent;color:var(--mute);padding:9px 16px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.15s}
+.tab:hover{background:rgba(255,255,255,.07);color:var(--ink)}
+.tab.on{background:linear-gradient(135deg,#1c3a7a,#1a5f86);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.tab svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sp{flex:1}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);padding:6px 11px;border-radius:9px;font-size:13px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.14)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.sq{padding:6px 9px;font-size:15px;line-height:1}
+.url{flex:1;min-width:120px;background:#0a1330;border:1px solid var(--line);color:var(--ink);padding:7px 12px;border-radius:9px;font-size:13px;user-select:text;outline:none}
+.url:focus{border-color:var(--teal)}
+select{background:#0a1330;border:1px solid var(--line);color:var(--ink);padding:6px 8px;border-radius:9px;font-size:13px;max-width:150px}
+.pick{border-color:var(--gold);color:var(--gold);font-weight:700}
+.pick.on{background:var(--gold);color:#1b1500}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--mute);padding:6px 10px;font-size:13px;cursor:pointer}
+.seg button.on{background:var(--teal);color:#06231f;font-weight:700}
+.lbl{font-size:12px;color:var(--mute)}
+#toast{position:fixed;right:14px;top:60px;max-width:380px;background:#0a1330;border:1px solid var(--teal);color:var(--ink);padding:9px 14px;border-radius:11px;font-size:13px;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5);cursor:default;z-index:9}
+body.paper #toast{top:104px}
+#toast.clk{cursor:pointer}
+</style></head>
+<body>
+<div class="row">
+  <div class="brand"><img src="logo.png" alt=""><span><b>TF</b> Media Studio</span></div>
+  <button class="tab" data-t="news"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg>নিউজ স্টুডিও</button>
+  <button class="tab" data-t="post"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>পোস্ট ও রিল মেকার</button>
+  <button class="tab" data-t="paper"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>পত্রিকা ব্রাউজার</button>
+  <div class="sp"></div>
+</div>
+<div class="row2">
+  <button class="btn sq" id="bk" title="পেছনে">←</button>
+  <button class="btn sq" id="fw" title="সামনে">→</button>
+  <button class="btn sq" id="rl" title="রিফ্রেশ">⟳</button>
+  <select id="pp" title="পত্রিকা"></select>
+  <input class="url" id="url" spellcheck="false" placeholder="ওয়েবসাইটের ঠিকানা লিখে Enter চাপুন">
+  <button class="btn pick" id="pk">ছবি বাছাই</button>
+  <span class="lbl">ছবি যাবে</span>
+  <div class="seg"><button data-g="post">পোস্ট মেকার</button><button data-g="news">নিউজ স্টুডিও</button></div>
+</div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s);
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tf.switchTab(b.dataset.t));
+$('#bk').onclick=()=>tf.paperCmd('back');$('#fw').onclick=()=>tf.paperCmd('forward');$('#rl').onclick=()=>tf.paperCmd('reload');
+$('#url').addEventListener('keydown',e=>{if(e.key==='Enter')tf.paperGo(e.target.value)});
+$('#url').addEventListener('focus',e=>e.target.select());
+$('#pp').onchange=e=>{if(e.target.value)tf.paperGo(e.target.value);e.target.selectedIndex=0};
+let picking=false;
+$('#pk').onclick=()=>tf.setPick(!picking);
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>tf.setTarget(b.dataset.g));
+let built=false;
+tf.onState(s=>{
+  document.body.classList.toggle('paper',s.tab==='paper');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===s.tab));
+  if(!built&&s.papers){built=true;const p=$('#pp');p.add(new Option('পত্রিকা বাছুন…',''));s.papers.forEach(x=>p.add(new Option(x[0],x[1])));}
+  $('#bk').disabled=!s.canBack;$('#fw').disabled=!s.canFwd;
+  if(document.activeElement!==$('#url'))$('#url').value=s.url||'';
+  picking=s.picking;$('#pk').classList.toggle('on',picking);$('#pk').textContent=picking?'ছবি বাছাই চলছে — ছবিতে ক্লিক করুন (Esc = বন্ধ)':'ছবি বাছাই';
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.g===s.target));
+});
+let tt=null;
+tf.onToast(t=>{
+  const el=$('#toast');el.textContent=t.msg;el.style.display='block';el.className=t.folder?'clk':'';
+  el.onclick=t.folder?()=>{tf.showFile(t.folder);el.style.display='none'}:null;
+  clearTimeout(tt);tt=setTimeout(()=>el.style.display='none',t.folder?7000:3500);
+});
+</script>
+</body></html>

@@ -1,0 +1,71 @@
+# Builds the TF Media Studio Windows app (EXE installer) on GitHub's servers.
+# It joins TF FB Reels & Post Maker (this repo's index.html) and TF News Studio (repo TF-NEWS-STUDIO).
+# Runs by hand from the Actions tab ("Run workflow"), or when the desktop app files change.
+# The finished installer is put on the Releases page (tag: windows-latest).
+name: Build Windows app (EXE)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop-app/**'
+      - '.github/workflows/windows-exe.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-exe
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get TF News Studio
+        uses: actions/checkout@v4
+        with:
+          repository: taiful666/TF-NEWS-STUDIO
+          path: news-src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: Install app tools
+        working-directory: desktop-app
+        run: npm ci --no-audit --no-fund
+
+      - name: Security check of bundled libraries
+        working-directory: desktop-app
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build the EXE
+        working-directory: desktop-app
+        env:
+          SRC_POST: ${{ github.workspace }}
+          SRC_NEWS: ${{ github.workspace }}/news-src
+        run: npm run dist
+
+      - name: Keep the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: TF-Media-Studio-Setup
+          path: desktop-app/dist/*.exe
+
+      - name: Publish on Releases page
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp desktop-app/dist/TF-Media-Studio-Setup-*.exe TF-Media-Studio-Setup.exe
+          gh release delete windows-latest --yes --cleanup-tag || true
+          gh release create windows-latest TF-Media-Studio-Setup.exe \
+            --title "TF Media Studio (Windows)" \
+            --notes "TF News Studio + TF FB Reels & Post Maker + newspaper browser in one Windows app. Download TF-Media-Studio-Setup.exe and double-click it."

@@ -185,4 +185,28 @@
       }
     };
   } catch (e) { console.error('fast export patch', e); }
+  // 6) News sent from the "খবর" tab become a finished video draft straight away: headlines first, then the full stories, photos in place.
+  //    (Before, the text only landed in a box and the user had to go through the Gemini copy/paste steps.) AI modes stay available by hand.
+  try {
+    const _nu = nwUse;
+    nwUse = async function (list) {
+      const r = await _nu.apply(this, arguments);
+      try {
+        const modeBtn = document.querySelector('#wrMode button.on');
+        const apiMode = modeBtn && modeBtn.dataset.m === 'api';
+        const raw = document.getElementById('rawText');
+        if (r !== false && !apiMode && raw && raw.value.trim()) {
+          const b = document.getElementById('wrRawW');
+          if (b) { b.click(); }
+          else if (typeof window.tfRawToScript === 'function') {
+            const sc = document.getElementById('script');
+            sc.value = window.tfEnsureHeads ? window.tfEnsureHeads(window.tfRawToScript(raw.value)) : window.tfRawToScript(raw.value);
+            sc.dispatchEvent(new Event('input', { bubbles: true })); build(false); try { save(); } catch (e) {}
+          }
+          try { if (typeof window.tfShowPane === 'function') window.tfShowPane('script'); } catch (e) {}
+        }
+      } catch (e) { console.error('auto build', e); }
+      return r;
+    };
+  } catch (e) {}
 })();

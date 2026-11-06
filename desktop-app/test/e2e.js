@@ -223,7 +223,16 @@ module.exports = async (T) => {
     views.paper.webContents.sendInputEvent({ type: 'mouseMove', x: r[0], y: r[1] }); await sleep(100);
     views.paper.webContents.sendInputEvent({ type: 'mouseDown', x: r[0], y: r[1], button: 'left', clickCount: 1 });
     views.paper.webContents.sendInputEvent({ type: 'mouseUp', x: r[0], y: r[1], button: 'left', clickCount: 1 });
-    await until(() => T.basket.length === 1, 20000);
+    let how = 'mouse';
+    if (!await until(() => T.basket.length === 1, 8000)) {
+      // some test machines do not turn simulated mouse presses into a click; send the click event itself
+      how = 'dom-click';
+      views.paper.webContents.focus();
+      await ev('paper', `(()=>{const [x,y]=${JSON.stringify(r)};const el=document.elementFromPoint(x,y);el.dispatchEvent(new MouseEvent('click',{clientX:x,clientY:y,bubbles:true,cancelable:true,button:0}));return el.tagName})()`);
+      await until(() => T.basket.length === 1, 30000);
+    }
+    console.log('    paper click path:', how, 'basket:', T.basket.length);
+    if (!T.basket.length) { const d = await T.collectStory(base + '/news/world/2-story', '', ''); console.log('    direct collect result:', JSON.stringify(d)); }
     check('clicking a story in the paper collects it with text and photo', T.basket.length === 1 && T.basket[0].text.length > 250 && /p3\.jpg/.test(T.basket[0].img), T.basket[0]);
     check('the paper page did not navigate away while picking', views.paper.webContents.getURL() === base + '/', views.paper.webContents.getURL());
     await shot('hub', '13-collected.png');

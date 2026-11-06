@@ -112,6 +112,8 @@ writeFileSync(join(out, 'post', 'fonts', 'extra-fonts.css'), css);
 let news = readFileSync(join(SRC_NEWS, 'index.html'), 'utf8').replace(/\r\n/g, '\n');
 // Desktop: a fresh start (or "reset all") must stay empty. The sample story appears only when the user presses "ডেমো".
 news = mustReplace(news, "$('#script').value=s||SAMPLE;", "$('#script').value=s||'';");
+// ...and an empty new project opens quietly (no "স্ক্রিপ্ট খালি" pop-up on start).
+news = mustReplace(news, "setCanvas();await fontsReady;build(true);requestAnimationFrame(tick);", "setCanvas();await fontsReady;if($('#script').value.trim())build(true);requestAnimationFrame(tick);");
 // Desktop: hand the voice/music timeline helpers (private to the app's studio block) to the fast export engine.
 news = mustReplace(news, "$('#exportBtn').onclick=()=>exportVideo();", "window.TFX={get TL(){return TL},vo,voicePos,vOutT,mSeg};$('#exportBtn').onclick=()=>exportVideo();");
 writeFileSync(join(out, 'news', 'index.html'), news);

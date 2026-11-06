@@ -5,3 +5,4 @@ apps/
 *.jks
 *.keystore
 .env
+test/out/

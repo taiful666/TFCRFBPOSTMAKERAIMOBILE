@@ -185,46 +185,57 @@
       }
     };
   } catch (e) { console.error('fast export patch', e); }
-  // 6) News sent from the "খবর" tab become a finished video draft straight away: headlines first, then the full stories, photos in place.
-  //    (Before, the text only landed in a box and the user had to go through the Gemini copy/paste steps.) AI modes stay available by hand.
+  // 6) News sent from the "খবর" tab land in the project. What happens next follows the chosen way of writing:
+  //    "জেমিনি অ্যাপে" → the news wait in the box and the three Gemini steps are shown (copy → Gemini → paste back);
+  //    "হুবহু" → the video draft is built straight away; "অটো AI" → the app's own AI does it.
   try {
     const _nu = nwUse;
     nwUse = async function (list) {
+      const sc = document.getElementById('script'), before = sc ? sc.value : '';
       const r = await _nu.apply(this, arguments);
       try {
-        const modeBtn = document.querySelector('#wrMode button.on');
-        const apiMode = modeBtn && modeBtn.dataset.m === 'api';
+        if (r === false) return r;
+        const mode = (settings.wr && settings.wr.mode) || 'app';
         const raw = document.getElementById('rawText');
-        if (r !== false && !apiMode && raw && raw.value.trim()) {
-          const b = document.getElementById('wrRawW');
-          if (b) { b.click(); }
-          else if (typeof window.tfRawToScript === 'function') {
-            const sc = document.getElementById('script');
-            sc.value = window.tfEnsureHeads ? window.tfEnsureHeads(window.tfRawToScript(raw.value)) : window.tfRawToScript(raw.value);
-            sc.dispatchEvent(new Event('input', { bubbles: true })); build(false); try { save(); } catch (e) {}
+        try { if (typeof window.tfShowPane === 'function') window.tfShowPane('news'); } catch (e) {}
+        if (mode === 'raw' && raw && raw.value.trim()) {
+          const b = document.getElementById('wrRawW'); if (b) b.click();
+        } else if (mode === 'app') {
+          // keep the script as it was: the Gemini answer will make it
+          if (sc && sc.value !== before) {
+            sc.value = before; sc.dispatchEvent(new Event('input', { bubbles: true }));
+            if (before.trim()) { try { build(false); } catch (e) {} }
+            else { try { pause(); } catch (e) {} scenes = []; total = 0; T = 0; try { renderList(); } catch (e) {} try { layout(); } catch (e) {} try { buildEvents(); } catch (e) {} dirty = true; }
+            try { save(); } catch (e) {}
           }
-          try { if (typeof window.tfShowPane === 'function') window.tfShowPane('script'); } catch (e) {}
+          const c = document.getElementById('wrCopy');
+          if (c) { c.scrollIntoView({ block: 'center', behavior: 'smooth' }); c.classList.remove('tfPulse'); void c.offsetWidth; c.classList.add('tfPulse'); }
         }
-      } catch (e) { console.error('auto build', e); }
+      } catch (e) { console.error('after news', e); }
       return r;
     };
   } catch (e) {}
-  // 7) Desktop project flow: "নতুন" goes to the home screen (where a new project is chosen), the save button keeps the project
-  //    in the home screen's project list, and an opened project gets its voice back.
+  // 7) Desktop project flow. "নতুন প্রজেক্ট" starts a clean project right here (the one that was open is saved to the
+  //    home screen first); the save button keeps the project in the home list; an opened project gets its voice back.
   try {
-    freshStart = async function () { try { window.tfShell.openHome(); } catch (e) {} };
-    document.querySelectorAll('.freshStart').forEach((b) => { b.onclick = () => freshStart(); });
+    const newProj = async () => {
+      if (window.__tfNewBusy) return; window.__tfNewBusy = 1;
+      try { await window.tfShell.newProject(); } catch (e) {} finally { window.__tfNewBusy = 0; }
+    };
+    freshStart = newProj;
+    document.querySelectorAll('.freshStart').forEach((b) => { b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); newProj(); }; });
     const _sp = saveProject;
     saveProject = async function () {
-      try { const r = await window.tfShell.saveProject(); if (r) { if (typeof toast === 'function') toast('প্রজেক্ট সেভ হয়েছে — হোম স্ক্রিনে পাবেন', 'ok'); else alert('প্রজেক্ট সেভ হয়েছে'); return; } }
+      try { const r = await window.tfShell.saveProject(); if (r) { if (typeof toast === 'function') toast('প্রজেক্ট সেভ হয়েছে', 'ok'); return; } }
       catch (e) {}
       return _sp.apply(this, arguments);
     };
     const top = document.getElementById('projSave'); if (top) top.onclick = () => saveProject();
     document.querySelectorAll('#tfTopBtns .tbtn').forEach((b) => {
       const t = b.textContent.trim();
-      if (t === 'নতুন') { b.lastChild.textContent = 'নতুন প্রজেক্ট'; b.onclick = () => freshStart(); }
+      if (t === 'নতুন') { b.lastChild.textContent = 'নতুন প্রজেক্ট'; b.onclick = () => newProj(); }
       if (t === 'সেভ') { b.onclick = () => saveProject(); b.title = 'প্রজেক্ট সেভ করুন'; }
+      if (t === 'পত্রিকা থেকে খবর') { b.onclick = () => window.tfShell.pickNews(); }
     });
     (async () => {
       const v = await window.tfShell.pendingVoice();
@@ -237,6 +248,52 @@
       inp.dispatchEvent(new Event('change', { bubbles: true }));
     })().catch(() => {});
   } catch (e) { console.error('project flow', e); }
+
+  // 7b) Start screen of a new project: size + "পত্রিকা থেকে খবর" or "নিজের খবর লিখুন". Name-only buttons, no extra text.
+  try {
+    let want = false; try { want = sessionStorage.getItem('tfms_start') === '1'; sessionStorage.removeItem('tfms_start'); } catch (e) {}
+    const st = document.createElement('style');
+    st.textContent = '#tfStart{position:fixed;inset:0;z-index:90;background:rgba(5,6,9,.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;animation:tfFade .18s ease}'
+      + '#tfStart .bx{width:min(620px,92vw);background:#14161C;border:1px solid #2A2F3A;border-radius:20px;padding:28px 28px 24px;box-shadow:0 24px 60px rgba(0,0,0,.6);animation:tfPop .22s cubic-bezier(.2,.9,.3,1.2)}'
+      + '#tfStart h3{font-size:21px;font-weight:800;color:#F2F4F8;margin:0 0 18px}'
+      + '#tfStart .sz{display:flex;gap:8px;margin-bottom:18px}'
+      + '#tfStart .sz button{flex:1;height:46px;border-radius:12px;border:1px solid #323845;background:#101217;color:#C9CED8;font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}'
+      + '#tfStart .sz button:hover{border-color:#5A6273;color:#fff}#tfStart .sz button.on{background:#E5391B;border-color:#E5391B;color:#fff}'
+      + '#tfStart .go{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
+      + '#tfStart .go button{height:120px;border-radius:16px;border:1px solid #323845;background:linear-gradient(160deg,#1B1F29,#12141A);color:#F2F4F8;font:inherit;font-size:16.5px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;transition:transform .15s,border-color .15s,box-shadow .15s}'
+      + '#tfStart .go button:hover{transform:translateY(-2px);border-color:#E5391B;box-shadow:0 12px 28px rgba(0,0,0,.45)}#tfStart .go button:active{transform:scale(.98)}'
+      + '#tfStart .go svg{width:34px;height:34px;stroke:#FF6A4A;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}'
+      + '#tfStart .x{float:right;border:0;background:transparent;color:#8A92A3;font-size:24px;line-height:1;cursor:pointer;margin:-6px -6px 0 0}#tfStart .x:hover{color:#fff}'
+      + '@keyframes tfFade{from{opacity:0}to{opacity:1}}@keyframes tfPop{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:none}}'
+      + '.tfPulse{animation:tfPulse 1.1s ease 3}@keyframes tfPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,57,27,0)}50%{box-shadow:0 0 0 6px rgba(229,57,27,.45)}}';
+    document.head.appendChild(st);
+    const bn = (x) => String(x).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[d]);
+    window.tfStartScreen = function () {
+      const old = document.getElementById('tfStart'); if (old) old.remove();
+      const ov = document.createElement('div'); ov.id = 'tfStart';
+      const cur = () => { const a = document.getElementById('aspect'); return (a && a.value) || settings.aspect || '16:9'; };
+      ov.innerHTML = '<div class="bx" role="dialog" aria-label="নতুন প্রজেক্ট"><button class="x" data-a="close" aria-label="বন্ধ">×</button><h3>নতুন প্রজেক্ট</h3>'
+        + '<div class="sz">' + ['16:9', '9:16', '1:1'].map((r) => '<button data-r="' + r + '">' + bn(r) + '</button>').join('') + '</div>'
+        + '<div class="go"><button data-a="paper"><svg viewBox="0 0 24 24"><path d="M4 5h13a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg>পত্রিকা থেকে খবর নিন</button>'
+        + '<button data-a="write"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>নিজের খবর লিখুন</button></div></div>';
+      const paint = () => ov.querySelectorAll('.sz button').forEach((b) => b.classList.toggle('on', b.dataset.r === cur()));
+      paint();
+      const close = () => { ov.remove(); document.removeEventListener('keydown', esc, true); };
+      const esc = (e) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); } };
+      document.addEventListener('keydown', esc, true);
+      ov.addEventListener('click', (e) => {
+        if (e.target === ov) return close();
+        const r = e.target.closest('[data-r]'); if (r) { const a = document.getElementById('aspect'); if (a && a.value !== r.dataset.r) { a.value = r.dataset.r; a.dispatchEvent(new Event('change', { bubbles: true })); } paint(); return; }
+        const b = e.target.closest('[data-a]'); if (!b) return;
+        close();
+        if (b.dataset.a === 'paper') window.tfShell.pickNews();
+        else if (b.dataset.a === 'write') { try { window.tfShowPane && window.tfShowPane('news'); } catch (x) {} const t = document.getElementById('rawText'); if (t) { t.scrollIntoView({ block: 'center' }); t.focus(); } }
+      });
+      document.body.appendChild(ov);
+      setTimeout(() => { const f = ov.querySelector('[data-a=paper]'); if (f) f.focus(); }, 50);
+    };
+    if (want) setTimeout(() => window.tfStartScreen(), 150);
+  } catch (e) { console.error('start screen', e); }
 
   // 8) Clean look inside the combined app: the shell already shows the brand, so the editor's own logo/name row is hidden.
   try {

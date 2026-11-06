@@ -20,7 +20,7 @@ const MAX_IMG = 30 * 1024 * 1024;
 const TABS = ['home', 'hub', 'news', 'post'];
 const PARTS = { home: 'tf-home', bar: 'tf-bar', hub: 'tf-hub', news: 'persist:tf-news', post: 'persist:tf-post', paper: 'persist:tf-paper' };
 const INPUT_ID = { post: 'cardFile', news: 'galFiles' };
-const NW_FEED = 'https://raw.githubusercontent.com/taiful666/TFCRFBPOSTMAKERAIMOBILE/live-news/news.json';
+const NW_FEED = (!require('electron').app.isPackaged && process.env.TF_SELFTEST === '1' && process.env.TF_TEST_FEED) || 'https://raw.githubusercontent.com/taiful666/TFCRFBPOSTMAKERAIMOBILE/live-news/news.json';   // test feed only in build checks
 const NW_SRC = { prothomalo: 'প্রথম আলো', jamuna: 'যমুনা টিভি', kalbela: 'কালবেলা', bdnews24: 'বিডিনিউজ২৪', jugantor: 'যুগান্তর', kalerkantho: 'কালের কণ্ঠ', samakal: 'সমকাল', somoy: 'সময় টিভি', jagonews: 'জাগো নিউজ', dailystarbn: 'ডেইলি স্টার বাংলা', ittefaq: 'ইত্তেফাক', bdpratidin: 'বাংলাদেশ প্রতিদিন', rtv: 'আরটিভি', channel24: 'চ্যানেল ২৪', ekattor: 'একাত্তর টিভি', ntv: 'এনটিভি', channeli: 'চ্যানেল আই', dhakapost: 'ঢাকা পোস্ট', banglatribune: 'বাংলা ট্রিবিউন', banglanews24: 'বাংলানিউজ২৪', risingbd: 'রাইজিংবিডি', ajkerpatrika: 'আজকের পত্রিকা', deshrupantor: 'দেশ রূপান্তর', nayadiganta: 'নয়া দিগন্ত', manabzamin: 'মানবজমিন', inqilab: 'ইনকিলাব', bbcbangla: 'বিবিসি বাংলা', dailystar: 'দ্য ডেইলি স্টার', google: 'গুগল নিউজ' };
 const PAPERS = [
   ['প্রথম আলো', 'https://www.prothomalo.com/'], ['কালবেলা', 'https://www.kalbela.com/'],
@@ -82,7 +82,7 @@ function srcNameOf(link, site) {
 function hubState() {
   const pv = alive(views.paper) ? views.paper.webContents : null;
   return {
-    sub: hubSub, picking, adblock, basket, back: returnTab === 'news' ? 'ভিডিওতে ফিরুন' : returnTab === 'post' ? 'পোস্ট ও রিলে ফিরুন' : 'হোমে ফিরুন', papers: PAPERS,
+    sub: hubSub, picking, adblock, basket, toProject: returnTab === 'news', back: returnTab === 'news' ? 'প্রজেক্টে ফিরুন' : returnTab === 'post' ? 'পোস্ট ও রিলে ফিরুন' : 'হোমে ফিরুন', papers: PAPERS,
     url: pv ? pv.getURL() : '',
     canBack: !!(pv && pv.navigationHistory.canGoBack()),
     canFwd: !!(pv && pv.navigationHistory.canGoForward())
@@ -171,8 +171,27 @@ function addToBasket(raw) {
     return { ok: true, msg: 'এই খবর আগেই যোগ করা আছে' };
   }
   if (basket.length >= 60) return { ok: false, msg: 'সর্বোচ্চ ৬০টি খবর রাখা যায়' };
-  basket.push(it); saveBasket(); pushState();
+  basket.push(it); saveBasket(); pushState(); enrich(it);
   return { ok: true, msg: 'খবর যোগ হয়েছে ✓' };
+}
+/* A headline picked from the live list has no full text yet: it is read in the background right away (hidden window,
+   works for sites that build the page with JavaScript), so "ভিডিও বানান" later is quick and never depends on a proxy. */
+const reading = new Map(); let readActive = 0; const readQueue = [];
+function enrich(it) {
+  if (!it || (it.text && it.text.length > 250)) return Promise.resolve();
+  const k = keyOf(it.link); if (reading.has(k)) return reading.get(k);
+  const p = new Promise((res) => { readQueue.push({ it, res }); pumpRead(); });
+  reading.set(k, p); p.finally(() => reading.delete(k));
+  return p;
+}
+function pumpRead() {
+  while (readActive < 3 && readQueue.length) {
+    const { it, res } = readQueue.shift(); readActive++;
+    extract(it.link, { title: it.title, img: it.img }).then((a) => {
+      const b = basket.find((x) => keyOf(x.link) === keyOf(it.link));
+      if (b && a && a.text && a.text.length > (b.text || '').length) { b.text = a.text.slice(0, 20000); if (!b.img && isHttpUrl(a.img)) b.img = a.img; if (!b.desc) b.desc = String(a.desc || '').slice(0, 600); saveBasket(); }
+    }).catch(() => {}).finally(() => { readActive--; res(); pumpRead(); });
+  }
 }
 
 /* ---------- live feed ---------- */
@@ -333,16 +352,6 @@ async function sendImageToApp(target, imgUrl, pageUrl) {
   const { buf, mime } = await fetchImage(imgUrl, pageUrl);
   const wc = views[target].webContents;
   if (!loaded[target]) { loadApp(target); await waitLoaded(wc); }
-  // news picked from home → a fresh video project (the one open in the editor is saved first, never overwritten)
-  if (kind === 'video' && returnTab !== 'news') {
-    let empty = false;
-    try { empty = !(await wc.executeJavaScript("(document.getElementById('script')||{}).value||''")).trim(); } catch (e) {}
-    if (!empty) {
-      const reloaded = new Promise((r) => wc.once('did-finish-load', () => setTimeout(r, 1200)));
-      await startNewsWith({ script: '', pid: '' });
-      await reloaded;
-    }
-  }
   const code = '(async()=>{try{const inp=document.getElementById(' + JSON.stringify(INPUT_ID[target]) + ');if(!inp)return "noinput";' +
     'let blob=await (await fetch("data:' + mime + ';base64,' + buf.toString('base64') + '")).blob();let name=' + JSON.stringify(safeName(imgUrl, mime)) + ';' +
     'if(!/^image\\/(png|jpeg|webp|gif)$/.test(blob.type)){const bm=await createImageBitmap(blob);const c=document.createElement("canvas");c.width=bm.width;c.height=bm.height;c.getContext("2d").drawImage(bm,0,0);blob=await new Promise(r=>c.toBlob(r,"image/png"));name=name.replace(/\\.[a-z0-9]+$/i,".png");}' +
@@ -358,17 +367,32 @@ const patchSrc = {};
 for (const n of ['news', 'post']) { try { patchSrc[n] = fs.readFileSync(path.join(__dirname, 'patches', n + '.js'), 'utf8'); } catch (e) { patchSrc[n] = ''; } }
 
 /* ---------- send the basket to an app ---------- */
+let sendingNow = false;
 async function sendFromBasket(kind, onlyLink) {
+  if (sendingNow || switching) return false;
+  sendingNow = true;
+  try { return await sendFromBasketNow(kind, onlyLink); } finally { sendingNow = false; }
+}
+async function sendFromBasketNow(kind, onlyLink) {
   let list = onlyLink ? basket.filter((b) => keyOf(b.link) === keyOf(onlyLink)) : basket.slice();
   if (!list.length) { hubSay('আগে খবর বেছে নিন'); return; }
   const target = kind === 'video' ? 'news' : 'post';
+  hubSay('খবর পড়া হচ্ছে…', 30000);
+  await Promise.race([Promise.all(list.map((b) => enrich(b))), new Promise((r) => setTimeout(r, 45000))]);
+  list = list.map((b) => basket.find((x) => keyOf(x.link) === keyOf(b.link)) || b);
   hubSay('প্রস্তুত করা হচ্ছে…', 8000);
   const out = []; let idx = 0;
   await Promise.all(Array.from({ length: Math.min(4, list.length) }, async () => {
     while (idx < list.length) { const i = idx++; out[i] = Object.assign({}, list[i], { img: await imageForApp(list[i]) }); }
   }));
   const wc = views[target].webContents;
-  if (!loaded[target]) { loadApp(target); await waitLoaded(wc); }
+  if (kind === 'video') {
+    // picked while working on a project → the news go into that project; picked from the home screen → a new project
+    // (the project that was open is saved to the home list first, never overwritten)
+    if (returnTab === 'news' && loaded.news && !switching) { if (wc.isLoading()) await waitLoaded(wc); }
+    else await newProject('', { chooser: false });
+  } else if (!loaded[target]) { loadApp(target); await waitLoaded(wc); }
+  for (let i = 0; i < 50; i++) { try { if (await wc.executeJavaScript('!!window.__tfDesk')) break; } catch (e) {} await new Promise((r) => setTimeout(r, 100)); }
   const payload = JSON.stringify(out.map((x) => ({ title: x.title, link: x.link, img: x.img, desc: x.desc, text: x.text, srcName: x.srcName, date: x.date || 0 })));
   let code;
   if (kind === 'video') {
@@ -381,8 +405,11 @@ async function sendFromBasket(kind, onlyLink) {
   showTab(target);
   try {
     const r = await wc.executeJavaScript(code, true);
-    if (r === 'missing') say('এই অংশটি এখন চালু করা যায়নি');
-  } catch (e) { say('এই অংশটি এখন চালু করা যায়নি'); }
+    if (r !== 'ok') { say('এই অংশটি এখন চালু করা যায়নি'); return false; }
+  } catch (e) { say('এই অংশটি এখন চালু করা যায়নি'); return false; }
+  // the picked news now live in the project / reel → the basket starts empty for the next one
+  if (kind !== 'card') { const sent = new Set(list.map((b) => keyOf(b.link))); basket = basket.filter((b) => !sent.has(keyOf(b.link))); saveBasket(); pushState(); }
+  return true;
 }
 
 /* ---------- collecting a story clicked in the newspaper browser ---------- */
@@ -471,7 +498,7 @@ function createWindow() {
   views.hub.webContents.once('did-finish-load', go);
   views.home.webContents.once('did-finish-load', go);
   layout();
-  if (SELFTEST && process.env.TF_TEST_SCRIPT) setTimeout(() => require(process.env.TF_TEST_SCRIPT)({ app, views, autosaveNews, listProjects, showTab, setSub, setPicking, addToBasket, collectStory, sendFromBasket, get basket() { return basket; }, state: hubState }), 2500);
+  if (SELFTEST && process.env.TF_TEST_SCRIPT) setTimeout(() => require(process.env.TF_TEST_SCRIPT)({ app, win, views, autosaveNews, listProjects, showTab, setSub, setPicking, addToBasket, collectStory, sendFromBasket, sendImageToApp, projDir, get basket() { return basket; }, get activeTab() { return activeTab; }, get switching() { return switching; }, state: hubState }), 2500);
 }
 
 /* ---------- IPC (only from our own views) ---------- */
@@ -538,33 +565,84 @@ function listProjects() {
   return out.sort((a, b) => b.updated - a.updated).slice(0, 200);
 }
 function pushHome() { if (alive(views.home)) views.home.webContents.send('home:state', { projects: listProjects(), basket: basket.length }); }
-const SNAP_JS = `(async()=>{try{save()}catch(e){}
-  const s=document.getElementById('script').value||'';let th='';
-  try{const c=document.createElement('canvas');const w=360;c.width=w;c.height=Math.max(1,Math.round(w*cv.height/cv.width));c.getContext('2d').drawImage(cv,0,0,c.width,c.height);th=c.toDataURL('image/jpeg',.72)}catch(e){}
-  let voice=null;try{if(hasAudio&&audioEl.src){const b=await (await fetch(audioEl.src)).blob();if(b.size<200*1024*1024)voice={type:b.type||'audio/wav',data:new Uint8Array(await b.arrayBuffer())};}}catch(e){}
-  return {pid:localStorage.getItem('tfms_pid')||'',script:s,set:localStorage.getItem('tfx_set')||'',ovr:localStorage.getItem('tfx_ovr')||'',
-    aspect:(typeof settings!=='undefined'&&settings.aspect)||'16:9',thumb:th,scenes:(typeof scenes!=='undefined'?scenes.length:0),voice};})()`;
-let saving = null;
+
+/* A video project = everything the editor holds for one video: script, raw news text, the Gemini answer, scene edits,
+   settings, the photo library, the thumbnail background and the voice. Text parts are read every save; the heavy parts
+   (photos, thumbnail background, voice) are only copied when they have changed (cheap signature first). */
+const SNAP_JS = `(async()=>{if(window.__tfSwitching)return null;try{save()}catch(e){}
+  const v=id=>((document.getElementById(id)||{}).value||'');let th='';
+  try{if(typeof scenes!=='undefined'&&scenes.length){const c=document.createElement('canvas');const w=360;c.width=w;c.height=Math.max(1,Math.round(w*cv.height/cv.width));c.getContext('2d').drawImage(cv,0,0,c.width,c.height);th=c.toDataURL('image/jpeg',.72)}}catch(e){}
+  const G=(typeof GALLERY!=='undefined'?GALLERY:[]);let bg=null;try{bg=await IDB.get('thBg')}catch(e){}
+  const galSig=G.map(x=>[x.name,x.kind,x.blob&&x.blob.size,x.group||''].join(':')).join('|')+'#'+(bg&&bg.size||0);
+  const voiceSig=(typeof hasAudio!=='undefined'&&hasAudio&&audioEl.src)?audioEl.src:'';
+  return {pid:localStorage.getItem('tfms_pid')||'',script:v('script'),raw:v('rawText'),ans:v('wrAns'),set:localStorage.getItem('tfx_set')||'',ovr:localStorage.getItem('tfx_ovr')||'',
+    aspect:(typeof settings!=='undefined'&&settings.aspect)||'16:9',thumb:th,scenes:(typeof scenes!=='undefined'?scenes.length:0),photos:G.length,galSig,voiceSig};})()`;
+const HEAVY_JS = (wantGal, wantVoice) => `(async()=>{const out={gal:null,bg:null,voice:null};
+  if(${wantGal}){out.gal=[];for(const x of (typeof GALLERY!=='undefined'?GALLERY:[])){try{if(!x.blob||x.blob.size>300*1024*1024)continue;
+      out.gal.push({name:String(x.name||''),kind:x.kind||'image',query:x.query||'',credit:x.credit||'',group:x.group||'',type:x.blob.type||'',data:new Uint8Array(await x.blob.arrayBuffer())})}catch(e){}}
+    try{const b=await IDB.get('thBg');if(b&&b.size&&b.size<40*1024*1024)out.bg={type:b.type||'image/jpeg',data:new Uint8Array(await b.arrayBuffer())}}catch(e){}}
+  if(${wantVoice}){try{if(hasAudio&&audioEl.src){const b=await (await fetch(audioEl.src)).blob();if(b.size<300*1024*1024)out.voice={type:b.type||'audio/wav',data:new Uint8Array(await b.arrayBuffer())}}}catch(e){}}
+  return out;})()`;
+const mediaDir = (id) => path.join(projDir(), id + '.media');
+const MIME_OK = /^(image|video|audio)\/[\w.+-]+$/;
+function writeMedia(id, gal, bg) {
+  const dir = mediaDir(id), tmp = dir + '.tmp';
+  fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true });
+  const man = { gallery: [], bg: null };
+  let total = 0;
+  (gal || []).forEach((g, i) => {
+    const data = Buffer.from(g.data || []); if (!data.length || total + data.length > 1500 * 1024 * 1024) return;
+    total += data.length; const f = 'g' + i + '.bin'; fs.writeFileSync(path.join(tmp, f), data);
+    man.gallery.push({ f, name: String(g.name).slice(0, 200), kind: g.kind === 'video' ? 'video' : 'image', query: String(g.query || '').slice(0, 300), credit: String(g.credit || '').slice(0, 120), group: String(g.group || '').slice(0, 40), type: MIME_OK.test(g.type) ? g.type : '' });
+  });
+  if (bg && bg.data && bg.data.length) { fs.writeFileSync(path.join(tmp, 'bg.bin'), Buffer.from(bg.data)); man.bg = { f: 'bg.bin', type: MIME_OK.test(bg.type) ? bg.type : 'image/jpeg' }; }
+  fs.writeFileSync(path.join(tmp, 'manifest.json'), JSON.stringify(man));
+  fs.rmSync(dir, { recursive: true, force: true }); fs.renameSync(tmp, dir);
+}
+function readMedia(id) {
+  try {
+    const dir = mediaDir(id), man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+    const ok = (f) => typeof f === 'string' && /^[a-z0-9]+\.bin$/.test(f);
+    const gallery = (man.gallery || []).filter((g) => ok(g.f)).map((g) => { try { return Object.assign({}, g, { data: fs.readFileSync(path.join(dir, g.f)) }); } catch (e) { return null; } }).filter(Boolean);
+    let bg = null; if (man.bg && ok(man.bg.f)) { try { bg = { type: man.bg.type, data: fs.readFileSync(path.join(dir, man.bg.f)) }; } catch (e) {} }
+    return { gallery, bg };
+  } catch (e) { return { gallery: [], bg: null }; }
+}
+let saving = null, switching = false;
 async function autosaveNews() {
-  if (!loaded.news || !alive(views.news) || views.news.webContents.isLoading()) return null;
+  if (switching || !loaded.news || !alive(views.news) || views.news.webContents.isLoading()) return null;
   if (saving) return saving;
   saving = (async () => {
     const wc = views.news.webContents;
     const d = await wc.executeJavaScript(SNAP_JS);
-    if (!d || typeof d.script !== 'string' || !d.script.trim()) return null;
+    if (!d || typeof d.script !== 'string') return null;
+    if (!d.script.trim() && !String(d.raw || '').trim() && !String(d.ans || '').trim() && !d.photos) return null;   // an empty new project is not kept
     let id = validPid(d.pid) ? d.pid : newPid();
     if (id !== d.pid) await wc.executeJavaScript(`localStorage.setItem('tfms_pid',${JSON.stringify(id)})`);
-    const head = (d.script.split('\n').find((l) => /^\s*#/.test(l) && !/শিরোনাম\s*$/.test(l)) || d.script.split('\n').find((l) => l.trim()) || '').replace(/^[\s#]+/, '').trim();
-    const name = (head || 'নতুন প্রজেক্ট').slice(0, 90);
+    const f = path.join(projDir(), id + '.json');
+    let old = null; try { old = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) {}
+    const firstLine = (t) => (String(t || '').split('\n').find((l) => l.trim() && !/^\s*(নিচের|খবর\s*[০-৯\d]+\s*:?\s*$)/.test(l)) || '');
+    const head = (d.script.split('\n').find((l) => /^\s*#/.test(l) && !/শিরোনাম\s*$/.test(l)) || firstLine(d.script) || firstLine(String(d.raw).replace(/^নিচের[^\n]*\n+/, '').replace(/^খবর\s*[০-৯\d]+\s*:\s*/m, '')) || '').replace(/^[\s#]+/, '').trim();
+    const name = old && old.renamed ? old.name : (head || 'নতুন প্রজেক্ট').slice(0, 90);
     const set = (() => { try { const o = JSON.parse(d.set || '{}'); delete o.pexelsKey; delete o.ckey; return o; } catch (e) { return {}; } })();
-    const rec = { id, name, aspect: String(d.aspect || '16:9').slice(0, 8), updated: Date.now(), scenes: +d.scenes || 0, script: d.script, set, ovr: String(d.ovr || '') };
-    fs.writeFileSync(path.join(projDir(), id + '.json'), JSON.stringify(rec));
+    const rec = { id, name, renamed: !!(old && old.renamed), aspect: String(d.aspect || '16:9').slice(0, 8), updated: Date.now(), scenes: +d.scenes || 0, photos: +d.photos || 0,
+      script: d.script, raw: String(d.raw || ''), ans: String(d.ans || ''), set, ovr: String(d.ovr || ''),
+      galSig: old && old.galSig, voiceSig: old && old.voiceSig };
+    const wantGal = !old || old.galSig !== d.galSig || !fs.existsSync(mediaDir(id)), wantVoice = !old || old.voiceSig !== d.voiceSig;
+    if (wantGal || wantVoice) {
+      const h = await wc.executeJavaScript(HEAVY_JS(wantGal, wantVoice));
+      if (wantGal && h && h.gal) { writeMedia(id, h.gal, h.bg); rec.galSig = d.galSig; }
+      if (wantVoice) {
+        const vp = path.join(projDir(), id + '.voice');
+        if (h && h.voice && h.voice.data) fs.writeFileSync(vp, Buffer.concat([Buffer.from(JSON.stringify({ type: String(h.voice.type).slice(0, 40) }) + '\n'), Buffer.from(h.voice.data)]));
+        else if (!d.voiceSig) { try { fs.rmSync(vp, { force: true }); } catch (e) {} }
+        rec.voiceSig = d.voiceSig;
+      }
+    }
+    fs.writeFileSync(f + '.tmp', JSON.stringify(rec)); fs.renameSync(f + '.tmp', f);
     const m = /^data:image\/jpeg;base64,(.+)$/.exec(d.thumb || ''); if (m) fs.writeFileSync(path.join(projDir(), id + '.jpg'), Buffer.from(m[1], 'base64'));
-    const vp = path.join(projDir(), id + '.voice');
-    if (d.voice && d.voice.data) fs.writeFileSync(vp, Buffer.concat([Buffer.from(JSON.stringify({ type: String(d.voice.type).slice(0, 40) }) + '\n'), Buffer.from(d.voice.data)]));
-    else { try { fs.rmSync(vp, { force: true }); } catch (e) {} }
     return id;
-  })().finally(() => { saving = null; pushHome(); });
+  })().catch((e) => { console.error('autosave', e); return null; }).finally(() => { saving = null; pushHome(); });
   return saving;
 }
 function newsReady() {
@@ -575,22 +653,47 @@ function newsReady() {
     wc.once('did-finish-load', () => setTimeout(res, 400));
   });
 }
-let pendingVoice = null;
-async function startNewsWith(state) {   // state: {script,set,ovr,pid,aspect}
+let pendingVoice = null, pendingMedia = null;
+/* Opens a project in the editor (or a clean new one). The project that was open is saved first, then the page is
+   reloaded with only this project's data, so nothing from the previous project can stay behind. */
+async function startNewsWith(state) {   // state: {script,raw,ans,set,ovr,pid,aspect,fresh}
   await newsReady();
   try { await autosaveNews(); } catch (e) {}
-  const wc = views.news.webContents;
-  await wc.executeJavaScript(`(()=>{const A=${JSON.stringify(state)};
-    try{const ta=document.getElementById('script');if(ta)ta.value=A.script||'';}catch(e){}
-    try{if(typeof overrides!=='undefined')overrides={};}catch(e){}
-    let cur={};try{cur=JSON.parse(localStorage.getItem('tfx_set')||'{}')}catch(e){}
-    const keep={pexelsKey:cur.pexelsKey,ckey:cur.ckey};
-    let st=A.set?Object.assign({},A.set):Object.assign({},cur);
-    if(!A.set){st.newsGroups=[];delete st.tl;}
-    if(A.aspect)st.aspect=A.aspect;Object.keys(keep).forEach(k=>{if(keep[k]!=null)st[k]=keep[k];});
-    localStorage.setItem('tfx_set',JSON.stringify(st));localStorage.setItem('tfx_script',A.script||'');
-    if(A.ovr)localStorage.setItem('tfx_ovr',A.ovr);else localStorage.removeItem('tfx_ovr');
-    localStorage.setItem('tfms_pid',A.pid||'');sessionStorage.setItem('tf13asked','1');window.__tfReloading=1;setTimeout(()=>location.reload(),30);return 1;})()`);
+  if (saving) { try { await saving; } catch (e) {} }
+  switching = true;
+  try {
+    const wc = views.news.webContents;
+    pendingMedia = state.pid ? readMedia(state.pid) : { gallery: [], bg: null };
+    if (!state.pid || !fs.existsSync(path.join(projDir(), state.pid + '.voice'))) pendingVoice = null;
+    const reloaded = new Promise((r) => { wc.once('did-finish-load', () => setTimeout(r, 300)); setTimeout(r, 25000); });
+    const A = { script: String(state.script || ''), raw: String(state.raw || ''), ans: String(state.ans || ''), set: state.set || null, ovr: String(state.ovr || ''),
+      pid: state.pid || '', aspect: state.aspect || '', fresh: !!state.fresh, chooser: !!(state.fresh && state.chooser !== false) };
+    await wc.executeJavaScript(`(async()=>{const A=${JSON.stringify(A)};window.__tfSwitching=1;
+      try{save=function(){}}catch(e){}try{if(typeof pause==='function')pause()}catch(e){}
+      const put=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v};put('script',A.script);put('rawText',A.raw);put('wrAns',A.ans);
+      let cur={};try{cur=JSON.parse(localStorage.getItem('tfx_set')||'{}')}catch(e){}
+      let st;
+      if(A.set)st=Object.assign({},A.set);
+      else{st=Object.assign({},cur);st.newsGroups=[];delete st.tl;st.netFor='';
+        if(st.th&&typeof st.th==='object'){st.th=Object.assign({},st.th,{title:'',sub:'',ai:null,bg:'auto',bgFor:''});}}
+      ['pexelsKey','ckey'].forEach(k=>{if(cur[k]!=null)st[k]=cur[k];});
+      if(A.aspect)st.aspect=A.aspect;
+      localStorage.setItem('tfx_set',JSON.stringify(st));localStorage.setItem('tfx_script',A.script);
+      localStorage.setItem('tfx_raw',A.raw);localStorage.setItem('tfx_wrans',A.ans);
+      if(A.ovr)localStorage.setItem('tfx_ovr',A.ovr);else localStorage.removeItem('tfx_ovr');
+      localStorage.setItem('tfms_pid',A.pid);localStorage.setItem('tfx_pane',A.fresh||!A.script.trim()?'news':'script');localStorage.removeItem('tfx_screen');
+      try{const n=JSON.parse(localStorage.getItem('tfx_news')||'{}');n.basket=[];localStorage.setItem('tfx_news',JSON.stringify(n))}catch(e){}
+      try{const m=await window.tfShell.takeMedia();const gal=(m&&m.gallery||[]).map(g=>({name:g.name,kind:g.kind,query:g.query,credit:g.credit,group:g.group,blob:new Blob([g.data],{type:g.type||(g.kind==='video'?'video/mp4':'image/jpeg')})}));
+        await IDB.set('gallery',gal);await IDB.set('thBg',m&&m.bg?new Blob([m.bg.data],{type:m.bg.type}):null);}catch(e){console.error('media',e)}
+      sessionStorage.setItem('tf13asked','1');if(A.chooser)sessionStorage.setItem('tfms_start','1');else sessionStorage.removeItem('tfms_start');
+      setTimeout(()=>location.reload(),20);return 1;})()`, true);
+    await reloaded;
+  } finally { switching = false; pendingMedia = null; }
+}
+async function newProject(aspect, o) {
+  if (!['16:9', '9:16', '1:1'].includes(aspect)) aspect = '';
+  if (activeTab !== 'news') showTab('news');
+  await startNewsWith({ script: '', pid: '', aspect, fresh: true, chooser: !(o && o.chooser === false) });
 }
 function voiceFor(id) {
   try {
@@ -603,11 +706,7 @@ ipcMain.handle('home:state', (e) => (from(e, 'home') ? { projects: listProjects(
 ipcMain.handle('home:new', async (e, kind) => {
   if (!from(e, 'home')) return false;
   kind = String(kind);
-  if (kind === 'video' || kind === 'short') {
-    showTab('news');
-    await startNewsWith({ script: '', pid: '', aspect: kind === 'short' ? '9:16' : '16:9' });
-    return true;
-  }
+  if (kind === 'video' || kind === 'short') { await newProject(kind === 'short' ? '9:16' : '16:9'); return true; }
   if (kind === 'card') { showTab('post'); return true; }
   if (kind === 'live' || kind === 'reel') { setSub('live'); showTab('hub'); return true; }
   if (kind === 'paper') { setSub('paper'); showTab('hub'); return true; }
@@ -617,14 +716,19 @@ ipcMain.handle('home:open', async (e, id) => {
   if (!from(e, 'home') || !validPid(id)) return false;
   let j; try { j = JSON.parse(fs.readFileSync(path.join(projDir(), id + '.json'), 'utf8')); } catch (err) { return false; }
   showTab('news');
+  const cur = await currentPid();
+  if (cur === id) return true;                    // already open → just show it
   pendingVoice = voiceFor(id);
-  await startNewsWith({ script: String(j.script || ''), set: j.set && typeof j.set === 'object' ? j.set : null, ovr: String(j.ovr || ''), pid: id, aspect: j.aspect });
+  await startNewsWith({ script: String(j.script || ''), raw: String(j.raw || ''), ans: String(j.ans || ''), set: j.set && typeof j.set === 'object' ? j.set : null, ovr: String(j.ovr || ''), pid: id, aspect: j.aspect });
   return true;
 });
-ipcMain.handle('home:resume', async (e) => { if (!from(e, 'home')) return false; showTab('news'); return true; });
+async function currentPid() {
+  if (!loaded.news || !alive(views.news) || views.news.webContents.isLoading()) return '';
+  try { return String(await views.news.webContents.executeJavaScript("localStorage.getItem('tfms_pid')||''")); } catch (e) { return ''; }
+}
 ipcMain.handle('home:remove', async (e, id) => {
   if (!from(e, 'home') || !validPid(id)) return false;
-  for (const ext of ['.json', '.jpg', '.voice']) { try { fs.rmSync(path.join(projDir(), id + ext), { force: true }); } catch (err) {} }
+  for (const ext of ['.json', '.jpg', '.voice', '.media']) { try { fs.rmSync(path.join(projDir(), id + ext), { recursive: true, force: true }); } catch (err) {} }
   if (loaded.news && alive(views.news)) {   // the project open in the editor is the one removed → editor starts clean next time
     try { const cur = await views.news.webContents.executeJavaScript("localStorage.getItem('tfms_pid')||''"); if (cur === id) await views.news.webContents.executeJavaScript("localStorage.setItem('tfms_pid','')"); } catch (err) {}
   }
@@ -646,18 +750,17 @@ ipcMain.handle('home:import', async (e) => {
     const d = JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8'));
     if (d.app !== 'tf-explainer-studio' || typeof d.script !== 'string') return false;
     const set = d.settings && typeof d.settings === 'object' ? d.settings : null; if (set) { delete set.pexelsKey; delete set.ckey; }
-    showTab('news');
-    await startNewsWith({ script: d.script, set, ovr: typeof d.overrides === 'object' ? JSON.stringify(d.overrides) : '', pid: newPid(), aspect: set && set.aspect });
+    showTab('news'); pendingVoice = null;
+    await startNewsWith({ script: d.script, set, ovr: d.overrides && typeof d.overrides === 'object' ? JSON.stringify(d.overrides) : '', pid: newPid(), aspect: set && set.aspect });
     return true;
   } catch (err) { return false; }
-});
-ipcMain.handle('home:current', async (e) => {
-  if (!from(e, 'home') || !loaded.news || !alive(views.news)) return null;
-  try { return await views.news.webContents.executeJavaScript("(document.getElementById('script')||{}).value?localStorage.getItem('tfms_pid')||'new':''"); } catch (err) { return null; }
 });
 // voice of an opened project goes back into the editor once the page has loaded
 ipcMain.handle('news:save', async (e) => { if (!from(e, 'news')) return null; try { return await autosaveNews(); } catch (err) { return null; } });
 ipcMain.handle('news:pending-voice', (e) => { if (!from(e, 'news')) return null; const v = pendingVoice; pendingVoice = null; return v; });
+ipcMain.handle('news:take-media', (e) => (from(e, 'news') && switching ? pendingMedia : null));
+ipcMain.handle('news:new', async (e, aspect) => { if (!from(e, 'news') || switching) return false; await newProject(String(aspect || '')); return true; });
+ipcMain.handle('news:pick', (e) => { if (!from(e, 'news')) return false; setSub('live'); showTab('hub'); return true; });
 
 /* ---------- API keys: one encrypted store for both apps ---------- */
 // Keys stay on this PC only, encrypted with Windows (DPAPI) via safeStorage. Both apps read the same keys.
@@ -732,7 +835,7 @@ ipcMain.handle('render:frame', async (e, buf) => {
   const b = Buffer.from(buf); if (b.length > 40 * 1024 * 1024) return false;
   const st = job.proc.stdin;
   if (st.destroyed || !st.writable) return false;
-  if (!st.write(b)) await new Promise((res) => { const f = () => res(); st.once('drain', f); st.once('close', f); });
+  if (!st.write(b)) await new Promise((res) => { const f = () => { st.off('drain', f); st.off('close', f); res(); }; st.on('drain', f); st.on('close', f); });
   return true;
 });
 ipcMain.handle('render:finish', async (e, opts) => {
@@ -760,6 +863,9 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'tfapp', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
   { scheme: 'tfimg', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
 ]);
+if (SELFTEST && process.env.TF_TEST_PROFILE) {   // build checks only: a throw-away profile, never the user's real data
+  app.setPath('userData', path.join(process.env.TF_TEST_PROFILE, 'data')); app.setPath('downloads', path.join(process.env.TF_TEST_PROFILE, 'downloads'));
+}
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
@@ -769,6 +875,7 @@ else {
     loadBasket(); loadSettings();
     try { const t = app.getPath('temp'); for (const d of fs.readdirSync(t)) if (/^tfms-/.test(d)) fs.rmSync(path.join(t, d), { recursive: true, force: true }); } catch (e) {}   // leftovers of an interrupted render
     for (const n of ['news', 'post']) { const ses = session.fromPartition(PARTS[n]); registerAppProtocol(ses); setupAppSession(ses); }
+    if (SELFTEST && process.env.TF_TEST_PRELOAD) for (const n of ['news', 'post', 'home', 'hub']) { const ss = session.fromPartition(PARTS[n]); if (ss.registerPreloadScript) ss.registerPreloadScript({ type: 'frame', filePath: process.env.TF_TEST_PRELOAD }); else ss.setPreloads([process.env.TF_TEST_PRELOAD]); }   // build checks only
     registerThumbProtocol(session.fromPartition(PARTS.hub));
     setupPaperSession(session.fromPartition(PARTS.paper));
     createWindow();

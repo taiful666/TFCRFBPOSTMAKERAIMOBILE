@@ -46,6 +46,27 @@ jobs:
         working-directory: desktop-app
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Prepare the two apps
+        working-directory: desktop-app
+        env:
+          SRC_POST: ${{ github.workspace }}
+          SRC_NEWS: ${{ github.workspace }}/news-src
+        run: npm run prepare-apps
+
+      # The whole app is opened on Windows and clicked through like a user (new project, news picking, Gemini steps,
+      # projects, newspaper clicking, reel, photo sending, export). If anything is broken, no EXE is published.
+      - name: Test the app on Windows (end to end)
+        working-directory: desktop-app
+        run: npm run test:e2e
+
+      - name: Keep the test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: desktop-app/test/out/
+          if-no-files-found: ignore
+
       - name: Build the EXE
         working-directory: desktop-app
         env:

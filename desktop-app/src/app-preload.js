@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('tfShell', {
   openHome: () => ipcRenderer.send('tf:switch', 'home'),
   pendingVoice: () => ipcRenderer.invoke('news:pending-voice'),
   saveProject: () => ipcRenderer.invoke('news:save'),
+  takeMedia: () => ipcRenderer.invoke('news:take-media'),
+  newProject: (aspect) => ipcRenderer.invoke('news:new', String(aspect || '')),
+  pickNews: () => ipcRenderer.invoke('news:pick'),
   render: {
     available: () => ipcRenderer.invoke('render:available'),
     start: (o) => ipcRenderer.invoke('render:start', o),

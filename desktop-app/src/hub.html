@@ -31,6 +31,13 @@ body.paper #live{display:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line);background:transparent;color:var(--mute);padding:5px 13px;border-radius:999px;font-size:13px;cursor:pointer}
 .chip.on{background:var(--teal);color:#06231f;border-color:var(--teal);font-weight:700}
+.chips.cats .chip{color:var(--ink);border-color:rgba(255,255,255,.14)}
+.chips.cats .chip.on{background:var(--gold);border-color:var(--gold);color:#1b1500}
+.chip:hover{border-color:rgba(255,255,255,.3)}
+.item,.bi,.go,.chip,.btn{will-change:transform}
+.item:active{transform:scale(.99)}
+.bi{animation:tfIn .2s ease}@keyframes tfIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+.go.done{background:linear-gradient(135deg,#f5bd3c,#e89a1a);color:#1b1500}
 .stat{font-size:12px;color:var(--mute);margin:2px 2px 10px;display:flex;align-items:center;gap:8px}
 .stat .dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}
 .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px}
@@ -88,6 +95,7 @@ aside h3 .n{background:var(--gold);color:#1b1500;border-radius:999px;font-size:1
    <button class="btn pick" id="pk">বাছাই</button>
   </div>
   <div id="live">
+   <div class="chips cats" id="cats"></div>
    <div class="chips" id="chips"></div>
    <div class="stat"><span class="dot"></span><span id="stat">খবর আনা হচ্ছে…</span><button class="btn" id="ref" style="padding:3px 10px;font-size:12px">আপডেট</button></div>
    <div class="list" id="list"></div>
@@ -99,7 +107,7 @@ aside h3 .n{background:var(--gold);color:#1b1500;border-radius:999px;font-size:1
   <h3>আমার খবর <span class="n" id="cnt">০</span></h3>
   <div id="bl"></div>
   <div class="acts">
-   <button class="go v" id="gv" disabled><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg>ভিডিও বানান</button>
+   <button class="go v" id="gv" disabled><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg><span id="gvT">ভিডিও বানান</span></button>
    <button class="go r" id="gr" disabled><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 10v4l3-2z"/></svg>রিল বানান</button>
    <button class="clr" id="clr" style="display:none">সব মুছুন</button>
   </div>
@@ -113,16 +121,37 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const key=u=>{try{const x=new URL(u);return(x.hostname.replace(/^www\d?\./,'')+x.pathname.replace(/\/+$/,'')).toLowerCase()}catch(e){return String(u||'')}};
 const img=u=>u?'tfimg://i/?u='+encodeURIComponent(u):'';
 const ago=d=>{if(!d)return'';const m=Math.round((Date.now()-d)/60000);if(m<1)return'এইমাত্র';if(m<60)return bn(m)+' মিনিট আগে';const h=Math.round(m/60);if(h<24)return bn(h)+' ঘণ্টা আগে';return bn(Math.round(h/24))+' দিন আগে'};
+const CATS=[
+ ['politics','রাজনীতি',/politic|rajniti/i,/বিএনপি|জামায়াত|আওয়ামী|নির্বাচন|সংসদ|মন্ত্রী|প্রধানমন্ত্রী|সরকার|ভোট|এমপি|প্রার্থী|এনসিপি|জাতীয় পার্টি|উপদেষ্টা|সংবিধান|রাজনীতি|রাজনৈতিক|সমাবেশ|হরতাল|আন্দোলন|দলীয়|মহাসচিব|স্পিকার|শপথ|গণভোট/],
+ ['intl','আন্তর্জাতিক',/world|international|antorjatik|bishwo|global/i,/যুক্তরাষ্ট্র|আমেরিকা|ট্রাম্প|ভারত|পাকিস্তান|চীন|রাশিয়া|ইউক্রেন|ইসরায়েল|গাজা|ফিলিস্তিন|ইরান|জাতিসংঘ|ইউরোপ|ব্রিটেন|জাপান|আন্তর্জাতিক|বিশ্ব|নেপাল|মিয়ানমার|রোহিঙ্গা|তালেবান|আফগানিস্তান|সৌদি|লেবানন|সিরিয়া|মোদি|পুতিন/],
+ ['economy','অর্থনীতি',/econom|business|bank|trade|finance/i,/টাকা|ডলার|দাম|বাজার|ব্যাংক|ঋণ|রপ্তানি|আমদানি|বিনিয়োগ|শেয়ার|পুঁজিবাজার|মূল্যস্ফীতি|জিডিপি|বাজেট|রাজস্ব|এনবিআর|শুল্ক|সোনা|বেতন|ব্যবসা|অর্থনীতি|বাণিজ্য|রিজার্ভ|আইএমএফ|বিশ্বব্যাংক/],
+ ['sports','খেলাধুলা',/sport|khela|cricket|football/i,/ক্রিকেট|ফুটবল|ম্যাচ|টেস্ট|ওয়ানডে|টি-টোয়েন্টি|বিশ্বকাপ|লিগ|গোল|কোচ|খেলোয়াড়|টাইগার|মেসি|রোনালদো|বিপিএল|সাকিব|তামিম|মুশফিক|আইপিএল|এশিয়া কাপ|টুর্নামেন্ট|ক্রীড়া|খেলা|ব্যাটার|বোলার|উইকেট|সিরিজ|অলিম্পিক/],
+ ['crime','অপরাধ',/crime|court|law-|police/i,/হত্যা|খুন|ধর্ষণ|গ্রেপ্তার|গ্রেফতার|পুলিশ|মামলা|আদালত|ডাকাতি|চুরি|লাশ|আটক|র‍্যাব|র্যাব|দুর্নীতি|প্রতারণা|মাদক|ইয়াবা|আসামি|রিমান্ড|কারাগার|জামিন|রায়|অভিযুক্ত/],
+ ['accident','দুর্ঘটনা',/accident|road/i,/দুর্ঘটনা|আগুন|অগ্নিকাণ্ড|সড়ক|নৌকাডুবি|সংঘর্ষ|ডুবে|বিস্ফোরণ|ধসে|পড়ে মৃত্যু/],
+ ['entertain','বিনোদন',/entertain|binodon|showbiz|cinema/i,/সিনেমা|চলচ্চিত্র|নায়ক|নায়িকা|অভিনেতা|অভিনেত্রী|গান|শিল্পী|নাটক|বলিউড|হলিউড|ঢালিউড|কনসার্ট|সংগীত|তারকা|ওটিটি|ওয়েব সিরিজ|পরিচালক/],
+ ['edu','শিক্ষা',/educat|shikkha|campus|admission/i,/স্কুল|কলেজ|বিশ্ববিদ্যালয়|ভর্তি|পরীক্ষা|এসএসসি|এইচএসসি|শিক্ষার্থী|শিক্ষক|ফলাফল|ঢাবি|বুয়েট|শিক্ষা|ক্যাম্পাস/],
+ ['health','স্বাস্থ্য',/health|medical|swasthya/i,/স্বাস্থ্য|হাসপাতাল|চিকিৎসা|চিকিৎসক|ডাক্তার|রোগ|ডেঙ্গু|করোনা|ভাইরাস|ওষুধ|টিকা|ক্যানসার|রোগী|সংক্রমণ/],
+ ['tech','প্রযুক্তি',/tech|science|gadget|digital/i,/প্রযুক্তি|মোবাইল|ইন্টারনেট|এআই|কৃত্রিম বুদ্ধিমত্তা|অ্যাপ|সফটওয়্যার|গুগল|অ্যাপল|ফেসবুক|সাইবার|স্মার্টফোন|ডিজিটাল|রোবট|চ্যাটজিপিটি/],
+ ['religion','ধর্ম',/relig|islam|dhormo/i,/ইসলাম|মসজিদ|হজ|রমজান|ঈদ|নামাজ|ধর্ম|মাদ্রাসা|আলেম|মুসলিম|পূজা|মন্দির|ওয়াজ|মাহফিল|উমরাহ|কোরআন/],
+ ['weather','আবহাওয়া',/weather|abohawa/i,/আবহাওয়া|বৃষ্টি|বন্যা|ঝড়|সাইক্লোন|ঘূর্ণিঝড়|ভূমিকম্প|তাপপ্রবাহ|নিম্নচাপ|শৈত্যপ্রবাহ|কুয়াশা|তাপমাত্রা|বজ্রপাত/]];
+const NQ=s=>String(s||'').normalize('NFC').toLowerCase().replace(/[\u200c\u200d]/g,'').replace(/য়/g,'য়').replace(/ড়/g,'ড়').replace(/ঢ়/g,'ঢ়');
+function inCat(x,c){x._c=x._c||{};if(x._c[c[0]]!=null)return x._c[c[0]];let p='';try{p=decodeURIComponent(new URL(x.link).pathname)}catch(e){}
+  const v=c[2].test(p)||c[3].test(NQ(x.title))||c[3].test(NQ((x.desc||'').slice(0,300)));return x._c[c[0]]=v}
+let cat='';
 let S={sub:'live',picking:false,basket:[],papers:[]},LIVE={items:[],names:{},updated:0},src='all',shown=40,built=false,tt=null;
 
 function toast(m,ms){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',ms||2600)}
 function has(l){const k=key(l);return S.basket.some(b=>key(b.link)===k)}
-function filtered(){const q=($('#q').value||'').trim().toLowerCase();return LIVE.items.filter(x=>(src==='all'||x.src===src)&&(!q||x.title.toLowerCase().includes(q)||(x.desc||'').toLowerCase().includes(q)))}
+function filtered(){const toks=NQ(($('#q').value||'').trim()).split(/\s+/).filter(Boolean);const c=cat?CATS.find(k=>k[0]===cat):null;
+  return LIVE.items.filter(x=>{if(src!=='all'&&x.src!==src)return false;if(c&&!inCat(x,c))return false;if(!toks.length)return true;const h=NQ(x.title+' '+(x.desc||''));return toks.every(t=>h.includes(t))})}
+function renderCats(){const n={};LIVE.items.forEach(x=>CATS.forEach(c=>{if(inCat(x,c))n[c[0]]=(n[c[0]]||0)+1}));
+  $('#cats').innerHTML=[['','সব বিষয়']].concat(CATS.filter(c=>n[c[0]]).map(c=>[c[0],c[1]])).map(([i,t])=>`<button class="chip${cat===i?' on':''}" data-c="${esc(i)}">${esc(t)}</button>`).join('')}
 function renderChips(){const c={};LIVE.items.forEach(x=>c[x.src]=(c[x.src]||0)+1);const ids=Object.keys(LIVE.names).filter(i=>c[i]);
   $('#chips').innerHTML=[['all','সব']].concat(ids.map(i=>[i,LIVE.names[i]])).map(([i,n])=>`<button class="chip${src===i?' on':''}" data-s="${esc(i)}">${esc(n)}</button>`).join('')}
 function renderList(){
   const L=filtered();$('#stat').textContent=LIVE.items.length?`${bn(LIVE.items.length)}টি খবর · ${ago(LIVE.updated)} আপডেট`:'খবর আনা হচ্ছে…';
   $('#list').innerHTML=L.slice(0,shown).map((x,i)=>`<div class="item${has(x.link)?' sel':''}" data-i="${i}">${x.img?`<img loading="lazy" src="${esc(img(x.img))}" alt="">`:'<div class="ph"></div>'}<div class="t"><b>${esc(x.title)}</b><small>${esc(x.srcName)} · ${ago(x.date)}</small></div><div class="tick">✓</div></div>`).join('');
+  if(!L.length&&LIVE.items.length)$('#list').innerHTML='<div class="empty" style="height:auto;padding:40px">এই বাছাইয়ে কোনো খবর নেই</div>';
   $('#more').style.display=L.length>shown?'block':'none';window._view=L}
 function renderBasket(){
   const B=S.basket;$('#cnt').textContent=bn(B.length);
@@ -139,10 +168,12 @@ function applyState(s){
   if(document.activeElement!==$('#url'))$('#url').value=S.url||'';
   $('#pk').classList.toggle('on',S.picking);$('#pk').textContent=S.picking?'বাছাই চালু — খবরে ক্লিক করুন':'বাছাই বন্ধ';
   if(S.back)$('#backT').textContent=S.back;
+  $('#gvT').textContent=S.toProject?'প্রজেক্টে নিন':'ভিডিও বানান';
   $('#ab').classList.toggle('ab-on',!!S.adblock);$('#ab').textContent=S.adblock?'বিজ্ঞাপন বন্ধ ✓':'বিজ্ঞাপন চালু';
   renderBasket()}
-async function load(force){try{const r=await hub.live(force);if(r&&r.items){LIVE=r;renderChips();renderList()}else $('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}catch(e){$('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}}
+async function load(force){try{const r=await hub.live(force);if(r&&r.items){LIVE=r;renderCats();renderChips();renderList()}else $('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}catch(e){$('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}}
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>hub.setSub(b.dataset.s));
+$('#cats').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;shown=40;renderCats();renderList();$('#live').scrollTop=0};
 $('#chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;src=b.dataset.s;shown=40;renderChips();renderList()};
 $('#q').oninput=()=>{shown=40;renderList()};
 $('#more').onclick=()=>{shown+=40;renderList()};
@@ -151,7 +182,8 @@ $('#list').onclick=async e=>{const el=e.target.closest('.item');if(!el)return;co
   if(has(x.link))await hub.remove(x.link);else{const r=await hub.add(x);if(r&&r.msg)toast(r.msg)}};
 $('#bl').onclick=async e=>{const row=e.target.closest('.bi');if(!row)return;const l=row.dataset.l;
   if(e.target.closest('[data-x]'))await hub.remove(l);else if(e.target.closest('[data-c]'))hub.send('card',l)};
-$('#gv').onclick=()=>hub.send('video');$('#gr').onclick=()=>hub.send('reel');
+let busy=false;const go=async k=>{if(busy)return;busy=true;$('#gv').disabled=$('#gr').disabled=true;try{await hub.send(k)}finally{busy=false;renderBasket()}};
+$('#gv').onclick=()=>go('video');$('#gr').onclick=()=>go('reel');
 $('#clr').onclick=()=>hub.clear();
 $('#bk').onclick=()=>hub.paperCmd('back');$('#fw').onclick=()=>hub.paperCmd('forward');$('#rl').onclick=()=>hub.paperCmd('reload');
 $('#url').addEventListener('keydown',e=>{if(e.key==='Enter')hub.paperGo(e.target.value)});$('#url').addEventListener('focus',e=>e.target.select());

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src tfimg: data:">
+<title>খবর</title>
+<style>
+:root{--bg:#0b1530;--bg2:#101f44;--card:#14264f;--ink:#eaf0ff;--mute:#93a5d1;--gold:#f5bd3c;--teal:#1fb6a6;--line:rgba(255,255,255,.09)}
+*{box-sizing:border-box;margin:0;font-family:"Noto Sans Bengali","Nirmala UI","Segoe UI",sans-serif;user-select:none}
+html,body{height:100%;background:var(--bg);color:var(--ink);overflow:hidden}
+#app{display:flex;height:100vh}
+#main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line);flex:none}
+.nav{height:48px;display:none;align-items:center;gap:7px;padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--line);flex:none}
+body.paper .nav{display:flex}
+.seg{display:flex;background:rgba(255,255,255,.06);border-radius:11px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--mute);padding:7px 18px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+.seg button.on{background:linear-gradient(135deg,#1c3a7a,#1a5f86);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.sp{flex:1}
+input.q,input.url{background:#0a1330;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 13px;font-size:14px;outline:none;user-select:text}
+input.q{width:260px}input.url{flex:1;min-width:120px}
+input:focus{border-color:var(--teal)}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);padding:7px 11px;border-radius:9px;font-size:14px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.14)}.btn:disabled{opacity:.35;cursor:default}
+select{background:#0a1330;border:1px solid var(--line);color:var(--ink);padding:7px 8px;border-radius:9px;font-size:13px;max-width:150px}
+.pick{border-color:var(--gold);color:var(--gold);font-weight:700;padding:7px 14px}
+.pick.on{background:var(--gold);color:#1b1500}
+#live{flex:1;overflow-y:auto;padding:12px 16px 24px}
+body.paper #live{display:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:transparent;color:var(--mute);padding:5px 13px;border-radius:999px;font-size:13px;cursor:pointer}
+.chip.on{background:var(--teal);color:#06231f;border-color:var(--teal);font-weight:700}
+.stat{font-size:12px;color:var(--mute);margin:2px 2px 10px;display:flex;align-items:center;gap:8px}
+.stat .dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px}
+.item{display:flex;gap:12px;align-items:center;background:var(--card);border:2px solid transparent;border-radius:14px;padding:9px;cursor:pointer;transition:.12s}
+.item:hover{background:#18305f}
+.item.sel{border-color:var(--gold);background:#1c2f55}
+.item img,.item .ph{width:104px;height:70px;border-radius:9px;object-fit:cover;flex:none;background:#0a1330}
+.item .t{flex:1;min-width:0}
+.item .t b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14.5px;line-height:1.45;font-weight:600}
+.item .t small{display:block;color:var(--mute);font-size:12px;margin-top:4px}
+.tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:15px;color:transparent;margin-right:4px}
+.item.sel .tick{background:var(--gold);border-color:var(--gold);color:#1b1500;font-weight:900}
+.more{display:block;margin:16px auto}
+#hole{flex:1}
+body:not(.paper) #hole{display:none}
+aside{width:340px;flex:none;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column}
+aside h3{font-size:16px;padding:16px 16px 10px;display:flex;align-items:center;gap:8px}
+aside h3 .n{background:var(--gold);color:#1b1500;border-radius:999px;font-size:13px;padding:1px 10px;font-weight:800}
+#bl{flex:1;overflow-y:auto;padding:0 12px 10px}
+.bi{display:flex;gap:10px;align-items:center;background:var(--card);border-radius:12px;padding:8px;margin-bottom:8px}
+.bi img,.bi .ph{width:62px;height:46px;border-radius:7px;object-fit:cover;flex:none;background:#0a1330}
+.bi .t{flex:1;min-width:0}.bi .t b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.4;font-weight:600}
+.bi .t small{color:var(--mute);font-size:11.5px}
+.bi .x{border:0;background:rgba(255,255,255,.08);color:var(--ink);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;flex:none}
+.bi .x:hover{background:#b3261e}
+.bi .card{border:1px solid var(--line);background:transparent;color:var(--mute);font-size:12px;border-radius:8px;padding:3px 8px;cursor:pointer;flex:none}
+.bi .card:hover{color:var(--ink);background:rgba(255,255,255,.1)}
+.empty{height:100%;display:grid;place-items:center;text-align:center;color:var(--mute);font-size:14px;padding:20px}
+.empty svg{width:46px;height:46px;stroke:currentColor;fill:none;stroke-width:1.6;opacity:.6;margin-bottom:10px}
+.acts{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px}
+.go{border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s}
+.go svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.go.v{background:linear-gradient(135deg,#f5bd3c,#e89a1a);color:#1b1500}
+.go.r{background:linear-gradient(135deg,#1fb6a6,#168f9a);color:#04201d}
+.go:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.08)}
+.go:disabled{opacity:.35;cursor:default}
+.clr{border:0;background:transparent;color:var(--mute);font-size:12.5px;cursor:pointer;padding:4px}
+.clr:hover{color:#ff8a80}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0a1330;border:1px solid var(--teal);padding:10px 18px;border-radius:12px;font-size:14px;display:none;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:9}
+</style></head>
+<body>
+<div id="app">
+ <div id="main">
+  <div class="top">
+   <div class="seg"><button data-s="live" class="on">লাইভ খবর</button><button data-s="paper">পত্রিকা</button></div>
+   <div class="sp"></div>
+   <input class="q" id="q" placeholder="খবর খুঁজুন" spellcheck="false">
+  </div>
+  <div class="nav">
+   <button class="btn" id="bk">←</button><button class="btn" id="fw">→</button><button class="btn" id="rl">⟳</button>
+   <select id="pp"></select>
+   <input class="url" id="url" spellcheck="false" placeholder="ঠিকানা লিখে Enter চাপুন">
+   <button class="btn pick" id="pk">বাছাই</button>
+  </div>
+  <div id="live">
+   <div class="chips" id="chips"></div>
+   <div class="stat"><span class="dot"></span><span id="stat">খবর আনা হচ্ছে…</span><button class="btn" id="ref" style="padding:3px 10px;font-size:12px">আপডেট</button></div>
+   <div class="list" id="list"></div>
+   <button class="btn more" id="more" style="display:none">আরও দেখুন</button>
+  </div>
+  <div id="hole"></div>
+ </div>
+ <aside>
+  <h3>আমার খবর <span class="n" id="cnt">০</span></h3>
+  <div id="bl"></div>
+  <div class="acts">
+   <button class="go v" id="gv" disabled><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/></svg>ভিডিও বানান</button>
+   <button class="go r" id="gr" disabled><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 10v4l3-2z"/></svg>রিল বানান</button>
+   <button class="clr" id="clr" style="display:none">সব মুছুন</button>
+  </div>
+ </aside>
+</div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s);
+const BN='০১২৩৪৫৬৭৮৯',bn=n=>String(n).replace(/\d/g,d=>BN[d]);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const key=u=>{try{const x=new URL(u);return(x.hostname.replace(/^www\d?\./,'')+x.pathname.replace(/\/+$/,'')).toLowerCase()}catch(e){return String(u||'')}};
+const img=u=>u?'tfimg://i/?u='+encodeURIComponent(u):'';
+const ago=d=>{if(!d)return'';const m=Math.round((Date.now()-d)/60000);if(m<1)return'এইমাত্র';if(m<60)return bn(m)+' মিনিট আগে';const h=Math.round(m/60);if(h<24)return bn(h)+' ঘণ্টা আগে';return bn(Math.round(h/24))+' দিন আগে'};
+let S={sub:'live',picking:false,basket:[],papers:[]},LIVE={items:[],names:{},updated:0},src='all',shown=40,built=false,tt=null;
+
+function toast(m,ms){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',ms||2600)}
+function has(l){const k=key(l);return S.basket.some(b=>key(b.link)===k)}
+function filtered(){const q=($('#q').value||'').trim().toLowerCase();return LIVE.items.filter(x=>(src==='all'||x.src===src)&&(!q||x.title.toLowerCase().includes(q)||(x.desc||'').toLowerCase().includes(q)))}
+function renderChips(){const c={};LIVE.items.forEach(x=>c[x.src]=(c[x.src]||0)+1);const ids=Object.keys(LIVE.names).filter(i=>c[i]);
+  $('#chips').innerHTML=[['all','সব']].concat(ids.map(i=>[i,LIVE.names[i]])).map(([i,n])=>`<button class="chip${src===i?' on':''}" data-s="${esc(i)}">${esc(n)}</button>`).join('')}
+function renderList(){
+  const L=filtered();$('#stat').textContent=LIVE.items.length?`${bn(LIVE.items.length)}টি খবর · ${ago(LIVE.updated)} আপডেট`:'খবর আনা হচ্ছে…';
+  $('#list').innerHTML=L.slice(0,shown).map((x,i)=>`<div class="item${has(x.link)?' sel':''}" data-i="${i}">${x.img?`<img loading="lazy" src="${esc(img(x.img))}" alt="">`:'<div class="ph"></div>'}<div class="t"><b>${esc(x.title)}</b><small>${esc(x.srcName)} · ${ago(x.date)}</small></div><div class="tick">✓</div></div>`).join('');
+  $('#more').style.display=L.length>shown?'block':'none';window._view=L}
+function renderBasket(){
+  const B=S.basket;$('#cnt').textContent=bn(B.length);
+  $('#bl').innerHTML=B.length?B.map(x=>`<div class="bi" data-l="${esc(x.link)}">${x.img?`<img src="${esc(img(x.img))}" alt="">`:'<div class="ph"></div>'}<div class="t"><b>${esc(x.title)}</b><small>${esc(x.srcName||'')}</small></div><button class="card" data-c="1" title="শুধু এই খবরের পোস্ট কার্ড">কার্ড</button><button class="x" data-x="1">×</button></div>`).join(''):
+   `<div class="empty"><div><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></svg><br>খবর বেছে নিন</div></div>`;
+  $('#gv').disabled=$('#gr').disabled=!B.length;$('#clr').style.display=B.length?'block':'none';
+  document.querySelectorAll('.item').forEach(el=>{const x=window._view&&window._view[+el.dataset.i];if(x)el.classList.toggle('sel',has(x.link))})}
+function applyState(s){
+  S=Object.assign(S,s);document.body.classList.toggle('paper',S.sub==='paper');
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.s===S.sub));
+  $('#q').style.display=S.sub==='live'?'':'none';
+  if(!built&&S.papers&&S.papers.length){built=true;const p=$('#pp');p.add(new Option('পত্রিকা বাছুন…',''));S.papers.forEach(x=>p.add(new Option(x[0],x[1])))}
+  $('#bk').disabled=!S.canBack;$('#fw').disabled=!S.canFwd;
+  if(document.activeElement!==$('#url'))$('#url').value=S.url||'';
+  $('#pk').classList.toggle('on',S.picking);$('#pk').textContent=S.picking?'বাছাই চালু — খবরে ক্লিক করুন':'বাছাই বন্ধ';
+  renderBasket()}
+async function load(force){try{const r=await hub.live(force);if(r&&r.items){LIVE=r;renderChips();renderList()}else $('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}catch(e){$('#stat').textContent='খবর আনা যায়নি — ইন্টারনেট দেখুন'}}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>hub.setSub(b.dataset.s));
+$('#chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;src=b.dataset.s;shown=40;renderChips();renderList()};
+$('#q').oninput=()=>{shown=40;renderList()};
+$('#more').onclick=()=>{shown+=40;renderList()};
+$('#ref').onclick=()=>load(true);
+$('#list').onclick=async e=>{const el=e.target.closest('.item');if(!el)return;const x=window._view[+el.dataset.i];if(!x)return;
+  if(has(x.link))await hub.remove(x.link);else{const r=await hub.add(x);if(r&&r.msg)toast(r.msg)}};
+$('#bl').onclick=async e=>{const row=e.target.closest('.bi');if(!row)return;const l=row.dataset.l;
+  if(e.target.closest('[data-x]'))await hub.remove(l);else if(e.target.closest('[data-c]'))hub.send('card',l)};
+$('#gv').onclick=()=>hub.send('video');$('#gr').onclick=()=>hub.send('reel');
+$('#clr').onclick=()=>hub.clear();
+$('#bk').onclick=()=>hub.paperCmd('back');$('#fw').onclick=()=>hub.paperCmd('forward');$('#rl').onclick=()=>hub.paperCmd('reload');
+$('#url').addEventListener('keydown',e=>{if(e.key==='Enter')hub.paperGo(e.target.value)});$('#url').addEventListener('focus',e=>e.target.select());
+$('#pp').onchange=e=>{if(e.target.value)hub.paperGo(e.target.value);e.target.selectedIndex=0};
+$('#pk').onclick=()=>hub.setPick(!S.picking);
+hub.onState(applyState);hub.onToast(t=>toast(t.msg,t.ms));
+hub.state().then(s=>{applyState(s);load(false)});
+setInterval(()=>{if(S.sub==='live')load(false)},10*60*1000);
+</script>
+</body></html>

@@ -23,6 +23,10 @@ post = post.replace(tag, '<script src="Readability.js"></script>');
 // Bundle the Google fonts the post app asks for (Noto Serif Bengali, Tiro Bangla) so Bangla text never breaks offline.
 post = post.replace(/<link[^>]*fonts\.googleapis\.com[^>]*>\s*/g, '').replace(/<link[^>]*fonts\.gstatic\.com[^>]*>\s*/g, '');
 post = post.replace('</head>', '<link rel="stylesheet" href="fonts/extra-fonts.css">\n</head>');
+// Desktop: let the shell hand a collected story to the app's own card / reel code.
+const mustReplace = (src, a, b) => { if (!src.includes(a)) throw new Error('post app changed, cannot find: ' + a); return src.replace(a, b); };
+post = mustReplace(post, 'window.TFCR = { cardBlob,', 'window.TFCR = { nwPick, cardBlob,');
+post = mustReplace(post, 'window.TFPapers = { open: ppOpen,', 'window.TFPapers = { itemObj: ppItemObj, open: ppOpen,');
 writeFileSync(join(out, 'post', 'index.html'), post);
 copyFileSync(join(root, 'node_modules', '@mozilla', 'readability', 'Readability.js'), join(out, 'post', 'Readability.js'));
 if (existsSync(join(SRC_POST, 'fonts'))) {

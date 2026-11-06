@@ -1,25 +1,26 @@
 'use strict';
 /* TF Media Studio — main process.
-   Runs TF News Studio, TF FB Reels & Post Maker and a newspaper browser in one window.
-   Security: contextIsolation + sandbox on, no node in pages, apps served only from the
-   bundled folder (tfapp://), pages cannot open other windows, all permissions denied
-   except what the two apps need, cookies are never sent from the app pages. */
+   One window, three places:  খবর (mother place: live headlines + newspaper browser + basket),
+   ভিডিও (TF News Studio) and পোস্ট ও রিল (TF FB Reels & Post Maker).
+   Security: contextIsolation + sandbox on, no node in pages, apps served only from the bundled folder (tfapp://),
+   pages cannot open other windows, permissions denied except what the apps need, cookies are never sent from app pages. */
 
-const { app, BaseWindow, WebContentsView, session, protocol, net, ipcMain, shell, Menu, dialog } = require('electron');
+const { app, BaseWindow, WebContentsView, session, protocol, net, ipcMain, shell, Menu, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
+const { extract, cleanUrl } = require('./extract');
 
-const SELFTEST = process.env.TF_SELFTEST === '1';
+const SELFTEST = !app.isPackaged && process.env.TF_SELFTEST === '1'; // build checks only, never in the installed app
 const APPS_DIR = path.join(__dirname, '..', 'apps');
-const BAR_H1 = 56;          // tab bar
-const BAR_H2 = 100;         // tab bar + newspaper row
+const BAR_H = 56;
+const HUB_TOP_LIVE = 52, HUB_TOP_PAPER = 100, BASKET_W = 340;
 const MAX_IMG = 30 * 1024 * 1024;
-
-const TABS = ['news', 'post', 'paper'];
-const PARTS = { news: 'persist:tf-news', post: 'persist:tf-post', paper: 'persist:tf-paper', bar: 'tf-bar' };
+const TABS = ['hub', 'news', 'post'];
+const PARTS = { bar: 'tf-bar', hub: 'tf-hub', news: 'persist:tf-news', post: 'persist:tf-post', paper: 'persist:tf-paper' };
 const INPUT_ID = { post: 'cardFile', news: 'galFiles' };
-
+const NW_FEED = 'https://raw.githubusercontent.com/taiful666/TFCRFBPOSTMAKERAIMOBILE/live-news/news.json';
+const NW_SRC = { prothomalo: 'প্রথম আলো', jamuna: 'যমুনা টিভি', kalbela: 'কালবেলা', bdnews24: 'বিডিনিউজ২৪', jugantor: 'যুগান্তর', kalerkantho: 'কালের কণ্ঠ', samakal: 'সমকাল', somoy: 'সময় টিভি', jagonews: 'জাগো নিউজ', dailystarbn: 'ডেইলি স্টার বাংলা', ittefaq: 'ইত্তেফাক', bdpratidin: 'বাংলাদেশ প্রতিদিন', rtv: 'আরটিভি', channel24: 'চ্যানেল ২৪', ekattor: 'একাত্তর টিভি', ntv: 'এনটিভি', channeli: 'চ্যানেল আই', dhakapost: 'ঢাকা পোস্ট', banglatribune: 'বাংলা ট্রিবিউন', banglanews24: 'বাংলানিউজ২৪', risingbd: 'রাইজিংবিডি', ajkerpatrika: 'আজকের পত্রিকা', deshrupantor: 'দেশ রূপান্তর', nayadiganta: 'নয়া দিগন্ত', manabzamin: 'মানবজমিন', inqilab: 'ইনকিলাব', bbcbangla: 'বিবিসি বাংলা', dailystar: 'দ্য ডেইলি স্টার', google: 'গুগল নিউজ' };
 const PAPERS = [
   ['প্রথম আলো', 'https://www.prothomalo.com/'], ['কালবেলা', 'https://www.kalbela.com/'],
   ['যুগান্তর', 'https://www.jugantor.com/'], ['কালের কণ্ঠ', 'https://www.kalerkantho.com/'],
@@ -37,14 +38,15 @@ const PAPERS = [
 
 let win = null;
 const views = {};
-let activeTab = 'news';
-let paperPicking = false;
-let pickTarget = 'post';
-let barH = BAR_H1;
-let toastTimer = null;
+let activeTab = 'hub';
+let hubSub = 'live';
+let picking = false;
+let basket = [];
 const loaded = {};
+let liveCache = { at: 0, data: null };
 
 /* ---------- helpers ---------- */
+const keyOf = (u) => { try { const x = new URL(u); return (x.hostname.replace(/^www\d?\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); } catch (e) { return String(u || ''); } };
 function isHttpUrl(u) { try { const p = new URL(u); return p.protocol === 'http:' || p.protocol === 'https:'; } catch (e) { return false; } }
 function isBlockedHost(host) {
   host = String(host || '').toLowerCase();
@@ -52,102 +54,161 @@ function isBlockedHost(host) {
   if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return true;
   if (host === '[::1]' || host.startsWith('[fe80') || host.startsWith('[fc') || host.startsWith('[fd')) return true;
   const m = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (m) {
-    const a = +m[1], b = +m[2];
-    if (a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return true;
-  }
+  if (m) { const a = +m[1], b = +m[2]; if (a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return true; }
   return false;
 }
-function stateOf() {
-  const pv = views.paper && views.paper.webContents;
+const alive = (v) => v && !v.webContents.isDestroyed();
+function srcNameOf(link, site) {
+  let h = ''; try { h = new URL(link).hostname.replace(/^www\d?\./, ''); } catch (e) {}
+  const map = { 'prothomalo.com': 'প্রথম আলো', 'kalbela.com': 'কালবেলা', 'jugantor.com': 'যুগান্তর', 'kalerkantho.com': 'কালের কণ্ঠ', 'samakal.com': 'সমকাল', 'ittefaq.com.bd': 'ইত্তেফাক', 'bd-pratidin.com': 'বাংলাদেশ প্রতিদিন', 'dailynayadiganta.com': 'নয়া দিগন্ত', 'ajkerpatrika.com': 'আজকের পত্রিকা', 'deshrupantor.com': 'দেশ রূপান্তর', 'bdnews24.com': 'বিডিনিউজ২৪', 'dhakapost.com': 'ঢাকা পোস্ট', 'jagonews24.com': 'জাগো নিউজ', 'banglanews24.com': 'বাংলানিউজ২৪', 'risingbd.com': 'রাইজিংবিডি', 'banglatribune.com': 'বাংলা ট্রিবিউন', 'jamuna.tv': 'যমুনা টিভি', 'somoynews.tv': 'সময় টিভি', 'rtvonline.com': 'আরটিভি', 'ntvbd.com': 'এনটিভি', 'channel24bd.tv': 'চ্যানেল ২৪', 'ekattor.tv': 'একাত্তর টিভি', 'thedailystar.net': 'দ্য ডেইলি স্টার' };
+  for (const k of Object.keys(map)) if (h === k || h.endsWith('.' + k)) return map[k];
+  return site || h;
+}
+
+/* ---------- state → bar & hub ---------- */
+function hubState() {
+  const pv = alive(views.paper) ? views.paper.webContents : null;
   return {
-    tab: activeTab, picking: paperPicking, target: pickTarget,
-    url: pv && !pv.isDestroyed() ? pv.getURL() : '',
-    canBack: !!(pv && !pv.isDestroyed() && pv.navigationHistory.canGoBack()),
-    canFwd: !!(pv && !pv.isDestroyed() && pv.navigationHistory.canGoForward()),
-    papers: PAPERS
+    sub: hubSub, picking, basket, papers: PAPERS,
+    url: pv ? pv.getURL() : '',
+    canBack: !!(pv && pv.navigationHistory.canGoBack()),
+    canFwd: !!(pv && pv.navigationHistory.canGoForward())
   };
 }
-function pushState() { if (views.bar && !views.bar.webContents.isDestroyed()) views.bar.webContents.send('tf:state', stateOf()); }
-function say(msg, extra) {
-  if (!views.bar || views.bar.webContents.isDestroyed()) return;
-  views.bar.webContents.send('tf:toast', Object.assign({ msg }, extra || {}));
-  clearTimeout(toastTimer);
+function pushState() {
+  if (alive(views.bar)) views.bar.webContents.send('tf:state', { tab: activeTab, count: basket.length });
+  if (alive(views.hub)) views.hub.webContents.send('hub:state', hubState());
 }
+function say(msg, extra) {
+  if (alive(views.bar)) views.bar.webContents.send('tf:toast', Object.assign({ msg }, extra || {}));
+}
+function hubSay(msg, ms) { if (alive(views.hub)) views.hub.webContents.send('hub:toast', { msg, ms }); }
 function layout() {
   if (!win) return;
   const [w, h] = win.getContentSize();
-  views.bar.setBounds({ x: 0, y: 0, width: w, height: barH });
-  for (const t of TABS) views[t].setBounds({ x: 0, y: barH, width: w, height: Math.max(0, h - barH) });
+  const bodyH = Math.max(0, h - BAR_H);
+  views.bar.setBounds({ x: 0, y: 0, width: w, height: BAR_H });
+  for (const t of TABS) views[t].setBounds({ x: 0, y: BAR_H, width: w, height: bodyH });
+  const top = hubSub === 'paper' ? HUB_TOP_PAPER : HUB_TOP_LIVE;
+  views.paper.setBounds({ x: 0, y: BAR_H + top, width: Math.max(0, w - BASKET_W), height: Math.max(0, bodyH - top) });
+}
+function applyVisibility() {
+  for (const t of TABS) views[t].setVisible(t === activeTab);
+  views.paper.setVisible(activeTab === 'hub' && hubSub === 'paper');
+}
+function loadApp(tab) {
+  if (loaded[tab]) return;
+  loaded[tab] = true;
+  views[tab].webContents.loadURL('tfapp://' + tab + '/index.html');
 }
 function showTab(tab) {
   if (!TABS.includes(tab)) return;
   activeTab = tab;
-  if (!loaded[tab]) {
-    loaded[tab] = true;
-    if (tab === 'paper') views.paper.webContents.loadURL(PAPERS[0][1]);
-    else views[tab].webContents.loadURL('tfapp://' + tab + '/index.html');
-  }
-  for (const t of TABS) views[t].setVisible(t === tab);
-  barH = tab === 'paper' ? BAR_H2 : BAR_H1;
-  layout();
-  views[tab].webContents.focus();
-  if (tab !== 'paper' && paperPicking) setPicking(false);
+  if (tab === 'hub') { if (hubSub === 'paper' && !loaded.paper) { loaded.paper = true; views.paper.webContents.loadURL(PAPERS[0][1]); } }
+  else loadApp(tab);
+  applyVisibility(); layout();
+  (tab === 'hub' && hubSub === 'paper' ? views.paper : views[tab]).webContents.focus();
+  if (tab !== 'hub' && picking) setPicking(false);
   pushState();
   try { fs.writeFileSync(path.join(app.getPath('userData'), 'last-tab.json'), JSON.stringify({ tab })); } catch (e) {}
 }
+function setSub(sub) {
+  if (!['live', 'paper'].includes(sub)) return;
+  hubSub = sub;
+  if (sub === 'paper' && !loaded.paper) { loaded.paper = true; views.paper.webContents.loadURL(PAPERS[0][1]); }
+  if (sub !== 'paper' && picking) setPicking(false);
+  applyVisibility(); layout(); pushState();
+}
 function setPicking(on) {
-  paperPicking = !!on;
-  if (views.paper && !views.paper.webContents.isDestroyed()) views.paper.webContents.send('tf:pick-mode', paperPicking);
+  picking = !!on;
+  if (alive(views.paper)) views.paper.webContents.send('tf:pick-mode', picking);
   pushState();
 }
 
-/* ---------- sessions (network rules) ---------- */
-const CHROME_UA = process.versions.chrome;
-function userAgent() {
-  return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/' + CHROME_UA + ' Safari/537.36';
+/* ---------- basket ---------- */
+const basketFile = () => path.join(app.getPath('userData'), 'basket.json');
+function loadBasket() { try { const j = JSON.parse(fs.readFileSync(basketFile(), 'utf8')); if (Array.isArray(j)) basket = j.filter((x) => x && isHttpUrl(x.link)).slice(0, 60); } catch (e) {} }
+function saveBasket() { try { fs.writeFileSync(basketFile(), JSON.stringify(basket)); } catch (e) {} }
+function normItem(x) {
+  if (!x || typeof x !== 'object' || !isHttpUrl(x.link) || typeof x.title !== 'string') return null;
+  const t = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const date = typeof x.date === 'number' ? x.date : (x.date ? Date.parse(x.date) || 0 : 0);
+  return {
+    title: t(x.title, 300).replace(/\s+/g, ' ').trim(), link: t(x.link, 2000),
+    img: isHttpUrl(x.img) ? t(x.img, 2000) : '', desc: t(x.desc, 600), text: t(x.text, 20000),
+    srcName: t(x.srcName, 80), src: t(x.src, 40), date
+  };
 }
+function addToBasket(raw) {
+  const it = normItem(raw);
+  if (!it || !it.title) return { ok: false, msg: 'এই খবরটি যোগ করা যায়নি' };
+  const k = keyOf(it.link);
+  const ex = basket.find((b) => keyOf(b.link) === k);
+  if (ex) {
+    if (it.text && !ex.text) { Object.assign(ex, { text: it.text, img: it.img || ex.img, desc: it.desc || ex.desc }); saveBasket(); pushState(); }
+    return { ok: true, msg: 'এই খবর আগেই যোগ করা আছে' };
+  }
+  if (basket.length >= 60) return { ok: false, msg: 'সর্বোচ্চ ৬০টি খবর রাখা যায়' };
+  basket.push(it); saveBasket(); pushState();
+  return { ok: true, msg: 'খবর যোগ হয়েছে ✓' };
+}
+
+/* ---------- live feed ---------- */
+async function fetchLive(force) {
+  if (!force && liveCache.data && Date.now() - liveCache.at < 4 * 60 * 1000) return liveCache.data;
+  const r = await net.fetch(NW_FEED + '?t=' + Math.floor(Date.now() / 60000), { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  const seen = new Set(), items = [];
+  Object.entries(j.sources || {}).forEach(([id, s]) => (s.items || []).forEach((it) => {
+    if (!it || !it.title || !isHttpUrl(it.link)) return;
+    const k = keyOf(it.link); if (seen.has(k)) return; seen.add(k);
+    const d = it.date ? Date.parse(it.date) : 0;
+    items.push({
+      title: String(it.title).replace(/\s+/g, ' ').trim(), link: it.link,
+      img: isHttpUrl(it.img) ? String(it.img).replace('//images.prothomalo.com/', '//media.prothomalo.com/') : '',
+      desc: String(it.desc || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600),
+      date: isNaN(d) ? 0 : d, src: id, srcName: id === 'google' && it.gsrc ? String(it.gsrc) : (NW_SRC[id] || id)
+    });
+  }));
+  items.sort((a, b) => (b.date || 0) - (a.date || 0));
+  liveCache = { at: Date.now(), data: { items, names: NW_SRC, updated: j.updated ? Date.parse(j.updated) : Date.now() } };
+  return liveCache.data;
+}
+
+/* ---------- sessions (network rules) ---------- */
+const CHROME = process.versions.chrome;
+const UA = () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/' + CHROME + ' Safari/537.36';
 function setupAppSession(ses) {
-  ses.setUserAgent(userAgent());
-  // The two apps are our own bundled code. Let them read any news site directly (no slow public proxies),
-  // but never send cookies, so no login of the user can leak through a page.
+  ses.setUserAgent(UA());
   const filter = { urls: ['http://*/*', 'https://*/*'] };
+  // The apps are our own bundled code: they may read any news site directly (no slow public proxies), but no cookies are ever sent.
   ses.webRequest.onBeforeSendHeaders(filter, (d, cb) => {
     const h = d.requestHeaders;
     try {
       const o = new URL(d.url).origin;
       delete h.Cookie; delete h.cookie;
-      h.Referer = o + '/';
-      if (h.Origin) h.Origin = o;
+      h.Referer = o + '/'; if (h.Origin) h.Origin = o;
       delete h['Sec-Fetch-Site']; delete h['Sec-Fetch-Mode']; delete h['Sec-Fetch-Dest'];
     } catch (e) {}
     cb({ requestHeaders: h });
   });
   ses.webRequest.onHeadersReceived(filter, (d, cb) => {
     const h = d.responseHeaders || {};
-    for (const k of Object.keys(h)) {
-      const lk = k.toLowerCase();
-      if (lk.startsWith('access-control-') || lk === 'set-cookie' || lk === 'cross-origin-resource-policy') delete h[k];
-    }
-    h['Access-Control-Allow-Origin'] = ['*'];
-    h['Access-Control-Allow-Methods'] = ['GET, POST, PUT, DELETE, OPTIONS'];
-    h['Access-Control-Allow-Headers'] = ['*'];
+    for (const k of Object.keys(h)) { const lk = k.toLowerCase(); if (lk.startsWith('access-control-') || lk === 'set-cookie' || lk === 'cross-origin-resource-policy') delete h[k]; }
+    h['Access-Control-Allow-Origin'] = ['*']; h['Access-Control-Allow-Methods'] = ['GET, POST, PUT, DELETE, OPTIONS']; h['Access-Control-Allow-Headers'] = ['*'];
     cb({ responseHeaders: h, statusLine: d.method === 'OPTIONS' ? 'HTTP/1.1 200 OK' : d.statusLine });
   });
   const allowed = new Set(['media', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen', 'audioCapture', 'videoCapture']);
-  ses.setPermissionRequestHandler((wc, perm, cb, det) => {
-    let ok = false;
-    try { ok = allowed.has(perm) && new URL(det.requestingUrl || wc.getURL()).protocol === 'tfapp:'; } catch (e) {}
-    cb(ok);
-  });
+  ses.setPermissionRequestHandler((wc, perm, cb, det) => { let ok = false; try { ok = allowed.has(perm) && new URL(det.requestingUrl || wc.getURL()).protocol === 'tfapp:'; } catch (e) {} cb(ok); });
   ses.setPermissionCheckHandler((wc, perm, origin) => allowed.has(perm) && String(origin).startsWith('tfapp:'));
   ses.on('will-download', (e, item) => handleDownload(item));
 }
 function setupPaperSession(ses) {
-  ses.setUserAgent(userAgent());
+  ses.setUserAgent(UA());
   ses.setPermissionRequestHandler((wc, perm, cb) => cb(false));
   ses.setPermissionCheckHandler(() => false);
-  ses.on('will-download', (e) => e.preventDefault()); // the newspaper browser never saves files by itself
+  ses.on('will-download', (e) => e.preventDefault());
 }
 function uniquePath(dir, name) {
   name = String(name || 'file').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120) || 'file';
@@ -162,114 +223,168 @@ function handleDownload(item) {
     fs.mkdirSync(dir, { recursive: true });
     const p = uniquePath(dir, item.getFilename());
     item.setSavePath(p);
-    item.once('done', (e, state) => {
-      if (state === 'completed') say('সেভ হয়েছে: ' + path.basename(p), { folder: p });
-      else say('সেভ করা যায়নি');
-    });
+    item.once('done', (e, state) => { if (state === 'completed') say('সেভ হয়েছে: ' + path.basename(p), { folder: p }); else say('সেভ করা যায়নি'); });
   } catch (e) { item.cancel(); say('সেভ করা যায়নি'); }
 }
 
-/* ---------- serving the bundled apps ---------- */
-function registerProtocol(ses) {
+/* ---------- serving the bundled apps and safe thumbnails ---------- */
+const CSP_APP = "default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src * data: blob:; media-src * data: blob:; connect-src * data: blob:; font-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'none'";
+function registerAppProtocol(ses) {
   ses.protocol.handle('tfapp', async (req) => {
     try {
       const u = new URL(req.url);
-      const root = path.join(APPS_DIR, u.hostname);
       if (!['post', 'news'].includes(u.hostname)) return new Response('Not found', { status: 404 });
-      let rel = decodeURIComponent(u.pathname);
-      if (rel === '/' || rel === '') rel = '/index.html';
+      const root = path.join(APPS_DIR, u.hostname);
+      let rel = decodeURIComponent(u.pathname); if (rel === '/' || rel === '') rel = '/index.html';
       const file = path.normalize(path.join(root, rel));
       if (!file.startsWith(root + path.sep)) return new Response('Forbidden', { status: 403 });
       const r = await net.fetch(pathToFileURL(file).toString());
-      const h = new Headers(r.headers);
-      h.set('Content-Security-Policy',
-        "default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; " +
-        "style-src 'self' 'unsafe-inline'; img-src * data: blob:; media-src * data: blob:; connect-src * data: blob:; " +
-        "font-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'none'");
-      h.set('X-Content-Type-Options', 'nosniff');
+      const h = new Headers(r.headers); h.set('Content-Security-Policy', CSP_APP); h.set('X-Content-Type-Options', 'nosniff');
       return new Response(r.body, { status: r.status, headers: h });
     } catch (e) { return new Response('Not found', { status: 404 }); }
   });
 }
+const thumbCache = new Map();
+function registerThumbProtocol(ses) {
+  ses.protocol.handle('tfimg', async (req) => {
+    try {
+      const u = new URL(req.url).searchParams.get('u');
+      if (!isHttpUrl(u) || isBlockedHost(new URL(u).hostname)) return new Response('', { status: 400 });
+      if (thumbCache.has(u)) { const c = thumbCache.get(u); return new Response(c.buf, { headers: { 'Content-Type': c.type, 'Cache-Control': 'max-age=3600' } }); }
+      const { buf, mime } = await fetchImage(u, new URL(u).origin + '/');
+      if (thumbCache.size > 200) thumbCache.delete(thumbCache.keys().next().value);
+      thumbCache.set(u, { buf, type: mime });
+      return new Response(buf, { headers: { 'Content-Type': mime, 'Cache-Control': 'max-age=3600' } });
+    } catch (e) { return new Response('', { status: 404 }); }
+  });
+}
 
-/* ---------- picking a newspaper image and sending it to an app ---------- */
+/* ---------- pictures ---------- */
 async function fetchImage(imgUrl, pageUrl) {
   if (!isHttpUrl(imgUrl)) throw new Error('bad url');
   if (isBlockedHost(new URL(imgUrl).hostname)) throw new Error('blocked host');
   const ses = session.fromPartition(PARTS.paper);
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 30000);
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 20000);
   try {
     const r = await ses.fetch(imgUrl, { headers: { Referer: isHttpUrl(pageUrl) ? pageUrl : new URL(imgUrl).origin + '/', Accept: 'image/avif,image/webp,image/*,*/*;q=0.8' }, signal: ctl.signal });
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const len = Number(r.headers.get('content-length') || 0);
-    if (len > MAX_IMG) throw new Error('too big');
+    if (Number(r.headers.get('content-length') || 0) > MAX_IMG) throw new Error('too big');
     const buf = Buffer.from(await r.arrayBuffer());
     if (buf.length > MAX_IMG || buf.length < 200) throw new Error('bad size');
-    let mime = String(r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-    const sig = buf.subarray(0, 16);
+    const sig = buf.subarray(0, 16); let mime = '';
     if (sig[0] === 0x89 && sig[1] === 0x50) mime = 'image/png';
     else if (sig[0] === 0xff && sig[1] === 0xd8) mime = 'image/jpeg';
     else if (sig.toString('ascii', 0, 4) === 'RIFF' && sig.toString('ascii', 8, 12) === 'WEBP') mime = 'image/webp';
     else if (sig.toString('ascii', 0, 3) === 'GIF') mime = 'image/gif';
     else if (sig.toString('ascii', 4, 12).startsWith('ftypavif')) mime = 'image/avif';
-    else mime = '';
     if (!mime) throw new Error('not an image');
     return { buf, mime };
   } finally { clearTimeout(timer); }
+}
+// a picture the apps can always use: JPEG/PNG up to 1600 px as data (no hotlink problems); other formats keep their link
+async function imageForApp(item) {
+  if (!item.img) return '';
+  try {
+    const { buf, mime } = await fetchImage(item.img, item.link);
+    if (mime !== 'image/jpeg' && mime !== 'image/png') return item.img;
+    let ni = nativeImage.createFromBuffer(buf);
+    if (ni.isEmpty()) return item.img;
+    const s = ni.getSize();
+    if (Math.max(s.width, s.height) > 1600) ni = ni.resize(s.width >= s.height ? { width: 1600 } : { height: 1600 });
+    const out = ni.toJPEG(88);
+    if (out.length > 3.5 * 1024 * 1024) return item.img;
+    return 'data:image/jpeg;base64,' + out.toString('base64');
+  } catch (e) { return item.img; }
 }
 function safeName(imgUrl, mime) {
   let base = 'news-photo';
   try { base = decodeURIComponent(path.basename(new URL(imgUrl).pathname)).replace(/\.[a-z0-9]{2,5}$/i, ''); } catch (e) {}
   base = base.replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 50) || 'news-photo';
-  const ext = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' }[mime] || 'jpg';
-  return base + '.' + ext;
+  return base + '.' + ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' }[mime] || 'jpg');
 }
 async function sendImageToApp(target, imgUrl, pageUrl) {
   if (!INPUT_ID[target]) throw new Error('bad target');
   const { buf, mime } = await fetchImage(imgUrl, pageUrl);
   const wc = views[target].webContents;
-  if (!loaded[target]) { loaded[target] = true; await wc.loadURL('tfapp://' + target + '/index.html'); }
-  const code = '(async()=>{try{' +
-    'const inp=document.getElementById(' + JSON.stringify(INPUT_ID[target]) + ');if(!inp)return "noinput";' +
-    'let blob=await (await fetch("data:' + mime + ';base64,' + buf.toString('base64') + '")).blob();' +
-    'let name=' + JSON.stringify(safeName(imgUrl, mime)) + ';' +
+  if (!loaded[target]) { loadApp(target); await waitLoaded(wc); }
+  const code = '(async()=>{try{const inp=document.getElementById(' + JSON.stringify(INPUT_ID[target]) + ');if(!inp)return "noinput";' +
+    'let blob=await (await fetch("data:' + mime + ';base64,' + buf.toString('base64') + '")).blob();let name=' + JSON.stringify(safeName(imgUrl, mime)) + ';' +
     'if(!/^image\\/(png|jpeg|webp|gif)$/.test(blob.type)){const bm=await createImageBitmap(blob);const c=document.createElement("canvas");c.width=bm.width;c.height=bm.height;c.getContext("2d").drawImage(bm,0,0);blob=await new Promise(r=>c.toBlob(r,"image/png"));name=name.replace(/\\.[a-z0-9]+$/i,".png");}' +
-    'const f=new File([blob],name,{type:blob.type});const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;' +
-    'inp.dispatchEvent(new Event("change",{bubbles:true}));return "ok";}catch(e){return "err"}})()';
-  const res = await wc.executeJavaScript(code, true);
-  if (res !== 'ok') throw new Error(res);
+    'const f=new File([blob],name,{type:blob.type});const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event("change",{bubbles:true}));return "ok";}catch(e){return "err"}})()';
+  if ((await wc.executeJavaScript(code, true)) !== 'ok') throw new Error('inject');
 }
-async function pickImage(target, imgUrl, pageUrl) {
-  say('ছবি আনা হচ্ছে…');
-  try {
-    await sendImageToApp(target, imgUrl, pageUrl);
-    say('ছবি ' + (target === 'post' ? 'পোস্ট মেকারে' : 'নিউজ স্টুডিওতে') + ' চলে গেছে ✓');
-  } catch (e) {
-    say('এই ছবিটি আনা যায়নি। অন্য ছবি চেষ্টা করুন');
+function waitLoaded(wc) {
+  return new Promise((res) => { if (!wc.isLoading() && wc.getURL()) return res(); wc.once('did-finish-load', () => setTimeout(res, 600)); setTimeout(res, 20000); });
+}
+
+/* ---------- patches that run inside the two apps (desktop version only) ---------- */
+const patchSrc = {};
+for (const n of ['news', 'post']) { try { patchSrc[n] = fs.readFileSync(path.join(__dirname, 'patches', n + '.js'), 'utf8'); } catch (e) { patchSrc[n] = ''; } }
+
+/* ---------- send the basket to an app ---------- */
+async function sendFromBasket(kind, onlyLink) {
+  let list = onlyLink ? basket.filter((b) => keyOf(b.link) === keyOf(onlyLink)) : basket.slice();
+  if (!list.length) { hubSay('আগে খবর বেছে নিন'); return; }
+  const target = kind === 'video' ? 'news' : 'post';
+  hubSay('প্রস্তুত করা হচ্ছে…', 8000);
+  const out = []; let idx = 0;
+  await Promise.all(Array.from({ length: Math.min(4, list.length) }, async () => {
+    while (idx < list.length) { const i = idx++; out[i] = Object.assign({}, list[i], { img: await imageForApp(list[i]) }); }
+  }));
+  const wc = views[target].webContents;
+  if (!loaded[target]) { loadApp(target); await waitLoaded(wc); }
+  const payload = JSON.stringify(out.map((x) => ({ title: x.title, link: x.link, img: x.img, desc: x.desc, text: x.text, srcName: x.srcName, date: x.date || 0 })));
+  let code;
+  if (kind === 'video') {
+    code = '(()=>{const L=' + payload + '.map(x=>Object.assign(x,{date:x.date||0}));if(typeof nwUse!=="function")return "missing";nwUse(L);return "ok"})()';
+  } else if (kind === 'reel') {
+    code = '(()=>{const L=' + payload + '.map(x=>TFPapers.itemObj(Object.assign({},x,{date:x.date?new Date(x.date).toISOString():""})));if(!window.TFReel)return "missing";return window.TFReel.open(L)?"ok":"empty"})()';
+  } else {
+    code = '(()=>{const x=' + payload + '[0];if(!window.TFCR||!TFCR.nwPick||!window.TFPapers)return "missing";TFCR.nwPick(TFPapers.itemObj(Object.assign({},x,{date:x.date?new Date(x.date).toISOString():""})));return "ok"})()';
   }
+  showTab(target);
+  try {
+    const r = await wc.executeJavaScript(code, true);
+    if (r === 'missing') say('এই অংশটি এখন চালু করা যায়নি');
+  } catch (e) { say('এই অংশটি এখন চালু করা যায়নি'); }
+}
+
+/* ---------- collecting a story clicked in the newspaper browser ---------- */
+const collecting = new Set();
+async function collectStory(href, hintTitle, hintImg) {
+  if (!isHttpUrl(href) || isBlockedHost(new URL(href).hostname)) return { ok: false, msg: 'এই লিংক নেওয়া যায়নি' };
+  const k = keyOf(href);
+  if (basket.some((b) => keyOf(b.link) === k)) return { ok: true, msg: 'এই খবর আগেই যোগ করা আছে' };
+  if (collecting.has(k)) return { ok: true, msg: 'খবর আনা হচ্ছে…' };
+  collecting.add(k);
+  try {
+    const a = await extract(href, { title: hintTitle, img: isHttpUrl(hintImg) ? hintImg : '' });
+    if (!a.title && !a.text) return { ok: false, msg: 'এই পাতা থেকে খবর পড়া যায়নি' };
+    const r = addToBasket({ title: a.title, link: a.link, img: a.img, desc: a.desc, text: a.text, srcName: srcNameOf(a.link, a.site), date: a.date });
+    return { ok: r.ok, msg: r.ok ? (r.msg === 'খবর যোগ হয়েছে ✓' ? 'যোগ হয়েছে ✓ ' + (a.img ? '(ছবিসহ)' : '(ছবি পাওয়া যায়নি)') : r.msg) : r.msg };
+  } catch (e) { return { ok: false, msg: 'এই খবর আনা যায়নি' }; }
+  finally { collecting.delete(k); }
 }
 
 /* ---------- window ---------- */
 function makeView(name, preload, extra) {
   const v = new WebContentsView({
     webPreferences: Object.assign({
-      partition: PARTS[name], contextIsolation: true, sandbox: true, nodeIntegration: false,
-      webSecurity: true, allowRunningInsecureContent: false, spellcheck: false,
-      preload: preload ? path.join(__dirname, preload) : undefined
+      partition: PARTS[name], contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true,
+      allowRunningInsecureContent: false, spellcheck: false, preload: preload ? path.join(__dirname, preload) : undefined
     }, extra || {})
   });
   views[name] = v;
   win.contentView.addChildView(v);
   const wc = v.webContents;
   wc.setWindowOpenHandler(({ url }) => {
-    if (name === 'paper' && isHttpUrl(url)) { setImmediate(() => wc.loadURL(url)); }
+    if (name === 'paper' && isHttpUrl(url)) setImmediate(() => wc.loadURL(url));
     else if (isHttpUrl(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
   wc.on('will-navigate', (e, url) => {
     if (name === 'paper') { if (!isHttpUrl(url)) e.preventDefault(); }
-    else if (name === 'bar') { e.preventDefault(); }
+    else if (name === 'bar' || name === 'hub') e.preventDefault();
     else if (!url.startsWith('tfapp://' + name + '/')) { e.preventDefault(); if (isHttpUrl(url)) shell.openExternal(url); }
   });
   wc.on('will-attach-webview', (e) => e.preventDefault());
@@ -277,131 +392,102 @@ function makeView(name, preload, extra) {
 }
 
 function createWindow() {
-  win = new BaseWindow({ width: 1366, height: 820, minWidth: 980, minHeight: 600, title: 'TF Media Studio',
-    icon: path.join(__dirname, 'logo.png'), backgroundColor: '#0e1a3a', show: false });
+  win = new BaseWindow({ width: 1366, height: 820, minWidth: 1040, minHeight: 620, title: 'TF Media Studio', icon: path.join(__dirname, 'logo.png'), backgroundColor: '#0a1330', show: false });
   makeView('bar', 'bar-preload.js', { backgroundThrottling: false });
   makeView('news', 'app-preload.js', { backgroundThrottling: false });
   makeView('post', 'app-preload.js', { backgroundThrottling: false });
+  makeView('hub', 'hub-preload.js', { backgroundThrottling: false });
   makeView('paper', 'paper-preload.js', { backgroundThrottling: true });
-  for (const t of TABS) views[t].setVisible(false);
+  applyVisibility();
   views.bar.webContents.loadFile(path.join(__dirname, 'bar.html'));
+  views.hub.webContents.loadFile(path.join(__dirname, 'hub.html'));
   win.on('resize', layout);
   win.on('closed', () => { win = null; });
 
-  // Paper browser events
+  for (const n of ['news', 'post']) views[n].webContents.on('did-finish-load', () => { if (patchSrc[n]) views[n].webContents.executeJavaScript(patchSrc[n]).catch(() => {}); });
+
   const pw = views.paper.webContents;
   for (const ev of ['did-navigate', 'did-navigate-in-page', 'did-stop-loading']) pw.on(ev, pushState);
-  pw.on('did-finish-load', () => { if (paperPicking) pw.send('tf:pick-mode', true); });
+  pw.on('did-finish-load', () => { if (picking) pw.send('tf:pick-mode', true); });
   pw.on('context-menu', (e, p) => {
     if (p.mediaType === 'image' && isHttpUrl(p.srcURL)) {
       Menu.buildFromTemplate([
-        { label: 'এই ছবি পোস্ট মেকারে পাঠান', click: () => pickImage('post', p.srcURL, pw.getURL()) },
-        { label: 'এই ছবি নিউজ স্টুডিওতে পাঠান', click: () => pickImage('news', p.srcURL, pw.getURL()) }
+        { label: 'এই ছবি পোস্ট ও রিল মেকারে পাঠান', click: () => sendImageToApp('post', p.srcURL, pw.getURL()).then(() => hubSay('ছবি চলে গেছে ✓')).catch(() => hubSay('ছবিটি আনা যায়নি')) },
+        { label: 'এই ছবি ভিডিওর ছবি-লাইব্রেরিতে পাঠান', click: () => sendImageToApp('news', p.srcURL, pw.getURL()).then(() => hubSay('ছবি চলে গেছে ✓')).catch(() => hubSay('ছবিটি আনা যায়নি')) }
       ]).popup();
     } else if (p.linkURL && isHttpUrl(p.linkURL)) {
       Menu.buildFromTemplate([{ label: 'এই লিংক খুলুন', click: () => pw.loadURL(p.linkURL) }]).popup();
     }
   });
 
-  let first = 'news';
+  let first = 'hub';
   try { const j = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'last-tab.json'), 'utf8')); if (TABS.includes(j.tab)) first = j.tab; } catch (e) {}
-  views.bar.webContents.once('did-finish-load', () => { layout(); showTab(first); win.show(); });
+  let ready = 0;
+  const go = () => { if (++ready === 2) { layout(); showTab(first); win.show(); } };
+  views.bar.webContents.once('did-finish-load', go);
+  views.hub.webContents.once('did-finish-load', go);
   layout();
-
-  if (process.env.TF_PICKTEST === '1') setTimeout(pickTest, 2500); else if (SELFTEST) selfTest();
+  if (SELFTEST && process.env.TF_TEST_SCRIPT) setTimeout(() => require(process.env.TF_TEST_SCRIPT)({ app, views, showTab, setSub, setPicking, addToBasket, collectStory, sendFromBasket, get basket() { return basket; }, state: hubState }), 2500);
 }
 
-/* ---------- IPC (only from our own bar / paper views) ---------- */
-function from(e, name) { return views[name] && e.sender === views[name].webContents; }
-ipcMain.on('tf:switch', (e, tab) => { if (from(e, 'bar')) showTab(String(tab)); });
-ipcMain.on('tf:paper-go', (e, url) => {
-  if (!from(e, 'bar')) return;
-  let u = String(url || '').trim();
-  if (!u) return;
+/* ---------- IPC (only from our own views) ---------- */
+const from = (e, name) => views[name] && e.sender === views[name].webContents;
+ipcMain.on('tf:switch', (e, tab) => {
+  if (from(e, 'bar') || (tab === 'hub' && (from(e, 'news') || from(e, 'post')))) showTab(String(tab));
+});
+ipcMain.on('tf:show-file', (e, p) => { if (from(e, 'bar') && typeof p === 'string') shell.showItemInFolder(p); });
+ipcMain.handle('hub:state', (e) => (from(e, 'hub') ? hubState() : null));
+ipcMain.handle('hub:live', async (e, force) => { if (!from(e, 'hub')) return null; try { return await fetchLive(force); } catch (err) { return null; } });
+ipcMain.on('hub:sub', (e, s) => { if (from(e, 'hub')) setSub(String(s)); });
+ipcMain.on('hub:pick', (e, on) => { if (from(e, 'hub')) setPicking(!!on); });
+ipcMain.on('hub:paper-go', (e, url) => {
+  if (!from(e, 'hub')) return;
+  let u = String(url || '').trim(); if (!u) return;
   if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u;
   if (isHttpUrl(u)) views.paper.webContents.loadURL(u);
 });
-ipcMain.on('tf:paper-cmd', (e, cmd) => {
-  if (!from(e, 'bar')) return;
+ipcMain.on('hub:paper-cmd', (e, cmd) => {
+  if (!from(e, 'hub')) return;
   const pw = views.paper.webContents;
   if (cmd === 'back' && pw.navigationHistory.canGoBack()) pw.navigationHistory.goBack();
   else if (cmd === 'forward' && pw.navigationHistory.canGoForward()) pw.navigationHistory.goForward();
   else if (cmd === 'reload') pw.reload();
-  else if (cmd === 'home') pw.loadURL(PAPERS[0][1]);
 });
-ipcMain.on('tf:pick-mode', (e, on) => { if (from(e, 'bar')) setPicking(!!on); });
-ipcMain.on('tf:pick-target', (e, t) => { if (from(e, 'bar') && INPUT_ID[t]) { pickTarget = t; pushState(); } });
-ipcMain.on('tf:show-file', (e, p) => { if (from(e, 'bar') && typeof p === 'string') shell.showItemInFolder(p); });
-ipcMain.on('tf:picked', (e, d) => {
-  if (!from(e, 'paper') || !d || typeof d.src !== 'string') return;
-  pickImage(pickTarget, d.src, String(d.page || ''));
+ipcMain.handle('hub:add', (e, item) => (from(e, 'hub') ? addToBasket(item) : null));
+ipcMain.handle('hub:remove', (e, link) => { if (!from(e, 'hub')) return null; const k = keyOf(link); basket = basket.filter((b) => keyOf(b.link) !== k); saveBasket(); pushState(); return true; });
+ipcMain.handle('hub:clear', (e) => { if (!from(e, 'hub')) return null; basket = []; saveBasket(); pushState(); return true; });
+ipcMain.handle('hub:send', async (e, kind, link) => {
+  if (!from(e, 'hub') || !['video', 'reel', 'card'].includes(kind)) return null;
+  await sendFromBasket(kind, link || ''); return true;
+});
+ipcMain.on('tf:collect', async (e, d) => {
+  if (!from(e, 'paper') || !d || typeof d.href !== 'string') return;
+  const r = await collectStory(d.href, String(d.title || ''), String(d.img || ''));
+  if (alive(views.paper)) views.paper.webContents.send('tf:collect-result', r);
+  hubSay(r.msg);
 });
 ipcMain.on('tf:pick-exit', (e) => { if (from(e, 'paper')) setPicking(false); });
 
 /* ---------- start ---------- */
-protocol.registerSchemesAsPrivileged([{ scheme: 'tfapp', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'tfapp', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+  { scheme: 'tfimg', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
+]);
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 else {
   app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
   app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
-    for (const n of ['news', 'post']) { const ses = session.fromPartition(PARTS[n]); registerProtocol(ses); setupAppSession(ses); }
+    loadBasket();
+    for (const n of ['news', 'post']) { const ses = session.fromPartition(PARTS[n]); registerAppProtocol(ses); setupAppSession(ses); }
+    registerThumbProtocol(session.fromPartition(PARTS.hub));
     setupPaperSession(session.fromPartition(PARTS.paper));
     createWindow();
-    const sc = (wc, input) => { /* keyboard shortcuts */
-      if (input.type !== 'keyDown' || !input.control) return;
-      const i = ['1', '2', '3'].indexOf(input.key);
-      if (i >= 0) { showTab(TABS[i]); }
-    };
-    for (const t of Object.keys(views)) views[t].webContents.on('before-input-event', (e, inp) => sc(null, inp));
+    for (const t of Object.keys(views)) views[t].webContents.on('before-input-event', (e, inp) => {
+      if (inp.type !== 'keyDown' || !inp.control) return;
+      const i = ['1', '2', '3'].indexOf(inp.key); if (i >= 0) showTab(TABS[i]);
+    });
     app.on('window-all-closed', () => app.quit());
   });
-}
-
-async function pickTest() {
-  const out = (...a) => console.log('[PICKTEST]', ...a);
-  const pw = views.paper.webContents, post = views.post.webContents;
-  showTab('post'); await new Promise(r => setTimeout(r, 4000));
-  await post.executeJavaScript("window.__got=null;document.getElementById('cardFile').addEventListener('change',e=>{const f=e.target.files[0];window.__got=f?{n:f.name,t:f.type,s:f.size}:null},true);1");
-  showTab('paper'); pw.loadURL('http://127.0.0.1:8099/t.html'); await new Promise(r => setTimeout(r, 2500));
-  pickTarget = 'post'; setPicking(true); await new Promise(r => setTimeout(r, 600));
-  pw.sendInputEvent({ type: 'mouseMove', x: 150, y: 120 }); await new Promise(r => setTimeout(r, 300));
-  pw.sendInputEvent({ type: 'mouseDown', x: 150, y: 120, button: 'left', clickCount: 1 });
-  pw.sendInputEvent({ type: 'mouseUp', x: 150, y: 120, button: 'left', clickCount: 1 });
-  await new Promise(r => setTimeout(r, 3000));
-  out('url-after-click', pw.getURL());
-  out('app-received', JSON.stringify(await post.executeJavaScript('window.__got')));
-  fs.writeFileSync('/tmp/shots/tf-paper.png', (await win.contentView.children[0].webContents.capturePage()).toPNG());
-  app.exit(0);
-}
-/* ---------- self test (used only by the build checks, never by users) ---------- */
-function selfTest() {
-  const out = (...a) => console.log('[SELFTEST]', ...a);
-  for (const t of ['news', 'post']) {
-    views[t].webContents.on('console-message', (e) => {
-      const lvl = e.level || e.severity; if (lvl === 'error' || lvl === 3) out(t, 'console-error:', String(e.message).slice(0, 300));
-    });
-    views[t].webContents.on('render-process-gone', (e, d) => out(t, 'CRASH', d.reason));
-  }
-  for (const t of ['news', 'post', 'bar']) {
-    views[t].webContents.on('did-finish-load', () => out(t, 'loaded', views[t].webContents.getURL()));
-    views[t].webContents.on('did-fail-load', (e, c, d, u) => out(t, 'FAILLOAD', c, d, u));
-    views[t].webContents.on('preload-error', (e, p, err) => out(t, 'PRELOAD-ERR', String(err)));
-  }
-  setTimeout(async () => {
-    out('start');
-    for (const t of ['news', 'post']) {
-      showTab(t);
-      await new Promise(r => setTimeout(r, 6000));
-      const info = await views[t].webContents.executeJavaScript('({title:document.title,len:document.body.innerText.length,inputs:!!document.getElementById(' + JSON.stringify(INPUT_ID[t]) + ')})');
-      out(t, JSON.stringify(info));
-      const img = await views[t].webContents.capturePage();
-      fs.writeFileSync(path.join(process.env.TF_SHOT_DIR || '/tmp', 'tf-' + t + '.png'), img.toPNG());
-    }
-    showTab('paper');
-    await new Promise(r => setTimeout(r, 4000));
-    fs.writeFileSync(path.join(process.env.TF_SHOT_DIR || '/tmp', 'tf-bar.png'), (await views.bar.webContents.capturePage()).toPNG());
-    out('done'); app.exit(0);
-  }, 2500);
 }

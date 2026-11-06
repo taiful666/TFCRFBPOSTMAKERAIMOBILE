@@ -1,7 +1,9 @@
 'use strict';
-// Runs inside TF News Studio / TF Post Maker. Makes images from other websites usable on the canvas
-// (the app asks for them with CORS, and the desktop app allows that), which keeps video/card export working.
-const { webFrame } = require('electron');
+// Runs inside TF News Studio / TF Post Maker.
+//  - images from other websites stay usable on the canvas (keeps video/card export working)
+//  - gives the page one safe door to the shell: open the mother "খবর" tab
+const { webFrame, contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('tfShell', { openHub: () => ipcRenderer.send('tf:switch', 'hub') });
 webFrame.executeJavaScript('(' + function () {
   try {
     var d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');

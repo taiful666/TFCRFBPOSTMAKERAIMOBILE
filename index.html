@@ -6851,6 +6851,203 @@ if(document.readyState === 'loading') document.addEventListener('DOMContentLoade
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', nwInit); else nwInit();
 
 /* =====================================================================
+   v10: খবর ঠিক রাখার সহায়ক (নিজে নিজেই চলে, কোথাও চাপ দিতে হয় না)
+   • পত্রিকার ভেতর থেকে আনা খবরে শিরোনামের জায়গায় পত্রিকার নাম, বা ছবির জায়গায় পত্রিকার লোগো এলে —
+     খবরের পাতা আবার পড়ে আসল শিরোনাম, আসল ছবি ও লেখা বসানো হয় (কয়েকটি আলাদা পথে চেষ্টা করে)।
+   • "যা বললেন অমুক", "মুখ খুললেন অমুক" ধরনের অসম্পূর্ণ শিরোনামে খবরের ভেতর থেকে মূল কথাটা এনে বসানো হয়।
+   ===================================================================== */
+const SF_BADIMG = /logo|favicon|sprite|placeholder|default[-_]?(img|image|thumb|og|photo)|no[-_]?(image|photo)|blank\.(png|jpe?g|gif)|1x1|spacer|pixel\.|avatar|apple-touch|\/icons?\/|og[-_]?image\.(png|jpe?g)/i;
+function sfBadImg(u){
+  if(!u) return true;
+  if(/^(data:image\/|blob:)/i.test(u)) return false;
+  return !/^https?:/i.test(u) || SF_BADIMG.test(u) || /\.(svg|gif)(\?|#|$)/i.test(u);
+}
+function sfCut(s){ const p = norm(s).split(/\s+(?:\|\|?|–|—|-|::)\s+/); return p.length > 1 && p[p.length - 1].length < 40 ? p.slice(0, -1).join(' - ') : p[0] || ''; }
+/* the paper's own name / brand instead of a headline */
+function sfGenericTitle(title, link, extra){
+  const t0 = lower(sfCut(title)); if(t0.length < 12) return true;
+  const host = hostOf(link || ''), brand = host.replace(/^m\./, '').split('.')[0];
+  let names = [brand];
+  try{ const pr = paperProfile(link || ''); if(pr && pr.name) names.push(lower(pr.name)); }catch(e){}
+  if(extra && extra.src){ names.push(lower(extra.src.bn || ''), lower(extra.src.en || '')); }
+  names = names.filter(x => x && x.length > 1);
+  for(const n of names){ if(t0 === n || (t0.includes(n) && t0.replace(n, '').replace(/[|\-–—:,.\s]/g, '').length < 8)) return true; }
+  return false;
+}
+/* the same photo / headline on two different stories of one paper = the paper's default (logo, site name) */
+function sfDupes(list){
+  const im = new Map(), ti = new Map();
+  (list || []).forEach(o => {
+    if(!o || !o.link) return; const h = hostOf(o.link);
+    if(o.img && !/^(data|blob):/.test(o.img)){ const k = h + '|' + o.img; (im.get(k) || im.set(k, new Set()).get(k)).add(o.link); }
+    if(o.title){ const k = h + '|' + lower(o.title); (ti.get(k) || ti.set(k, new Set()).get(k)).add(o.link); }
+  });
+  return {
+    img: o => !!(o && o.img && (im.get(hostOf(o.link) + '|' + o.img) || new Set()).size > 1),
+    title: o => !!(o && o.title && (ti.get(hostOf(o.link) + '|' + lower(o.title)) || new Set()).size > 1)
+  };
+}
+function sfNeeds(o, siblings){
+  if(!o || !o.link || /news\.google\./.test(o.link)) return false;
+  const d = sfDupes(siblings || [o]);
+  return sfGenericTitle(o.title, o.link, o) || d.title(o) || sfBadImg(o.img) || d.img(o) || (sfTeaser(o.title) && String(o.text || '').length < 200);
+}
+
+/* ---- incomplete headlines: "যা বললেন হাসনাত আবদুল্লাহ" → "হাসনাত আবদুল্লাহ: “…আসল কথা…”" ---- */
+const SF_TEASE = /(?:^|\s)(?:যা|কী|কি|যে|যেসব|যে কথা|যে বার্তা|কোন বার্তা|কী বার্তা)\s+(?:বললেন|বলেছেন|বলছেন|বলল|বলেন|জানালেন|জানিয়েছেন|জানাল|লিখলেন|লিখেছেন|বার্তা দিলেন|বার্তা দিয়েছেন|বললেন তিনি|দাবি করলেন|অভিযোগ করলেন|প্রতিক্রিয়া জানালেন|প্রতিক্রিয়া দিলেন|মন্তব্য করলেন|মন্তব্য করেছেন|বোঝালেন|পরামর্শ দিলেন|আহ্বান জানালেন)|মুখ খুল(?:লেন|েছেন|ল)|নীরবতা ভাঙ(?:লেন|লো|ল)|প্রতিক্রিয়া (?:জানালেন|জানিয়েছেন|দিলেন|দিয়েছেন)|বিস্ফোরক (?:মন্তব্য|তথ্য|বক্তব্য)|চাঞ্চল্যকর (?:তথ্য|মন্তব্য)|কড়া (?:বার্তা|জবাব|হুঁশিয়ারি)(?: দিলেন| দিয়েছেন)?$|মুখোমুখি (?:হলেন|প্রশ্নের)|বড় (?:ঘোষণা|বার্তা) দিলেন|স্ট্যাটাস দিলেন|স্ট্যাটাসে যা|ফেসবুকে যা|পোস্টে যা|ভিডিও বার্তায় যা|বক্তব্যে যা|সাক্ষাৎকারে যা|জবাব দিলেন|যা জানা গেল|যা বলছে|যা বলল|\bwhat\b.{2,60}\b(?:said|says|told)\b|breaks? (?:his|her|their)? ?silence/i;
+function sfTeaser(title){
+  const s = norm(String(title || '').replace(/\*/g, ''));
+  if(!s || s.length > 110) return false;
+  if(/[:：]\s*\S|[‘“"«»]|['’]\S.{6,}['’]/.test(s)) return false;     // already has the quote in it
+  return SF_TEASE.test(s);
+}
+function sfSpeaker(title){
+  let s = norm(String(title || '').replace(/\*/g, ''));
+  const m = s.match(SF_TEASE); if(!m) return '';
+  const after = norm(s.slice(m.index + m[0].length)).replace(/^[,،\-–—:]+/, '').trim();
+  let before = norm(s.slice(0, m.index));
+  before = before.replace(/^(?:এবার|অবশেষে|অবশেষে মুখ খুললেন|এ বিষয়ে|এই বিষয়ে|এ নিয়ে|এসব নিয়ে|বিষয়টি নিয়ে|শেষ পর্যন্ত)\s*/,'').replace(/\S+\s+(?:নিয়ে|প্রসঙ্গে|সম্পর্কে|বিষয়ে|ইস্যুতে)\s*$/, '').trim();
+  const name = after.length >= 3 ? after : before;
+  return name.replace(/[।?!.,]+$/, '').split(/\s+/).slice(0, 6).join(' ');
+}
+function sfShort(q, max){
+  q = norm(q).replace(/^[,;:\-–—\s]+/, '').replace(/[,;:\-–—\s]+$/, '');
+  if(q.length <= max) return q;
+  const c = q.slice(0, max), i = Math.max(c.lastIndexOf('।'), c.lastIndexOf(','), c.lastIndexOf(';'));
+  if(i > max * 0.55) return c.slice(0, i).trim() + '…';
+  const j = c.lastIndexOf(' '); return (j > max * 0.6 ? c.slice(0, j) : c).replace(/[,;:\s]+$/, '') + '…';
+}
+/* the speaker's main words, read from the story's own text (no AI needed) */
+function sfQuote(title, text){
+  const body = String(text || ''); if(body.length < 60) return '';
+  const who = sfSpeaker(title), last = who ? who.split(/\s+/).pop() : '';
+  const paras = body.split(/\n+/).map(norm).filter(p => p.length > 20).slice(0, 60);
+  const SAY = /বলেন|বলেছেন|বলছেন|জানান|জানিয়েছেন|উল্লেখ করেন|উল্লেখ করেছেন|লিখেছেন|মন্তব্য|দাবি|অভিযোগ|আহ্বান|বক্তব্যে|বক্তব্য দেন|said|says|told/;
+  let best = null;
+  paras.forEach((p, pi) => {
+    const re = /[“"«]([^“”"«»]{14,260})[”"»]|‘([^‘’]{14,260})’/g; let m;
+    while((m = re.exec(p))){
+      const q = norm(m[1] || m[2]); if(q.split(/\s+/).length < 4) continue;
+      let sc = 0;
+      if(last && p.includes(last)) sc += 3;
+      if(SAY.test(p)) sc += 2;
+      if(/^তিনি|^এ সময় তিনি/.test(p)) sc += 1;
+      if(q.length >= 25 && q.length <= 140) sc += 1;
+      sc -= pi * 0.04;
+      if(!best || sc > best.sc) best = { q, sc };
+    }
+  });
+  let quote = best && best.sc >= 1 ? best.q : '';
+  if(!quote){
+    /* no quotation marks: "তিনি বলেন, …" / "… বলে মন্তব্য করেন তিনি" */
+    for(const p of paras){
+      for(const sen of p.split(/(?<=[।!?])\s+/)){
+        if(last && !sen.includes(last) && !/তিনি|তারা|তাঁর|তার/.test(sen)) continue;
+        let m = sen.match(/(?:বলেন|বলেছেন|জানান|জানিয়েছেন|উল্লেখ করেন|উল্লেখ করেছেন|লিখেছেন)\s*[,:]\s*(.{14,})$/);
+        if(m){ quote = m[1]; break; }
+        m = sen.match(/^(.{14,}?)\s*বলে\s*(?:মন্তব্য|উল্লেখ|দাবি|অভিযোগ|মনে|জানিয়েছেন|জানান|হুঁশিয়ারি|সতর্ক)/);
+        if(m){ quote = m[1].replace(/^(?:এ সময়|তিনি|তাঁর মতে|তার মতে|সেখানে)\s*,?\s*/, '').replace(new RegExp('^' + (who ? who.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '\\u0000') + '\\s*'), ''); break; }
+      }
+      if(quote) break;
+    }
+  }
+  if(!quote) return '';
+  quote = sfShort(quote.replace(/[।]+$/, ''), 92);
+  return (who ? who + ': ' : '') + '“' + quote + '”';
+}
+
+/* ---- read a story again, quietly, through several routes (no AI, no messages) ---- */
+function sfImgsFromHtml(html, base){
+  const out = [];
+  try{
+    const doc = new DOMParser().parseFromString(String(html).slice(0, 900000), 'text/html');
+    const meta = n => { const e = doc.querySelector('meta[property="' + n + '"],meta[name="' + n + '"]'); return e ? String(e.getAttribute('content') || '').trim() : ''; };
+    [meta('og:image'), meta('og:image:url'), meta('twitter:image'), meta('twitter:image:src')].forEach(u => out.push(u));
+    doc.querySelectorAll('script[type="application/ld+json"]').forEach(sc => { try{ (function walk(x){ if(!x) return; if(Array.isArray(x)) return x.forEach(walk); if(typeof x !== 'object') return; if(x['@graph']) walk(x['@graph']); if(/Article/i.test(String(x['@type'] || '')) && x.image){ const i = Array.isArray(x.image) ? x.image[0] : x.image; out.push(typeof i === 'string' ? i : (i && (i.url || i.contentUrl)) || ''); } })(JSON.parse(sc.textContent)); }catch(e){} });
+    doc.querySelectorAll('article img, main img, figure img, [itemprop="articleBody"] img, .story-element img').forEach(im => {
+      const ss = im.getAttribute('srcset') || im.getAttribute('data-srcset'); let u = '';
+      if(ss){ let bw = -1; ss.split(',').forEach(p => { const t0 = p.trim().split(/\s+/); const w = parseFloat(t0[1]) || 1; if(t0[0] && w > bw){ bw = w; u = t0[0]; } }); }
+      out.push(u || im.getAttribute('data-src') || im.getAttribute('data-original') || im.getAttribute('src') || '');
+    });
+  }catch(e){}
+  return out.map(u => { try{ return u ? fixImgHost(new URL(u.replace(/&amp;/g, '&'), base).href) : ''; }catch(e){ return ''; } })
+    .filter((u, i, a) => u && a.indexOf(u) === i && !sfBadImg(u) && !AD_IMG.test(u)).slice(0, 10);
+}
+async function sfRead(url){
+  const fromHtml = html => {
+    if(looksBlocked(html)) throw new Error('blocked');
+    const a = extractHtml(html, url), imgs = sfImgsFromHtml(html, url);
+    if(a.image && !sfBadImg(a.image)) imgs.unshift(fixImgHost(a.image));
+    const text = (a.blocks || []).filter(b => b.type === 'p' || b.type === 'quote' || b.type === 'list').map(b => b.text).join('\n');
+    if(textCount(a.blocks || []) < 120 && !imgs.length) throw new Error('thin');
+    return { title: a.title, img: imgs[0] || '', imgs: Array.from(new Set(imgs)), text, date: a.published || '' };
+  };
+  const tries = [];
+  const qb = quintypeBase(url);
+  if(qb) tries.push((async () => { const a = await fetchQuintype(url, qb); const text = (a.blocks || []).filter(b => b.type === 'p' || b.type === 'quote').map(b => b.text).join('\n'); const im = a.image && !sfBadImg(a.image) ? [fixImgHost(a.image)] : []; return { title: a.title, img: im[0] || '', imgs: im, text, date: a.published || '' }; })());
+  const enc = encodeURIComponent(url), routes = [];
+  if(S.worker){ const w = S.worker.trim(); routes.push(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc); }
+  routes.push('https://api.allorigins.win/raw?url=' + enc, 'https://api.codetabs.com/v1/proxy/?quest=' + enc, 'https://corsproxy.io/?url=' + enc);
+  routes.forEach(r => tries.push(getText(r, 15000).then(fromHtml)));
+  tries.push(getText('https://api.allorigins.win/get?url=' + enc, 16000).then(t0 => fromHtml(JSON.parse(t0).contents || '')));
+  let best = null;
+  try{
+    best = await Promise.any(tries.map(p => p.then(r => { if(!r || (!r.img && (!r.title || sfGenericTitle(r.title, url)))) throw new Error('weak'); return r; })));
+  }catch(e){ best = null; }
+  if(!best){
+    /* last route: a reader service that returns the page as text with its photos */
+    try{
+      const raw = await getText('https://r.jina.ai/' + url, 30000, { 'Accept': 'application/json', 'X-With-Images-Summary': 'true', 'X-Return-Format': 'markdown' });
+      let md = raw, jm = {}; try{ const j = JSON.parse(raw); if(j && j.data){ md = j.data.content || ''; jm = j.data; } }catch(e){}
+      const a = extractMarkdown(md, url, jm);
+      const imgs = [a.image].concat(Object.values((jm && jm.images) || {})).filter(u => u && /^https?:/.test(u) && !sfBadImg(u) && !AD_IMG.test(u));
+      best = { title: a.title, img: imgs[0] || '', imgs: Array.from(new Set(imgs)).slice(0, 10), text: (a.blocks || []).map(b => b.text).join('\n'), date: a.published || '' };
+    }catch(e){ best = null; }
+  }
+  return best;
+}
+const SF_MEM = new Map();
+/* fix one story object in place: real headline, real photo (+ other photos to choose from) and text. Returns what changed. */
+async function sfEnrich(o, opts){
+  opts = opts || {};
+  if(!o || !o.link || /news\.google\./.test(o.link)) return null;
+  const d = sfDupes(opts.siblings || [o]);
+  const badT = sfGenericTitle(o.title, o.link, o) || d.title(o), badI = opts.force || sfBadImg(o.img) || d.img(o), needX = String(o.text || '').length < 200;
+  if(!badT && !badI && !needX && !opts.force) return null;
+  let r = SF_MEM.get(o.link);
+  if(!r || opts.force){ r = sfRead(o.link); SF_MEM.set(o.link, r); r.then(v => { if(!v) SF_MEM.delete(o.link); }); }
+  const got = await r, ch = {};
+  if(got){
+    if(badT && got.title && !sfGenericTitle(got.title, o.link, o)){ o.title = norm(got.title); ch.title = true; }
+    const pool = (got.imgs || []).concat(got.img ? [got.img] : []);
+    o.imgs = Array.from(new Set((o.imgs || []).filter(u => !sfBadImg(u)).concat(pool))).slice(0, 12);
+    if(badI){ const nu = pool.find(u => u !== o.img && !sfBadImg(u)); if(nu){ o.img = nu; ch.img = true; } }
+    if(got.text && got.text.length > String(o.text || '').length){ o.text = got.text.slice(0, 6000); ch.text = true; }
+    if(!o.desc && got.text) o.desc = shorten(norm(got.text), 300);
+  }
+  if((badI && !ch.img) || !o.img || sfBadImg(o.img)){
+    try{ if(opts.force) delete nwImgMem[o.link]; const u = await nwFindImg(o.link); if(u && u !== o.img && !sfBadImg(u)){ o.img = u; ch.img = true; o.imgs = Array.from(new Set([u].concat(o.imgs || []))); } }catch(e){}
+  }
+  if(badI && !ch.img && sfBadImg(o.img)) o.img = '';                // a logo is worse than no photo: the card gets a colour background (and you can add one)
+  return (ch.title || ch.img || ch.text) ? ch : null;
+}
+/* AI (only if a key is set, and only for headlines the text rules could not fix) */
+async function sfAiQuotes(list){
+  if(!list.length || !(S.gkey || S.ckey)) return [];
+  const prompt = 'Each of these Bangladeshi news headlines only teases a statement ("যা বললেন X", "মুখ খুললেন X") and does not say what was said. ' +
+    'For EACH one, read its story text and write a replacement card headline in Bangladeshi Bengali in the form  বক্তার নাম: “মূল কথা”  — the speaker\'s actual main point, taken faithfully from the text (quote or close paraphrase), at most 14 words inside the quotes. ' +
+    'Do not add facts, no opinion, no exaggeration, nothing political of your own. If the text does not say it, return an empty string for that item.\n\n' +
+    list.map((x, i) => (i + 1) + '. HEADLINE: ' + plainTitle(x.title) + '\nTEXT: ' + shorten(norm(x.text), 1600)).join('\n\n') +
+    '\n\nReturn ONLY JSON: {"lines":["...","..."]} with exactly ' + list.length + ' items in the same order.';
+  try{
+    const r = await writeAi({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, responseMimeType: 'application/json' } }, 60000);
+    const o = parseAiJson(r.text); return Array.isArray(o.lines) ? o.lines.map(x => norm(String(x || '').replace(/\*/g, ''))) : [];
+  }catch(e){ return []; }
+}
+function plainTitle(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim(); }
+window.TFFix = { sfBadImg, sfGenericTitle, sfTeaser, sfSpeaker, sfQuote, sfNeeds, sfEnrich, sfDupes };
+
+/* =====================================================================
    v8: মাল্টি নিউজ রিল — লাইভ নিউজ থেকে কয়েকটি খবর টিক দিয়ে বেছে নিন,
    প্রতিটির ফটো কার্ড তৈরি হয়ে একটি খাড়া (৯:১৬) ভিডিও রিল তৈরি হবে
    ===================================================================== */
@@ -7137,6 +7334,7 @@ function rlTickDef(){ return tf('rlTickDef', { p: pageName() }); }
 function rlMeta(){
   const n = RL.items.length, total = Math.round(rlTimeline(n, RL.secs).total);
   $('rlSub').textContent = n ? tf('rlPicked', { n: nwNum(n) }) + ' · ' + tf('rlLen', { n: nwNum(total) }) : '';
+  $('rlNewsT').textContent = n ? nwNum(n) + t('rlNews') : t('rlNewsNone');
   $('rlStyleT').textContent = t('rlStyle') + ': ' + t('tr_' + RL.style.trans);
   $('rlMusicName').textContent = RL.music === 'file' && RL.musicName ? '♪ ' + RL.musicName : '';
 }
@@ -7151,6 +7349,7 @@ function rlOpen(){
   $('rlTitleIn').value = RL.title; $('rlTickIn').value = RL.ticker; $('rlPageIn').value = store.get('fbPageName', '') || '';
   rlTexts(); rlRenderList(); rlShowVideo(false); rlPreview();
   if(RL.items.length > 30) toast(t('rlLong'));
+  rlAutoFix();
 }
 function rlClose(fromPop){
   if(!RL.open) return;
@@ -7163,15 +7362,15 @@ function rlClose(fromPop){
 function rlRenderList(){
   const list = $('rlList'); list.innerHTML = '';
   RL.items.forEach((it, i) => {
-    const row = mk('div', 'rlrow');
-    row.innerHTML = '<span class="rln">' + nwNum(i + 1) + '</span>' + (it.o.img ? '<img class="rlth" alt="" referrerpolicy="no-referrer">' : '<span class="rlth"></span>') +
-      '<div class="rlmain"><textarea rows="2"></textarea><small></small></div>' +
+    const row = mk('div', 'rlrow'); it._row = row;
+    row.innerHTML = '<span class="rln">' + nwNum(i + 1) + '</span><button type="button" class="rlth rlthb" aria-label="photo"></button>' +
+      '<div class="rlmain"><textarea rows="2"></textarea><small></small><em class="rlst hidden"></em></div>' +
       '<div class="rlbtns"><button type="button" data-a="up" aria-label="up">' + ic(IC_UP) + '</button><button type="button" data-a="dn" aria-label="down">' + ic(IC_DN) + '</button><button type="button" data-a="ed" class="rled" aria-label="edit">' + ic(IC.pen) + '</button><button type="button" data-a="rm" aria-label="remove">' + ic(IC_X) + '</button></div>';
     const ta = row.querySelector('textarea'); ta.value = it.text;
-    const th = row.querySelector('.rlth'); if(th){ th.style.cursor = 'pointer'; th.addEventListener('click', () => { if(!RL.busy) rlEdOpen(i); }); }
-    ta.addEventListener('input', () => { it.text = ta.value; rlPreview(); });
+    row.querySelector('.rlthb').addEventListener('click', () => { if(!RL.busy) rlPickOpen(i); });
+    ta.addEventListener('input', () => { it.text = ta.value; it.manual = true; RL.cardFiles = null; rlPreview(); });
     row.querySelector('small').textContent = it.source + (it.date ? ' · ' + it.date : '');
-    const im = row.querySelector('img.rlth'); if(im){ im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = it.o.img; } else im.style.visibility = 'hidden'; }; im.src = proxImg(it.o.img, 160); }
+    rlRowShow(it);
     row.querySelector('[data-a="up"]').disabled = i === 0;
     row.querySelector('[data-a="dn"]').disabled = i === RL.items.length - 1;
     row.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
@@ -7186,6 +7385,25 @@ function rlRenderList(){
   $('rlMake').disabled = !RL.items.length || RL.busy;
   $('rlCards').classList.toggle('hidden', !RL.items.length);
   rlMeta(); rlCaptionAuto();
+}
+/* one row's photo, text and "fixing…" line, updated in place (the text box keeps focus while you type) */
+function rlRowShow(it){
+  const row = it._row; if(!row || !row.isConnected) return;
+  const th = row.querySelector('.rlthb'), u = it.o.img || '';
+  if(th.dataset.u !== u){
+    th.dataset.u = u; th.innerHTML = '';
+    if(u){
+      const im = document.createElement('img'); im.alt = ''; im.referrerPolicy = 'no-referrer';
+      im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = u; } else { th.innerHTML = '<span class="rlnoimg">＋<br>' + esc(t('rlPhAdd')) + '</span>'; } };
+      im.src = /^(data|blob):/.test(u) ? u : proxImg(u, 160); th.appendChild(im);
+      const pen = document.createElement('i'); pen.className = 'rlthpen'; pen.textContent = '⇄'; th.appendChild(pen);
+    } else th.innerHTML = '<span class="rlnoimg">＋<br>' + esc(t('rlPhAdd')) + '</span>';
+  }
+  const ta = row.querySelector('textarea'); if(ta && document.activeElement !== ta && ta.value !== it.text) ta.value = it.text;
+  const st = row.querySelector('.rlst');
+  const noT = !it.fixing && !it.manual && sfGenericTitle(it.text, it.link, it.o);
+  const msg = it.fixing ? t('rlFixing') : noT ? t('rlNoTitle') + ((!u && it.tried) ? ' · ' + t('rlNoPh') : '') : it.quoted && !it.manual ? t('rlQuoted') : (!u && it.tried) ? t('rlNoPh') : '';
+  st.textContent = msg; st.classList.toggle('hidden', !msg); st.classList.toggle('warn', !it.fixing && (noT || (!u && !!it.tried))); st.classList.toggle('ok', !!(it.quoted && !it.manual && !it.fixing));
 }
 function rlSelFromItems(){ RL.sel = new Map(RL.items.map(x => [x.link, x.o])); }
 function rlSyncTexts(){
@@ -7355,20 +7573,218 @@ function shrinkImg(im, max){
 function rlImg(it){
   if(RL.imgs.has(it.link)) return RL.imgs.get(it.link);
   const p = (async () => {
-    let url = it.o.img;
-    if(!url && !/news\.google\./.test(it.link)){ try{ url = await nwFindImg(it.link); if(url) it.o.img = url; }catch(e){} }
-    if(!url) return null;
-    try{
-      const r = await Promise.race([loadExportable(url), sleep(25000).then(() => { throw new Error('slow'); })]);
-      if(r.tainted) return null;
-      const sm = shrinkImg(r.img, 1400);
-      return sm && wmOn() ? wmClean(sm) : sm;
-    }catch(e){ return null; }
+    const o = it.o, tried = new Set();
+    const tryList = async list => {
+      for(const url of list){
+        if(!url || tried.has(url) || (sfBadImg(url) && !/^(data|blob):/.test(url))) continue; tried.add(url);
+        try{
+          const r = await Promise.race([loadExportable(url), sleep(20000).then(() => { throw new Error('slow'); })]);
+          if(r.tainted || !r.img || (r.img.naturalWidth || r.img.width) < 120) continue;
+          if(o.img !== url){ o.img = url; rlRowShow(it); }
+          const sm = shrinkImg(r.img, 1400);
+          return sm && wmOn() && !/^(data|blob):/.test(url) ? wmClean(sm) : sm;
+        }catch(e){}
+      }
+      return null;
+    };
+    if(o.noImg) return null;                                          // "no photo" chosen by hand
+    let im = await tryList([o.img].concat(o.imgs || []));
+    if(im) return im;
+    if(/news\.google\./.test(it.link)) return null;
+    try{ const u = await nwFindImg(it.link); im = await tryList([u]); if(im) return im; }catch(e){}
+    try{ await sfEnrich(o, { force: true }); im = await tryList([o.img].concat(o.imgs || [])); if(im) return im; }catch(e){}
+    it.tried = true; rlRowShow(it);
+    return null;
   })();
   RL.imgs.set(it.link, p);
   p.then(v => { if(!v) RL.imgs.delete(it.link); });           // try again next time
   return p;
 }
+/* runs by itself when the reel studio opens: real headlines + photos for stories that came with the paper's name / logo,
+   and the real words for "যা বললেন অমুক" headlines */
+async function rlAutoFix(){
+  const tok = RL.fixTok = (RL.fixTok || 0) + 1;
+  const items = RL.items.slice(), sibs = items.map(x => x.o), ai = [];
+  const d = sfDupes(sibs);
+  const dupImg = new Set(items.filter(x => d.img(x.o)).map(x => x.link));
+  items.forEach(it => { if(dupImg.has(it.link) && !it.o.picked){ it.o.imgs = (it.o.imgs || []).filter(u => u !== it.o.img); it.o.img = ''; RL.imgs.delete(it.link); } });
+  let q = 0, changed = false;
+  const one = async it => {
+    if(tok !== RL.fixTok) return;
+    const o = it.o;
+    if(sfNeeds(o, sibs) || (!it.manual && sfTeaser(it.text) && String(o.text || '').length < 200)){
+      it.fixing = true; rlRowShow(it);
+      let ch = null; try{ ch = await sfEnrich(o, { siblings: sibs }); }catch(e){}
+      it.fixing = false;
+      if(ch && ch.img && !o.picked){ RL.imgs.delete(it.link); changed = true; }
+      if(ch && ch.title && !it.manual){ it.text = plainTitle(o.title); changed = true; }
+      if(!o.img) it.tried = true;
+    }
+    if(!it.manual && !it.quoted && sfTeaser(it.text)){
+      const qt = sfQuote(it.text, o.text || o.desc);
+      if(qt){ it.text = qt; it.quoted = true; changed = true; } else if(String(o.text || '').length > 150) ai.push(it);
+    }
+    rlRowShow(it);
+  };
+  const queue = items.slice();
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, async () => { while(queue.length && tok === RL.fixTok){ await one(queue.shift()); if(++q % 3 === 0 && changed && RL.open){ RL.cardFiles = null; rlPreview(); } } }));
+  if(tok !== RL.fixTok) return;
+  if(ai.length){
+    ai.forEach(it => { it.fixing = true; rlRowShow(it); });
+    const lines = await sfAiQuotes(ai.map(it => ({ title: it.text, text: it.o.text || '' })));
+    ai.forEach((it, i) => { it.fixing = false; const l = lines[i]; if(l && !it.manual && l.length > 8){ it.text = l; it.quoted = true; changed = true; } rlRowShow(it); });
+  }
+  if(tok !== RL.fixTok || !RL.open) return;
+  if(changed){ RL.cardFiles = null; rlPreview(); if(!capEdited) rlCaptionAuto(); }
+  /* every story now shows a photo, or clearly says "tap to add one" */
+  items.forEach(it => { if(!it.o.img && !it.o.noImg) rlImg(it); });
+}
+
+Object.assign(T.bn, {
+  rlNews:'টি খবর', rlNewsNone:'খবর', rlNoTitle:'আসল শিরোনাম পাওয়া যায়নি — লেখার ঘরে চাপ দিয়ে লিখে দিন', rlPhHint0:'এই খবরের পাতায় ছবি পাওয়া যায়নি — ফোন থেকে বা লিংক দিয়ে ছবি দিন, অথবা "আবার খুঁজুন" চাপুন।', rlPhAdd:'ছবি দিন', rlFixing:'আসল ছবি ও শিরোনাম আনা হচ্ছে…', rlQuoted:'✓ খবরের ভেতর থেকে মূল কথা বসানো হয়েছে', rlNoPh:'ছবি পাওয়া যায়নি — বাঁ দিকের ঘরে চাপ দিয়ে ছবি দিন',
+  rlPhTitle:'খবর {a} / {b} — ছবি', rlPhHint:'খবরের পাতায় পাওয়া ছবিগুলো নিচে — যেটি চান চাপ দিন। অথবা ফোন থেকে বা লিংক দিয়ে নিজের ছবি দিন।',
+  rlPhFile:'ফোন থেকে ছবি দিন', rlPhFind:'আবার খুঁজুন', rlPhNoneB:'ছবি ছাড়া রাখুন', rlPhUrl:'ছবির লিংক পেস্ট করুন (https://…)', rlPhUrlGo:'বসান',
+  rlPhEmpty:'এখনো কোনো ছবি নেই', rlPhSet:'ছবি বদলানো হয়েছে', rlPhNone:'এই খবর ছবি ছাড়া রঙিন ব্যাকগ্রাউন্ডে আসবে', rlPhNotFound:'এই খবরের পাতায় আর কোনো ছবি পাওয়া যায়নি — ফোন থেকে ছবি দিন', rlPhBad:'ছবিটি নেওয়া গেল না'
+});
+Object.assign(T.en, {
+  rlNews:' stories', rlNewsNone:'Stories', rlNoTitle:'Real headline not found — tap the text box and type it', rlPhHint0:'No photo found on this story page — add one from your phone or by link, or tap "Search again".', rlPhAdd:'Add photo', rlFixing:'Getting the real photo and headline…', rlQuoted:'✓ Main words taken from the story', rlNoPh:'No photo found — tap the box on the left to add one',
+  rlPhTitle:'Story {a} / {b} — photo', rlPhHint:'Photos found on the story page are below — tap one. Or add your own from the phone or by link.',
+  rlPhFile:'Photo from phone', rlPhFind:'Search again', rlPhNoneB:'No photo', rlPhUrl:'Paste a photo link (https://…)', rlPhUrlGo:'Use',
+  rlPhEmpty:'No photo yet', rlPhSet:'Photo changed', rlPhNone:'This story will use a colour background', rlPhNotFound:'No more photos on this story page — add one from your phone', rlPhBad:'Could not use that photo'
+});
+/* ---------------- tap a story's photo in the list: choose another photo / your own / a link / no photo ---------------- */
+const pk = mk('div', 'nsheet hidden no-print'); pk.id = 'rlPk'; pk.setAttribute('role', 'dialog'); pk.setAttribute('aria-modal', 'true');
+pk.innerHTML = `<div class="nsbox rlpkbox">
+  <div class="nshead"><b id="rlPkT"></b><span style="flex:1"></span><button type="button" class="x" id="rlPkClose" aria-label="close">×</button></div>
+  <div class="rlpkbody">
+    <div class="rlpkcur" id="rlPkCur"></div>
+    <p class="rlmeta" id="rlPkHint"></p>
+    <div class="rlpkgrid" id="rlPkGrid"></div>
+    <div class="rlpkbtns">
+      <button type="button" class="btn primary" id="rlPkFile"></button>
+      <button type="button" class="btn" id="rlPkFind"></button>
+      <button type="button" class="btn" id="rlPkNone"></button>
+    </div>
+    <div class="rlpklink"><input type="url" id="rlPkUrl" inputmode="url" autocomplete="off"><button type="button" class="btn" id="rlPkUrlGo"></button></div>
+    <input type="file" id="rlPkIn" accept="image/*" class="hidden">
+  </div>
+</div>`;
+document.body.appendChild(pk);
+const PK = { open: false, i: 0, busy: false };
+function pkIt(){ return RL.items[PK.i]; }
+function pkSet(url){
+  const it = pkIt(); if(!it) return;
+  const o = it.o;
+  if(url){ o.img = url; o.noImg = false; o.picked = true; o.imgs = Array.from(new Set([url].concat(o.imgs || []))); }
+  else { o.img = ''; o.noImg = true; o.picked = true; }
+  it.ed = null; it.tried = false; RL.imgs.delete(it.link); RL.cardFiles = null;
+  rlRowShow(it); rlPreview(); pkRender();
+  toast(url ? t('rlPhSet') : t('rlPhNone'));
+}
+function pkRender(){
+  const it = pkIt(); if(!it) return;
+  $('rlPkT').textContent = tf('rlPhTitle', { a: nwNum(PK.i + 1), b: nwNum(RL.items.length) });
+  $('rlPkHint').textContent = t('rlPhHint');
+  $('rlPkFile').textContent = '📷 ' + t('rlPhFile'); $('rlPkFind').textContent = PK.busy ? t('rlFixing') : '🔄 ' + t('rlPhFind'); $('rlPkFind').disabled = PK.busy;
+  $('rlPkNone').textContent = t('rlPhNoneB'); $('rlPkUrl').placeholder = t('rlPhUrl'); $('rlPkUrlGo').textContent = t('rlPhUrlGo');
+  const cur = $('rlPkCur'), u = it.o.img;
+  cur.innerHTML = u ? '<img alt="" referrerpolicy="no-referrer">' : '<span>' + esc(t('rlPhEmpty')) + '</span>';
+  if(u){ const im = cur.querySelector('img'); im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = u; } }; im.src = /^(data|blob):/.test(u) ? u : proxImg(u, 640); }
+  const g = $('rlPkGrid'); g.innerHTML = '';
+  const list = Array.from(new Set([it.o.img].concat(it.o.imgs || []))).filter(x => x && (!sfBadImg(x) || /^(data|blob):/.test(x)));
+  list.forEach(x => {
+    const b = mk('button', 'rlpkc' + (x === it.o.img ? ' on' : '')); b.type = 'button';
+    const im = document.createElement('img'); im.alt = ''; im.referrerPolicy = 'no-referrer';
+    im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = x; } else b.remove(); };
+    im.src = /^(data|blob):/.test(x) ? x : proxImg(x, 240); b.appendChild(im);
+    b.addEventListener('click', () => pkSet(x));
+    g.appendChild(b);
+  });
+  g.classList.toggle('hidden', !list.length);
+  $('rlPkHint').textContent = list.length ? t('rlPhHint') : t('rlPhHint0');
+}
+function rlPickOpen(i){
+  if(RL.busy || !RL.items[i]) return;
+  PK.open = true; PK.i = i; pk.classList.remove('hidden');
+  try{ history.pushState({ rl: 1, pk: 1 }, ''); }catch(e){}
+  pkRender();
+  const it = pkIt();
+  if(it && (it.o.imgs || []).length < 2 && !/news\.google\./.test(it.link)) pkFind(false);    // show more photos from the story by itself
+}
+function rlPickClose(fromPop){
+  if(!PK.open) return;
+  PK.open = false; pk.classList.add('hidden');
+  if(fromPop !== true){ try{ if(history.state && history.state.pk) history.back(); }catch(e){} }
+}
+async function pkFind(force){
+  const it = pkIt(); if(!it || PK.busy) return;
+  PK.busy = true; pkRender();
+  try{ await sfEnrich(it.o, { force: true }); }catch(e){}
+  PK.busy = false;
+  if(!PK.open) return;
+  if(force && !(it.o.imgs || []).length) toast(t('rlPhNotFound'));
+  if(it.o.img && !it.o.picked){ RL.imgs.delete(it.link); RL.cardFiles = null; rlRowShow(it); rlPreview(); }
+  pkRender();
+}
+function pkFile(file){
+  if(!file || !/^image\//.test(file.type || 'image/')) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      try{
+        const k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
+        c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        pkSet(c.toDataURL('image/jpeg', 0.9));
+      }catch(e){ pkSet(String(fr.result)); }
+    };
+    im.onerror = () => toast(t('rlPhBad'));
+    im.src = String(fr.result);
+  };
+  fr.readAsDataURL(file);
+}
+$('rlPkClose').addEventListener('click', () => rlPickClose());
+pk.addEventListener('click', e => { if(e.target === pk) rlPickClose(); });
+$('rlPkFile').addEventListener('click', () => { $('rlPkIn').value = ''; $('rlPkIn').click(); });
+$('rlPkIn').addEventListener('change', e => pkFile(e.target.files && e.target.files[0]));
+$('rlPkFind').addEventListener('click', () => pkFind(true));
+$('rlPkNone').addEventListener('click', () => pkSet(''));
+$('rlPkUrlGo').addEventListener('click', () => {
+  const v = String($('rlPkUrl').value || '').trim();
+  if(!/^https?:\/\/\S+$/i.test(v)){ toast(t('rlPhBad')); $('rlPkUrl').focus(); return; }
+  $('rlPkUrl').value = ''; pkSet(v);
+});
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && PK.open){ e.stopImmediatePropagation(); rlPickClose(); } }, true);
+window.addEventListener('popstate', () => { if(PK.open && !(history.state && history.state.pk)) rlPickClose(true); });
+const pkCss = document.createElement('style');
+pkCss.textContent = `
+#rlPk{z-index:91}
+.rlpkbox{max-width:560px;height:auto;max-height:94vh;max-height:94dvh}
+.rlpkbody{flex:1;overflow-y:auto;padding:12px 14px 16px;-webkit-overflow-scrolling:touch}
+.rlpkcur{width:100%;aspect-ratio:16/10;border-radius:12px;background:var(--surface-2,#eef1f6);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;text-align:center;padding:0}
+.rlpkcur img{width:100%;height:100%;object-fit:cover;display:block}
+.rlpkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:4px 0 12px}
+.rlpkc{position:relative;aspect-ratio:1/1;border:2px solid transparent;border-radius:10px;overflow:hidden;padding:0;background:var(--surface-2,#eef1f6);transition:transform .12s}
+.rlpkc:active{transform:scale(.95)}
+.rlpkc.on{border-color:var(--accent)}
+.rlpkc.on::after{content:'✓';position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;line-height:22px;font-weight:800}
+.rlpkc img{width:100%;height:100%;object-fit:cover;display:block}
+.rlpkbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rlpkbtns .btn{min-height:46px;width:auto;font-size:14.5px}
+.rlpkbtns #rlPkFile{grid-column:1/-1}
+.rlpklink{display:flex;gap:6px;margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:6px;background:var(--surface)}
+.rlpklink input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font-size:14.5px;padding:8px;outline:none}
+.rlpklink .btn{flex:none;min-height:40px;width:auto}
+.rlthb{position:relative;flex:none;border:0;padding:0;cursor:pointer;overflow:hidden;background:var(--surface-2,#eef1f6);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.rlthb img{width:100%;height:100%;object-fit:cover;display:block}
+.rlthb .rlthpen{position:absolute;right:3px;bottom:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-style:normal;font-size:12px;line-height:20px;text-align:center}
+.rlthb .rlnoimg{font-size:11.5px;line-height:1.25;color:var(--accent);font-weight:700;text-align:center}
+.rlmain .rlst{display:block;font-style:normal;font-size:12px;line-height:1.35;margin-top:3px;color:var(--muted)}
+.rlmain .rlst.warn{color:var(--danger,#d93025);font-weight:600}
+.rlmain .rlst.ok{color:#1e8e3e}
+`;
+document.head.appendChild(pkCss);
 function rlTpls(st){
   if(RL.tpl === 'mine') return [C.template];
   if(RL.tpl === 'mix'){ const a = ['band', 'split', 'overlay', 'frame']; const k = Math.floor(st.shuffle * 4); return a.slice(k).concat(a.slice(0, k)); }
@@ -8787,15 +9203,16 @@ $('rlAi').addEventListener('click', async () => {
   if(!S.gkey && !S.ckey){ needKey(); return; }
   rlSyncTexts();
   const btn = $('rlAi'), lbl = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> ' + esc(t('writing'));
-  const list = RL.items.map((it, i) => (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']').join('\n');
+  const list = RL.items.map((it, i) => { const tz = sfTeaser(it.o.title || it.text) && it.o.text; return (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']' + (tz ? '\n   STORY TEXT: ' + shorten(norm(it.o.text), 900) : ''); }).join('\n');
   const prompt = 'These are ' + RL.items.length + ' Bangladeshi news stories for a vertical news-roundup video reel on a Facebook news page:\n' + list +
-    '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting.' +
+    '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. If a headline only teases a statement ("যা বললেন X", "মুখ খুললেন X") and does not say what was said, use the STORY TEXT and write it as  X: “the real main point”  instead, faithful to the text.' +
     '\nTask 2: write a Facebook caption for the reel: one warm opening line addressing readers respectfully as "আপনি", then a numbered list with one honest, factual sentence per story telling what it is really about, then one line crediting the sources, then 4–6 relevant Bengali hashtags. No emojis at the start of lines, nothing that could anger the public.' +
     '\nReturn ONLY JSON: {"cards":["headline 1","headline 2"],"caption":"..."} with exactly ' + RL.items.length + ' items in "cards".';
   try{
     const r = await writeAi({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, responseMimeType: 'application/json' } }, 90000);
     const o = parseAiJson(r.text), cards = Array.isArray(o.cards) ? o.cards : [];
-    cards.forEach((c, i) => { if(RL.items[i] && norm(c)) RL.items[i].text = norm(c); });
+    cards.forEach((c, i) => { if(RL.items[i] && norm(c)){ RL.items[i].text = norm(c); RL.items[i].manual = false; RL.items[i].quoted = false; } });
+    RL.cardFiles = null;
     if(norm(o.caption)){ let cap = String(o.caption).trim(); if(S.mask && typeof maskText === 'function') cap = maskText(cap, S.maskCh).text; $('rlCapIn').value = cap; capEdited = true; $('rlCapBox').open = true; }
     rlRenderList(); rlPreview(); toast(t('rlAiDone'));
   }catch(e){ toast(aiErrMsg(e)); }
@@ -8981,6 +9398,8 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape' && RL.open && 
     try{ rlPvStop(); }catch(e){}
     if(RL.busy) RL.cancel = true;
     if(ED.open){ ED.changed = false; rlEdClose(true); }
+    if(PK.open) rlPickClose(true);
+    RL.fixTok = (RL.fixTok || 0) + 1;
     if(RL.open) rlClose(true);
     const v = $('rlVideo'); if(v){ try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} }
     if(RL.url){ try{ URL.revokeObjectURL(RL.url); }catch(e){} }
@@ -9099,7 +9518,7 @@ function ppSrc(url){
   return p ? { id: p.id, bn: p.bn || p.en, en: p.en || p.bn, d: p.host } : { id: 'web', bn: h, en: h, d: h };
 }
 /* one story kept in the reel list (stored) → the object the live-news / reel code understands */
-function ppItemObj(x){ return { title: x.title, link: x.link, img: x.img || '', desc: x.desc || '', date: x.date ? parseDate(x.date) : null, src: x.src || ppSrc(x.link) }; }
+function ppItemObj(x){ return { title: x.title, link: x.link, img: x.img || '', imgs: Array.isArray(x.imgs) ? x.imgs.slice(0, 10) : [], text: x.text || '', desc: x.desc || '', date: x.date ? parseDate(x.date) : null, src: x.src || ppSrc(x.link) }; }
 function ppKey(u){ try{ const x = new URL(u); return (x.hostname.replace(/^www\d?\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); }catch(e){ return String(u || ''); } }
 function ppHas(u){ const k = ppKey(u); return PP.basket.some(x => ppKey(x.link) === k); }
 function ppLinkOf(p){ const c = p.canonical && /^https?:/.test(p.canonical) && hostOf(p.canonical) === hostOf(p.url) && ppKey(p.canonical).split('/').length > 1 ? p.canonical : p.url; return normalizeUrl(c) || c; }
@@ -9107,10 +9526,21 @@ function ppAddItem(p){
   const link = ppLinkOf(p);
   if(ppHas(link) || ppHas(p.url)) return 0;
   const s = ppSrc(link);
-  PP.basket.push({ title: norm(cleanTitle(String(p.title || ''), '')) || norm(p.title) || hostOf(link), link, img: p.img || '', desc: shorten(norm(p.desc || ''), 300), date: p.date || '',
-    src: { id: s.id, bn: s.bn, en: s.en, d: s.d } });
+  const imgs = (Array.isArray(p.imgs) ? p.imgs : []).concat(p.img ? [p.img] : []).filter((u, i, a) => u && a.indexOf(u) === i && !sfBadImg(u)).slice(0, 10);
+  const item = { title: norm(cleanTitle(String(p.title || ''), '')) || norm(p.title) || hostOf(link), link, img: imgs[0] || '', imgs, text: String(p.text || '').slice(0, 6000),
+    desc: shorten(norm(p.desc || ''), 300), date: p.date || '', src: { id: s.id, bn: s.bn, en: s.en, d: s.d } };
+  PP.basket.push(item);
   ppSaveBasket(); ppRenderBasket();
+  ppFixLater(item);
   return PP.basket.length;
+}
+/* a story whose headline / photo did not come from the page is fixed in the background (no tap needed) */
+function ppFixLater(item){
+  if(!sfNeeds(item, PP.basket)) return;
+  sfEnrich(item, { siblings: PP.basket }).then(ch => {
+    if(!ch || !PP.basket.includes(item)) return;
+    ppSaveBasket(); ppRenderBasket();
+  }).catch(() => {});
 }
 function ppRemove(u){ const k = ppKey(u); const n = PP.basket.length; PP.basket = PP.basket.filter(x => ppKey(x.link) !== k); ppSaveBasket(); ppRenderBasket(); return n !== PP.basket.length; }
 
@@ -9135,29 +9565,124 @@ function ppInjected(L){
   var meta = function(n){ var e = document.querySelector('meta[property="' + n + '"],meta[name="' + n + '"],meta[itemprop="' + n + '"]'); return e ? String(e.getAttribute('content') || '').trim() : ''; };
   var abs = function(u){ try{ return u ? new URL(u, location.href).href : ''; }catch(e){ return ''; } };
   var isHome = function(){ var p = location.pathname.replace(/\/+$/, ''); return !p || /^\/(bn|en|bengali|bangla|home|index\.html?|latest|online)$/i.test(p); };
+  /* the story on screen: headline, main photo (+ other photos) and text.
+     Many papers (Prothom Alo, Kaler Kantho…) change pages without a reload, so the page's meta tags can still be the
+     home page's (paper name + logo). Such stale tags are detected and the story is read from the page itself. */
+  var low = function(s){ return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); };
+  var txt = function(el){ return el ? String(el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim() : ''; };
+  var keyOf = function(u){ try{ var x = new URL(u, location.href); return (x.hostname.replace(/^www\d?\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase(); }catch(e){ return ''; } };
+  var BADIMG = /logo|favicon|sprite|placeholder|default[-_]?(img|image|thumb|og|photo)|no[-_]?(image|photo)|blank\.(png|jpe?g|gif)|1x1|spacer|pixel\.|avatar|apple-touch|\/icons?\/|og[-_]?image\.(png|jpe?g)/i;
+  var badImg = function(u){ return !u || !/^https?:/i.test(u) || BADIMG.test(u) || /\.(svg|gif)(\?|#|$)/i.test(u) || (api.homeImg && u === api.homeImg); };
+  var visible = function(el){ try{ var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }catch(e){ return false; } };
+  var bestSet = function(s){ var best = '', bw = -1; String(s || '').split(',').forEach(function(p){ var t = p.trim().split(/\s+/); if(!t[0]) return; var w = parseFloat(t[1]) || 1; if(w > bw){ bw = w; best = t[0]; } }); return best; };
+  var imgOf = function(im){
+    var u = '', ss = im.getAttribute('srcset') || im.getAttribute('data-srcset') || '';
+    if(ss) u = bestSet(ss);
+    if(!u) u = im.getAttribute('data-src') || im.getAttribute('data-lazy-src') || im.getAttribute('data-original') || im.currentSrc || im.src || '';
+    if(/^data:/.test(u)) u = im.getAttribute('data-src') || im.getAttribute('data-original') || '';
+    return abs(u);
+  };
+  if(isHome() && !api.homeTitle){ api.homeTitle = low(meta('og:title') || document.title); api.homeImg = abs(meta('og:image') || meta('twitter:image')); api.homeDesc = low(meta('og:description') || meta('description')); }
+  var siteWords = function(){
+    var h = location.hostname.replace(/^www\d?\.|^m\./, '').split('.')[0];
+    return [low(meta('og:site_name')), low(meta('application-name')), low(h), api.homeTitle || ''].filter(function(x){ return x && x.length > 1; });
+  };
+  var cut = function(s){ var p = String(s || '').replace(/\s+/g, ' ').trim().split(/\s+(?:\|\|?|–|—|-|::)\s+/); return p.length > 1 && p[p.length - 1].length < 40 ? p.slice(0, -1).join(' - ') : p[0]; };
+  var generic = function(s){
+    var t = low(cut(s)); if(t.length < 12) return true;
+    var sw = siteWords();
+    for(var i = 0; i < sw.length; i++){ if(t === sw[i] || t === low(cut(sw[i])) || (t.indexOf(sw[i]) >= 0 && t.replace(sw[i], '').replace(/[|\-–—:,.\s]/g, '').length < 8)) return true; }
+    return false;
+  };
   function page(withHtml){
-    var can = document.querySelector('link[rel="canonical"]');
-    var o = { url: location.href, canonical: can ? abs(can.getAttribute('href')) : '',
-      title: meta('og:title') || meta('twitter:title') || (document.querySelector('h1') ? document.querySelector('h1').textContent.trim() : '') || document.title || '',
-      img: abs(meta('og:image') || meta('og:image:url') || meta('og:image:secure_url') || meta('twitter:image') || meta('twitter:image:src')),
-      desc: meta('og:description') || meta('description') || meta('twitter:description'),
-      date: meta('article:published_time') || meta('datePublished') || meta('pubdate') || meta('publish-date') || '' };
-    if(!o.img){
-      var ims = document.querySelectorAll('article img, main img, h1 ~ * img, img');
-      for(var i = 0; i < ims.length && i < 60; i++){ var im = ims[i]; if((im.naturalWidth || im.width) >= 300 && /^https?:/.test(im.currentSrc || im.src || '')){ o.img = im.currentSrc || im.src; break; } }
+    var can = document.querySelector('link[rel="canonical"]'), ogUrl = meta('og:url'), here = keyOf(location.href);
+    var canU = can ? abs(can.getAttribute('href')) : '';
+    /* meta tags left over from another page (the site changed page without a reload) are not trusted */
+    var stale = (ogUrl && keyOf(ogUrl) !== here) || (canU && keyOf(canU) !== here && keyOf(canU).split('/').length > 1 && here.split('/').length > 1) ||
+      (!isHome() && api.homeTitle && low(meta('og:title')) === api.homeTitle);
+    var o = { url: location.href, canonical: stale ? '' : canU, title: '', img: '', imgs: [], desc: '', date: '', text: '', generic: false };
+    /* JSON-LD NewsArticle (only one that belongs to this page) */
+    var ld = { t: '', i: '', b: '', d: '' };
+    var lds = document.querySelectorAll('script[type="application/ld+json"]');
+    for(var a = 0; a < lds.length; a++){
+      try{
+        (function walk(x){
+          if(!x) return; if(Array.isArray(x)){ x.forEach(walk); return; } if(typeof x !== 'object') return;
+          if(x['@graph']) walk(x['@graph']);
+          var ty = String(x['@type'] || ''), u = x.url || x.mainEntityOfPage && (x.mainEntityOfPage['@id'] || x.mainEntityOfPage) || '';
+          if(/Article|Posting|Report/i.test(ty) && x.headline && (!u || typeof u !== 'string' || keyOf(u) === here)){
+            if(!ld.t) ld.t = String(x.headline);
+            if(!ld.i && x.image){ var im0 = Array.isArray(x.image) ? x.image[0] : x.image; ld.i = typeof im0 === 'string' ? im0 : (im0 && (im0.url || im0.contentUrl)) || ''; }
+            if(!ld.b && typeof x.articleBody === 'string') ld.b = x.articleBody;
+            if(!ld.d && x.datePublished) ld.d = String(x.datePublished);
+          }
+        })(JSON.parse(lds[a].textContent));
+      }catch(e){}
     }
+    /* the headline on screen */
+    var h1 = null, hs = document.querySelectorAll('h1, [itemprop="headline"], .headline, .title h1, h2');
+    for(var b = 0; b < hs.length; b++){
+      var el = hs[b]; if(el.closest('#tfpp-host,header nav,footer,aside') || !visible(el)) continue;
+      var tx = txt(el); if(tx.length < 12 || tx.length > 300 || generic(tx)) continue;
+      if(el.tagName === 'H2' && h1) break;
+      h1 = el; if(el.tagName === 'H1') break;
+    }
+    var cands = [stale ? '' : meta('og:title'), stale ? '' : meta('twitter:title'), ld.t, h1 ? txt(h1) : '', stale ? '' : document.title];
+    for(var c = 0; c < cands.length; c++){ if(cands[c] && !generic(cands[c])){ o.title = cut(cands[c]); break; } }
+    if(!o.title){ o.title = cut(cands.filter(Boolean)[0] || document.title || ''); o.generic = true; }
+    /* the article box: the headline's ancestor that holds the paragraphs */
+    var root = null;
+    if(h1){ var p0 = h1.parentElement; for(var d = 0; p0 && p0 !== document.body && d < 9; d++, p0 = p0.parentElement){ var ps = p0.querySelectorAll('p'), n = 0; for(var q = 0; q < ps.length && n < 3; q++) if(txt(ps[q]).length > 60) n++; if(n >= 2){ root = p0; break; } } }
+    if(!root) root = document.querySelector('article, [itemprop="articleBody"], main') || null;
+    /* photos: og image (if it belongs to this page), JSON-LD, then big photos in the article box */
+    var seen = {}, push = function(u){ u = abs(u); if(!u || seen[u] || badImg(u)) return; seen[u] = 1; o.imgs.push(u); };
+    if(!stale){ push(meta('og:image')); push(meta('og:image:url')); push(meta('og:image:secure_url')); push(meta('twitter:image')); }
+    if(ld.i) push(ld.i);
+    var scope = root || document, ims = scope.querySelectorAll('img, picture source'), list = [];
+    for(var e = 0; e < ims.length && e < 120; e++){
+      var im = ims[e]; if(im.closest('#tfpp-host,header,footer,nav,aside,[class*="related"],[class*="logo"]')) continue;
+      var u = im.tagName === 'SOURCE' ? abs(bestSet(im.getAttribute('srcset') || im.getAttribute('data-srcset'))) : imgOf(im);
+      if(!u || badImg(u)) continue;
+      var w = im.tagName === 'IMG' ? (im.naturalWidth || parseInt(im.getAttribute('width') || '0', 10) || im.getBoundingClientRect().width) : 400;
+      var hgt = im.tagName === 'IMG' ? (im.naturalHeight || parseInt(im.getAttribute('height') || '0', 10) || im.getBoundingClientRect().height) : 300;
+      if(w && w < 220) continue; if(hgt && w && hgt < 120) continue;
+      var after = h1 && (h1.compareDocumentPosition(im) & 4) ? 0 : 1;   // photos after the headline first
+      list.push({ u: u, k: after * 1e6 + e });
+    }
+    list.sort(function(x, y){ return x.k - y.k; }).forEach(function(x){ push(x.u); });
+    o.imgs = o.imgs.slice(0, 10); o.img = o.imgs[0] || '';
+    /* text */
+    var parts = [];
+    if(root){ var pp = root.querySelectorAll('p, blockquote, h2, h3'); for(var f = 0; f < pp.length; f++){ if(pp[f].closest('#tfpp-host,aside,footer,nav,[class*="related"],[class*="share"]')) continue; var pt = txt(pp[f]); if(pt.length > 25 && pt !== o.title) parts.push(pt); } }
+    o.text = parts.join('\n');
+    if(ld.b && ld.b.replace(/<[^>]+>/g, ' ').length > o.text.length) o.text = ld.b.replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ');
+    o.text = o.text.slice(0, 12000);
+    var md = stale ? '' : (meta('og:description') || meta('description') || meta('twitter:description'));
+    if(md && api.homeDesc && low(md) === api.homeDesc) md = '';
+    o.desc = md || o.text.slice(0, 300);
+    o.date = (stale ? '' : (meta('article:published_time') || meta('datePublished') || meta('pubdate') || meta('publish-date'))) || ld.d || '';
     if(withHtml){
       try{
-        var d = document.documentElement.cloneNode(true);
-        var rm = d.querySelectorAll('script:not([type="application/ld+json"]),style,noscript,iframe,svg,video,audio,canvas,ins,object,embed,template,link:not([rel="canonical"]),#tfpp-host');
+        var dd = document.documentElement.cloneNode(true);
+        var rm = dd.querySelectorAll('script:not([type="application/ld+json"]),style,noscript,iframe,svg,video,audio,canvas,ins,object,embed,template,link:not([rel="canonical"]),#tfpp-host');
         for(var j = 0; j < rm.length; j++) rm[j].parentNode && rm[j].parentNode.removeChild(rm[j]);
-        var li = d.querySelectorAll('img');
+        if(stale){ var sm = dd.querySelectorAll('meta[property^="og:"],meta[name^="twitter:"],meta[name="description"],link[rel="canonical"]'); for(var s2 = 0; s2 < sm.length; s2++) sm[s2].parentNode.removeChild(sm[s2]); }
+        var tt = dd.querySelector('title'); if(tt && o.title) tt.textContent = o.title;
+        var hd = dd.querySelector('head');
+        if(hd){ var mk1 = function(p, v){ if(!v) return; var m1 = document.createElement('meta'); m1.setAttribute('property', p); m1.setAttribute('content', v); hd.insertBefore(m1, hd.firstChild); };
+          if(stale || !meta('og:title')) mk1('og:title', o.title); if(o.img && (stale || badImg(abs(meta('og:image'))))) mk1('og:image', o.img); }
+        var li = dd.querySelectorAll('img');
         for(var k = 0; k < li.length; k++){ var s = li[k].getAttribute('data-src') || li[k].getAttribute('data-lazy-src') || li[k].getAttribute('data-original'); if(s) li[k].setAttribute('src', s); }
-        var h = '<!DOCTYPE html>' + d.outerHTML; if(h.length > 1500000) h = h.slice(0, 1500000);
+        var h = '<!DOCTYPE html>' + dd.outerHTML; if(h.length > 1500000) h = h.slice(0, 1500000);
         o.html = h;
       }catch(e){}
     }
     return o;
+  }
+  /* the site may still be drawing the story: wait a little (up to ~3 s) until a real headline and photo are on screen */
+  function grab(withHtml, cb){
+    var n = 0;
+    (function go(){ var p = page(withHtml && n >= 7); if((p.generic || !p.img || p.text.length < 150) && n < 7){ n++; setTimeout(go, 420); return; } if(withHtml && !p.html) p = page(true); cb(p); })();
   }
   var host = document.createElement('div'); host.id = 'tfpp-host';
   host.setAttribute('style', 'all:initial;position:fixed;left:0;right:0;bottom:0;z-index:2147483647;pointer-events:none');
@@ -9194,8 +9719,8 @@ function ppInjected(L){
   function toast(m){ var e = $('t'); e.textContent = m; e.classList.add('s'); clearTimeout(tt); tt = setTimeout(function(){ e.classList.remove('s'); }, 2200); }
   $('min').addEventListener('click', function(){ st.min = true; render(); });
   $('fab').addEventListener('click', function(){ st.min = false; render(); });
-  $('card').addEventListener('click', function(){ if(st.busy) return; st.busy = true; render(); post('card', { page: page(true) }); setTimeout(function(){ st.busy = false; render(); }, 15000); });
-  $('add').addEventListener('click', function(){ post(st.has ? 'remove' : 'add', { page: page(false) }); });
+  $('card').addEventListener('click', function(){ if(st.busy) return; st.busy = true; render(); grab(true, function(p){ post('card', { page: p }); }); setTimeout(function(){ st.busy = false; render(); }, 15000); });
+  $('add').addEventListener('click', function(){ if(st.has){ post('remove', { page: page(false) }); return; } if(st.busy) return; st.busy = true; render(); grab(false, function(p){ st.busy = false; render(); post('add', { page: p }); }); });
   $('reel').addEventListener('click', function(){ post('reel'); });
   api.set = function(o){ o = o || {}; if(o.n != null){ st.n = +o.n || 0; st.nt = o.nt || String(st.n); } if(o.has != null) st.has = !!o.has; if(o.busy != null) st.busy = !!o.busy; render(); if(o.msg) toast(o.msg); };
   api.ensure = function(){ if(document.body && !document.body.contains(host)) document.body.appendChild(host); };
@@ -9339,8 +9864,8 @@ async function ppCardFromPage(p){
   if(p.html){ try{ art = extractHtml(p.html, link); }catch(e){ art = null; } }
   if(art && art.blocks && textCount(art.blocks) >= 100){
     if(S.editing) toggleEdit(false);
-    if(!art.title) art.title = norm(p.title);
-    if(!art.image && p.img){ art.image = p.img; }
+    if(!art.title || (p.title && !p.generic && sfGenericTitle(art.title, link))) art.title = norm(p.title);
+    if((!art.image || sfBadImg(art.image)) && p.img){ art.image = p.img; }
     art.imageFromAi = false;
     if(!art.published && p.date) art.published = p.date;
     if(!/^https?:/.test(art.url || '') || hostOf(art.url) !== hostOf(link)) art.url = link;

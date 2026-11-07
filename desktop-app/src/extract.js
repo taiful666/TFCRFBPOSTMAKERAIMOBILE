@@ -71,9 +71,15 @@ const PAGE_SCRIPT = `(function(){
       });
     }
   } catch(e) {}
+  // the paper's own name instead of a headline (or a logo instead of the photo) → use the headline / photo on the page
+  const low = (x) => String(x || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+  const brand = location.hostname.replace(/^www\\d?\\.|^m\\./, '').split('.')[0];
+  const generic = (x) => { const t = low(String(x || '').split(/\\s+(?:\\|\\|?|–|—|-)\\s+/)[0]); if (t.length < 12) return true; return [low(out.site), brand].some((n) => n && n.length > 1 && (t === n || (t.includes(n) && t.replace(n, '').replace(/[|\\-–—:,.\\s]/g, '').length < 8))); };
+  if (generic(title)) { const h = document.querySelector('h1'); const ht = h ? (h.innerText || h.textContent || '').replace(/\\s+/g, ' ').trim() : ''; if (ht && !generic(ht)) title = ht; }
   out.title = (title || document.title || '').replace(/\\s+/g, ' ').trim();
   out.text = body.replace(/[ \\t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim().slice(0, 20000);
-  out.img = abs(m('og:image') || m('twitter:image') || ldImg || readImg);
+  const BADIMG = /logo|favicon|sprite|placeholder|default[-_]?(img|image|thumb|og|photo)|no[-_]?(image|photo)|1x1|spacer|avatar|apple-touch|\\/icons?\\/|og[-_]?image\\.(png|jpe?g)|\\.(svg|gif)(\\?|#|$)/i;
+  out.img = [m('og:image'), m('twitter:image'), ldImg, readImg].map(abs).find((u) => u && !BADIMG.test(u)) || '';
   out.desc = out.desc.replace(/\\s+/g, ' ').trim();
   return out;
 })()`;
@@ -117,7 +123,7 @@ async function extract(url, hint) {
   return {
     title,
     link,
-    img: data.img || hint.img || '',
+    img: data.img || (hint.img && !/logo|favicon|placeholder|\.svg(\?|$)/i.test(hint.img) ? hint.img : ''),
     desc: String(data.desc || '').slice(0, 400) || String(data.text || '').slice(0, 300),
     text: String(data.text || ''),
     site,

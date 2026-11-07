@@ -1134,6 +1134,7 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
       </div>
 
       <div id="proxyPanel" class="panel hidden">
+        <button type="button" class="btn" id="tfUpdBtn" style="display:none;width:100%;margin-bottom:12px">🔄 অ্যাপের নতুন আপডেট দেখুন</button>
         <h4><span data-i18n="aiTitle">✨ Google Gemini API কী (ঐচ্ছিক, আরও নির্ভরযোগ্য)</span><button type="button" class="x" data-close="proxyPanel" aria-label="close">×</button></h4>
         <p data-i18n="aiDesc">কী দিলে কোনো পত্রিকা আটকে গেলে Google Gemini নিজে পাতাটি খুলে শুধু মূল খবর এনে দেবে, এবং "✨ AI পরিষ্কার" বাটন চালু হবে। কী শুধু এই ব্রাউজারেই সংরক্ষিত থাকে, ফাইলের ভেতরে নয়।</p>
         <div style="display:flex;gap:6px">
@@ -7088,6 +7089,12 @@ async function sfAiQuotes(list){
   }catch(e){ return []; }
 }
 function plainTitle(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim(); }
+/* Android app: a button in settings to look for a new app update right now */
+(function(){ const b = document.getElementById('tfUpdBtn'); if(!b) return;
+  const on = () => { if(typeof window.TFCheckUpdate === 'function') b.style.display = ''; };
+  on(); setTimeout(on, 1500);
+  b.addEventListener('click', async () => { if(typeof window.TFCheckUpdate !== 'function') return; b.disabled = true; try{ await window.TFCheckUpdate(); } finally { b.disabled = false; } });
+})();
 window.TFFix = { sfBadImg, sfGenericTitle, sfTeaser, sfSpeaker, sfQuote, sfNeeds, sfEnrich, sfDupes };
 
 /* =====================================================================

@@ -266,28 +266,57 @@
     );
   }
 
-  async function checkUpdate() {
+  /* Which build is on the Releases page?
+     1) a tiny version.json next to the APK, fetched by the phone itself (not limited — many phones share one
+        mobile-data IP in Bangladesh, and GitHub's API allows only 60 checks an hour per IP);
+     2) GitHub's API as a second way. */
+  var NHttp = plug('CapacitorHttp');
+  var VER_URL = 'https://github.com/' + REPO + '/releases/download/android-latest/version.json';
+  async function latestFromFile() {
+    if (!NHttp || !NHttp.request) throw new Error('no native http');
+    var r = await Promise.race([
+      NHttp.request({ url: VER_URL + '?t=' + Date.now(), method: 'GET', responseType: 'text', connectTimeout: 15000, readTimeout: 15000, headers: { 'Cache-Control': 'no-cache' } }),
+      new Promise(function (_, rej) { setTimeout(function () { rej(new Error('slow')); }, 17000); })
+    ]);
+    if (!r || r.status !== 200) throw new Error('HTTP ' + (r && r.status));
+    var j = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+    var b = parseInt(j && j.build, 10);
+    if (!b) throw new Error('bad file');
+    return { build: b, rel: { name: 'build ' + b, body: j.sha256 ? 'SHA256: ' + j.sha256 : '', assets: [{ name: 'TF-FB-Reels-Post-Maker.apk', browser_download_url: APK_URL }] } };
+  }
+  async function latestFromApi() {
+    var r = await fetch('https://api.github.com/repos/' + REPO + '/releases/tags/android-latest', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var j = await r.json();
+    var m = /build\s+(\d+)/i.exec(String(j.name || ''));
+    var hasApk = (j.assets || []).some(function (x) { return /\.apk$/i.test(x.name || ''); });
+    if (!m || !hasApk) throw new Error('no apk');
+    return { build: parseInt(m[1], 10), rel: j };
+  }
+  async function checkUpdate(force) {
     var now = Date.now();
-    if (upBusy || now - lastCheck < 10 * 60 * 1000) return;   // at most once every 10 minutes
-    lastCheck = now;
+    if (upBusy || dialogOpen) return;
+    if (!force && now - lastCheck < 10 * 60 * 1000) return;     // after a successful check: at most once every 10 minutes
     try {
       if (!myBuild && App && App.getInfo) myBuild = parseInt((await App.getInfo()).build, 10) || 0;
       if (!myBuild) return;
       var ready = -1;
       if (Up) { try { ready = (await Up.info()).readyVersion; } catch (e) {} }    // also deletes a finished update file
-      var r = await fetch('https://api.github.com/repos/' + REPO + '/releases/tags/android-latest', { cache: 'no-store' });
-      if (!r.ok) return;
-      rel = await r.json();
-      var m = /build\s+(\d+)/i.exec(String(rel.name || ''));
-      var latest = m ? parseInt(m[1], 10) : 0;
-      var hasApk = (rel.assets || []).some(function (x) { return /\.apk$/i.test(x.name || ''); });
-      if (hasApk && latest > myBuild && latest !== skipped) showUpdate(latest, ready >= latest);
-    } catch (e) { /* no internet etc. — try again next time */ }
+      var got = null;
+      try { got = await latestFromFile(); } catch (e) { got = null; }
+      if (!got) { try { got = await latestFromApi(); } catch (e) { got = null; } }
+      if (!got) return;                                   // no internet / GitHub busy — checked again next time the app opens
+      lastCheck = now; rel = got.rel;
+      if (got.build > myBuild && (force || got.build !== skipped)) showUpdate(got.build, ready >= got.build);
+      else if (force) say('আপনার অ্যাপ সর্বশেষ ভার্সনে আছে ✓ (1.0.' + myBuild + ')');
+    } catch (e) { /* try again next time */ }
   }
+  window.TFCheckUpdate = function () { return checkUpdate(true); };   // "আপডেট দেখুন" in settings
 
   function startUpdateChecks() {
-    setTimeout(checkUpdate, 3000);
-    if (App && App.addListener) App.addListener('resume', function () { setTimeout(checkUpdate, 1500); });
+    setTimeout(function () { checkUpdate(false); }, 3000);
+    setTimeout(function () { checkUpdate(false); }, 60000);           // once more a minute later, in case the first try had no internet
+    if (App && App.addListener) App.addListener('resume', function () { setTimeout(function () { checkUpdate(false); }, 1500); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startUpdateChecks);
   else startUpdateChecks();

@@ -116,7 +116,8 @@ jobs:
         run: |
           SUM=$(sha256sum TF-FB-Reels-Post-Maker.apk | cut -d' ' -f1)
           gh release delete android-latest --yes --cleanup-tag || true
-          gh release create android-latest TF-FB-Reels-Post-Maker.apk \
+          printf '{"build":%s,"version":"1.0.%s","sha256":"%s"}\n' "${{ github.run_number }}" "${{ github.run_number }}" "$SUM" > version.json
+          gh release create android-latest TF-FB-Reels-Post-Maker.apk version.json \
             --target "${{ github.sha }}" \
             --title "TF FB Reels & Post Maker — Android app (build ${{ github.run_number }})" \
             --notes "ফোনে ইনস্টল করতে TF-FB-Reels-Post-Maker.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})

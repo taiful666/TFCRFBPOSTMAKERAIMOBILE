@@ -3577,7 +3577,44 @@ function paintCard(cv){
 }
 
 /* ---- images for the card ---- */
-function loadImg(src, cors){ return new Promise((res, rej) => { const im = new Image(); if(cors) im.crossOrigin = 'anonymous'; im.decoding = 'async'; im.onload = () => im.naturalWidth ? res(im) : rej(new Error('empty')); im.onerror = () => rej(new Error('img')); im.src = src; }); }
+function loadImg(src, cors, ms){
+  /* every photo load now has a time limit — a server that never answers can no longer freeze the app */
+  return new Promise((res, rej) => {
+    const im = new Image(); let to = 0;
+    const end = () => { clearTimeout(to); im.onload = im.onerror = null; };
+    if(cors) im.crossOrigin = 'anonymous'; im.decoding = 'async';
+    im.onload = () => { end(); im.naturalWidth ? res(im) : rej(new Error('empty')); };
+    im.onerror = () => { end(); rej(new Error('img')); };
+    to = setTimeout(() => { end(); try{ im.src = ''; }catch(e){} rej(new Error('slow')); }, ms || 30000);
+    im.src = src;
+  });
+}
+/* ---- Android app only: the phone fetches pages and photos itself (no proxy, no browser block) ---- */
+function natHttp(){
+  const C0 = window.Capacitor;
+  try{ if(!(C0 && C0.isNativePlatform && C0.isNativePlatform())) return null; return (C0.Plugins && C0.Plugins.CapacitorHttp) || (C0.registerPlugin && C0.registerPlugin('CapacitorHttp')) || null; }catch(e){ return null; }
+}
+const NAT_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+async function natReq(url, type, ms, referer){
+  const H = natHttp(); if(!H || !/^https:\/\//i.test(url)) throw new Error('nonative');
+  const headers = { 'User-Agent': NAT_UA, 'Accept-Language': 'bn-BD,bn;q=0.9,en;q=0.8', 'Accept': type === 'blob' ? 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8' : 'text/html,application/xhtml+xml,*/*;q=0.8' };
+  if(referer) headers.Referer = referer;
+  const r = await Promise.race([H.request({ url, method: 'GET', headers, responseType: type, connectTimeout: ms, readTimeout: ms }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), ms + 1500))]);
+  if(!r || r.status < 200 || r.status >= 400) throw new Error('HTTP ' + (r && r.status));
+  return r;
+}
+async function natText(url, ms){ const r = await natReq(url, 'text', ms || 15000, ''); const d = typeof r.data === 'string' ? r.data : JSON.stringify(r.data || ''); if(!d) throw new Error('empty'); return d; }
+async function natImg(url, ms){
+  let ref = ''; try{ const h = new URL(url).hostname.split('.'); ref = 'https://' + (h.length > 2 ? h.slice(-2).join('.') : h.join('.')) + '/'; }catch(e){}
+  const r = await natReq(url, 'blob', ms || 12000, ref);
+  let b64 = typeof r.data === 'string' ? r.data : ''; b64 = b64.replace(/^data:[^,]*,/, '');
+  if(b64.length < 800) throw new Error('not image');
+  const bin = atob(b64), u8 = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  if(u8[0] === 0x3C) throw new Error('html');                                          // an error page, not a photo
+  const bl = new Blob([u8], { type: 'image/jpeg' }), bu = URL.createObjectURL(bl);
+  try{ return await loadImg(bu, false, 15000); } catch(e){ URL.revokeObjectURL(bu); throw e; }
+}
 /* ===== hide newspaper logos / names printed on news photos =====
    Looks for small, dense "text-like" bands near the corners and edges of the photo (where papers put their name or logo),
    softly blurs them, then trims a thin edge from every side. Works on the phone, no internet needed. */
@@ -3640,6 +3677,8 @@ async function loadExportable(url){
   url = fixImgHost(url);
   if(/^(data|blob):/.test(url)) return { img: await loadImg(url, false), tainted: false };
   const enc = encodeURIComponent(url);
+  // 00) Android app: the phone downloads the photo itself, like a normal browser visit (fastest, works for most papers)
+  if(natHttp()){ try{ return { img: await natImg(url, 12000), tainted: false }; }catch(e){} }
   // 0) your own proxy (Cloudflare Worker) — most reliable for blocked photos
   if(S.worker){
     try{
@@ -3653,9 +3692,10 @@ async function loadExportable(url){
   // 1) image CDNs that allow export (fast, run in parallel)
   try{
     const bare = url.replace(/^https?:\/\//, '');
-    return { img: await Promise.any([proxImg(url, 1600), 'https://wsrv.nl/?url=' + enc + '&w=1600&output=jpg&q=85', 'https://images.weserv.nl/?url=' + enc + '&output=jpg&q=85',
+    return { img: await Promise.any([url, proxImg(url, 1600), 'https://wsrv.nl/?url=' + enc + '&w=1600&output=jpg&q=85', 'https://images.weserv.nl/?url=' + enc + '&output=jpg&q=85',
       'https://wsrv.nl/?url=' + encodeURIComponent(bare) + '&output=jpg&q=85&n=-1', 'https://i0.wp.com/' + bare.replace(/\?.*$/, ''), 'https://cdn.statically.io/img/' + bare.replace(/\?.*$/, ''),
-      'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=86400&url=' + enc].map(u => loadImg(u, true))), tainted: false };
+      'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=86400&url=' + enc,
+      'https://external-content.duckduckgo.com/iu/?u=' + enc].map(u => loadImg(u, true, 14000))), tainted: false };
   }catch(e){}
   // 2) fetch the bytes through proxies (incl. your own Worker, if set)
   const routes = [];
@@ -3674,8 +3714,8 @@ async function loadExportable(url){
     })), tainted: false };
   }catch(e){}
   // 3) direct
-  try{ return { img: await loadImg(url, true), tainted: false }; }catch(e){}
-  return { img: await loadImg(url, false), tainted: true };
+  try{ return { img: await loadImg(url, true, 14000), tainted: false }; }catch(e){}
+  return { img: await loadImg(url, false, 14000), tainted: true };
 }
 function autoLabel(src){ return src === 'orig' ? (norm(C.fields.source) ? t('photoBy') + C.fields.source : '') : src === 'ai' ? t('labelAi') : ''; }
 function setCardWarn(msg){ $('cardWarn').textContent = msg || ''; $('cardWarn').classList.toggle('hidden', !msg); }
@@ -6540,11 +6580,13 @@ async function nwFindImg(link){
   routes.push('https://api.allorigins.win/raw?url=' + enc, 'https://api.codetabs.com/v1/proxy/?quest=' + enc, 'https://corsproxy.io/?url=' + enc);
   let im = '';
   try{
-    im = await Promise.any(routes.map(async r => {
+    const tries = routes.map(async r => {
       const to = withTimeout(12000);
       try{ const res = await fetch(r, { signal: to.signal }); if(!res.ok) throw 0; const html = (await res.text()).slice(0, 300000); const u = ogFrom(html, link); if(!u) throw 0; return u; }
       finally{ to.done(); }
-    }));
+    });
+    if(natHttp()) tries.unshift(natText(link, 12000).then(html => { const u = ogFrom(html.slice(0, 300000), link); if(!u) throw 0; return u; }));
+    im = await Promise.any(tries);
   }catch(e){ im = ''; }
   nwImgMem[link] = im; nwImgSave();
   return im;
@@ -6989,6 +7031,7 @@ async function sfRead(url){
   if(S.worker){ const w = S.worker.trim(); routes.push(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + enc); }
   routes.push('https://api.allorigins.win/raw?url=' + enc, 'https://api.codetabs.com/v1/proxy/?quest=' + enc, 'https://corsproxy.io/?url=' + enc);
   routes.forEach(r => tries.push(getText(r, 15000).then(fromHtml)));
+  if(natHttp()) tries.unshift(natText(url, 15000).then(fromHtml));                 // Android app: read the page directly
   tries.push(getText('https://api.allorigins.win/get?url=' + enc, 16000).then(t0 => fromHtml(JSON.parse(t0).contents || '')));
   let best = null;
   try{
@@ -7370,7 +7413,6 @@ function rlRenderList(){
     row.querySelector('.rlthb').addEventListener('click', () => { if(!RL.busy) rlPickOpen(i); });
     ta.addEventListener('input', () => { it.text = ta.value; it.manual = true; RL.cardFiles = null; rlPreview(); });
     row.querySelector('small').textContent = it.source + (it.date ? ' · ' + it.date : '');
-    rlRowShow(it);
     row.querySelector('[data-a="up"]').disabled = i === 0;
     row.querySelector('[data-a="dn"]').disabled = i === RL.items.length - 1;
     row.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
@@ -7381,6 +7423,7 @@ function rlRenderList(){
       rlSelFromItems(); rlRenderList(); rlMeta(); if(i <= 1) rlPreview();
     }));
     list.appendChild(row);
+    rlRowShow(it);                                     // after the row is on screen, so its photo and status show
   });
   $('rlMake').disabled = !RL.items.length || RL.busy;
   $('rlCards').classList.toggle('hidden', !RL.items.length);
@@ -7389,7 +7432,7 @@ function rlRenderList(){
 /* one row's photo, text and "fixing…" line, updated in place (the text box keeps focus while you type) */
 function rlRowShow(it){
   const row = it._row; if(!row || !row.isConnected) return;
-  const th = row.querySelector('.rlthb'), u = it.o.img || '';
+  const th = row.querySelector('.rlthb'), u = (it.phGen && it.genUrl) ? it.genUrl : (it.o.img || '');
   if(th.dataset.u !== u){
     th.dataset.u = u; th.innerHTML = '';
     if(u){
@@ -7402,8 +7445,8 @@ function rlRowShow(it){
   const ta = row.querySelector('textarea'); if(ta && document.activeElement !== ta && ta.value !== it.text) ta.value = it.text;
   const st = row.querySelector('.rlst');
   const noT = !it.fixing && !it.manual && sfGenericTitle(it.text, it.link, it.o);
-  const msg = it.fixing ? t('rlFixing') : noT ? t('rlNoTitle') + ((!u && it.tried) ? ' · ' + t('rlNoPh') : '') : it.quoted && !it.manual ? t('rlQuoted') : (!u && it.tried) ? t('rlNoPh') : '';
-  st.textContent = msg; st.classList.toggle('hidden', !msg); st.classList.toggle('warn', !it.fixing && (noT || (!u && !!it.tried))); st.classList.toggle('ok', !!(it.quoted && !it.manual && !it.fixing));
+  const msg = it.genning ? t('rlGenning') : it.fixing ? t('rlFixing') : (it.phGen === 'ai' && it.genUrl) ? t('rlGenAi') : (it.phGen === 'txt' && it.genUrl) ? t('rlGenTxt') : noT ? t('rlNoTitle') + ((!u && it.tried) ? ' · ' + t('rlNoPh') : '') : it.quoted && !it.manual ? t('rlQuoted') : (!u && it.tried) ? t('rlNoPh') : '';
+  st.textContent = msg; st.classList.toggle('hidden', !msg); st.classList.toggle('warn', !it.fixing && (noT || (!u && !!it.tried))); st.classList.toggle('ok', !!((it.quoted && !it.manual && !it.fixing) || (it.phGen && it.genUrl && !it.genning)));
 }
 function rlSelFromItems(){ RL.sel = new Map(RL.items.map(x => [x.link, x.o])); }
 function rlSyncTexts(){
@@ -7570,35 +7613,145 @@ function shrinkImg(im, max){
   c.naturalWidth = c.width; c.naturalHeight = c.height;
   return c;
 }
+/* ---- every story gets a picture ----
+   1) the paper's own photo (story photo, other photos on the page, the page's share photo, a fresh read of the page) —
+      each tried through many routes, all inside a time limit so one slow paper can never freeze the video;
+   2) if that still fails: Gemini makes a symbolic picture for the story by itself (labelled "AI দিয়ে তৈরি প্রতীকী ছবি");
+   3) no Gemini key / Gemini busy: a clean picture is drawn here from the story's topic. Never blank. */
+const RL_PIC = new Map();                                    // link → { c: canvas, kind: 'ai' | 'txt' } — made once per app session
+const RL_GQ = { n: 0, q: [] };
+function rlGenSlot(){ return new Promise(r => { if(RL_GQ.n < 2){ RL_GQ.n++; r(); } else RL_GQ.q.push(r); }); }
+function rlGenFree(){ const nx = RL_GQ.q.shift(); if(nx) nx(); else RL_GQ.n = Math.max(0, RL_GQ.n - 1); }
+function rlPhLbl(it){ if(!it) return ''; if(it.phGen === 'ai') return t('labelAi'); if(it.phGen === 'txt') return ''; return it.source ? t('photoBy') + it.source : ''; }
+function rlAiPrompt(it, simple){
+  const head = plainTitle(it.text || (it.o && it.o.title) || ''), ctx = shorten(norm((it.o && (it.o.desc || it.o.text)) || ''), 450);
+  const rules = 'Rules: no text, letters, numbers, captions, logos, party symbols or watermarks anywhere in the image; never a recognizable face of a real, named person or politician (people only anonymous — from behind, far away or softly out of focus); no blood, gore, dead bodies or weapons aimed at people; respectful, calm, natural light, landscape framing.';
+  if(simple) return 'Create a calm, neutral, symbolic editorial illustration (objects and places only, no people) that hints at the topic of this Bangladeshi news headline: ' + head + '\n' + rules;
+  return 'Create one realistic, documentary news-photo style SYMBOLIC image for this Bangladeshi news story, so a viewer understands at a glance what it is about. Use a Bangladesh setting when it fits.\nHeadline (Bengali): ' + head + (ctx ? '\nContext: ' + ctx : '') + '\n' + rules;
+}
+async function rlAiPic(it){
+  if(!S.gkey || Date.now() < (RL.genOff || 0) || RL.cancel) return null;
+  await rlGenSlot();
+  RL.genBusy = (RL.genBusy || 0) + 1;
+  try{
+    for(const simple of [false, true]){
+      if(RL.cancel || Date.now() < (RL.genOff || 0)) return null;
+      try{
+        const r = await Promise.race([geminiImage(rlAiPrompt(it, simple), '4:3'), sleep(95000).then(() => { throw new Error('slow'); })]);
+        const im = await loadImg(r.url, false, 20000), c = shrinkImg(im, 1400);
+        if(c) return c;
+      }catch(e){
+        const m = String((e && e.message) || '') + ' ' + ((e && e.status) || '');
+        if(/429|quota|RESOURCE_EXHAUSTED|billing|API.?key|PERMISSION|UNAUTH|401|403|NOKEY/i.test(m)){ RL.genOff = Date.now() + 10 * 60000; return null; }
+      }
+    }
+    return null;
+  } finally { RL.genBusy--; rlGenFree(); }
+}
+const RL_TOPIC = [
+  [/আদালত|রায়|মামলা|বিচার|গ্রেপ্তার|গ্রেফতার|পুলিশ|কারাগার|জামিন|র‍্যাব|court|police|arrest/i, '⚖️', 215],
+  [/নির্বাচন|ভোট|সংসদ|সরকার|মন্ত্রী|প্রধানমন্ত্রী|উপদেষ্টা|রাজনীতি|দল|সমাবেশ|election|minister|parliament/i, '🏛️', 222],
+  [/ক্রিকেট|ফুটবল|ম্যাচ|গোল|উইকেট|খেলা|টুর্নামেন্ট|cricket|football|match/i, '🏏', 140],
+  [/দাম|বাজার|টাকা|ব্যাংক|ডলার|অর্থনীতি|বাজেট|শেয়ার|রিজার্ভ|বিনিয়োগ|ঋণ|price|bank|economy/i, '💰', 45],
+  [/বৃষ্টি|ঝড়|বন্যা|আবহাওয়া|শীত|তাপপ্রবাহ|ঘূর্ণিঝড়|ভূমিকম্প|নদী|weather|flood|cyclone/i, '🌦️', 200],
+  [/দুর্ঘটনা|আগুন|অগ্নিকাণ্ড|নিহত|আহত|সংঘর্ষ|বিস্ফোরণ|accident|fire|blast/i, '🚨', 0],
+  [/হাসপাতাল|চিকিৎসা|ডেঙ্গু|রোগ|স্বাস্থ্য|ডাক্তার|ওষুধ|hospital|health|dengue/i, '🏥', 170],
+  [/শিক্ষা|পরীক্ষা|স্কুল|কলেজ|বিশ্ববিদ্যালয়|শিক্ষার্থী|ছাত্র|exam|university|school/i, '🎓', 260],
+  [/ভারত|পাকিস্তান|আমেরিকা|যুক্তরাষ্ট্র|চীন|রাশিয়া|ইউক্রেন|ইসরায়েল|গাজা|ইরান|জাতিসংঘ|বিশ্ব|india|china|russia|world/i, '🌍', 190],
+  [/মসজিদ|মন্দির|ইসলাম|ঈদ|পূজা|নামাজ|ধর্ম|হজ/i, '🕌', 150],
+  [/প্রযুক্তি|ইন্টারনেট|মোবাইল|ফেসবুক|এআই|অ্যাপ|tech|internet|mobile/i, '📱', 230],
+  [/সিনেমা|নাটক|গান|শিল্পী|অভিনেতা|অভিনেত্রী|তারকা|film|actor|song/i, '🎬', 300],
+  [/কৃষি|ধান|কৃষক|ফসল|চাল|সবজি|farm|rice/i, '🌾', 95],
+  [/রেল|ট্রেন|বাস|সড়ক|যানজট|ফ্লাইট|বিমান|মেট্রো|লঞ্চ|train|bus|flight|road/i, '🚆', 30],
+  [/বাড়ি|জমি|ভবন|সাইনবোর্ড|দখল|উচ্ছেদ|house|land|building/i, '🏠', 25]
+];
+function rlTxtPic(it){
+  try{
+    const txt = String((it && it.text) || '') + ' ' + String((it && it.o && (it.o.title || it.o.desc)) || '');
+    const hit = RL_TOPIC.find(x => x[0].test(txt)) || [null, '📰', 210];
+    let h = 0; for(const ch of String(it && it.link || txt)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const hue = (hit[2] + (h % 30) - 15 + 360) % 360, W = 1400, H = 1050;
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, 'hsl(' + hue + ',55%,20%)'); g.addColorStop(1, 'hsl(' + ((hue + 40) % 360) + ',60%,9%)');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(255,255,255,.05)'; x.lineWidth = 2;                       // soft diagonal texture
+    for(let k = -H; k < W; k += 46){ x.beginPath(); x.moveTo(k, 0); x.lineTo(k + H, H); x.stroke(); }
+    const rg = x.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 520); rg.addColorStop(0, 'hsla(' + hue + ',80%,60%,.45)'); rg.addColorStop(1, 'hsla(' + hue + ',80%,60%,0)');
+    x.fillStyle = rg; x.fillRect(0, 0, W, H);
+    x.beginPath(); x.arc(W / 2, H / 2, 300, 0, Math.PI * 2); x.fillStyle = 'rgba(255,255,255,.08)'; x.fill();
+    x.lineWidth = 6; x.strokeStyle = 'rgba(255,255,255,.18)'; x.stroke();
+    x.font = '330px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 40; x.fillText(hit[1], W / 2, H / 2 + 20); x.shadowBlur = 0;
+    c.naturalWidth = W; c.naturalHeight = H;
+    return c;
+  }catch(e){ return null; }
+}
+function rlGenUse(it, g){
+  it.phGen = g.kind; it.tried = true;
+  try{ const k = 200 / Math.max(g.c.width, 1), th = document.createElement('canvas'); th.width = 200; th.height = Math.round(g.c.height * k); th.getContext('2d').drawImage(g.c, 0, 0, th.width, th.height); it.genUrl = th.toDataURL('image/jpeg', 0.75); }catch(e){ it.genUrl = ''; }
+  rlRowShow(it);
+  return g.c;
+}
 function rlImg(it){
   if(RL.imgs.has(it.link)) return RL.imgs.get(it.link);
   const p = (async () => {
-    const o = it.o, tried = new Set();
+    const o = it.o, tried = new Set(), t0 = Date.now(), BUDGET = 45000;  // at most ~45 s looking for the paper's photo
+    const left = () => BUDGET - (Date.now() - t0);
+    const one = async url => {
+      const r = await Promise.race([loadExportable(url), sleep(Math.max(2500, Math.min(16000, left()))).then(() => { throw new Error('slow'); })]);
+      if(r.tainted || !r.img || (r.img.naturalWidth || r.img.width) < 120) throw new Error('bad');
+      return { url, img: r.img };
+    };
     const tryList = async list => {
-      for(const url of list){
-        if(!url || tried.has(url) || (sfBadImg(url) && !/^(data|blob):/.test(url))) continue; tried.add(url);
-        try{
-          const r = await Promise.race([loadExportable(url), sleep(20000).then(() => { throw new Error('slow'); })]);
-          if(r.tainted || !r.img || (r.img.naturalWidth || r.img.width) < 120) continue;
-          if(o.img !== url){ o.img = url; rlRowShow(it); }
-          const sm = shrinkImg(r.img, 1400);
-          return sm && wmOn() && !/^(data|blob):/.test(url) ? wmClean(sm) : sm;
-        }catch(e){}
+      const urls = [];
+      for(const u of list){ if(!u || tried.has(u) || (sfBadImg(u) && !/^(data|blob):/.test(u))) continue; tried.add(u); urls.push(u); }
+      const groups = urls.length ? [urls.slice(0, 1)] : [];                         // the chosen photo first, then two at a time
+      for(let k = 1; k < urls.length; k += 2) groups.push(urls.slice(k, k + 2));
+      for(const gp of groups){
+        if(left() < 1500 || RL.cancel) break;
+        let got = null; try{ got = await Promise.any(gp.map(one)); }catch(e){}
+        if(!got) continue;
+        const sm = shrinkImg(got.img, 1400); if(!sm) continue;
+        if(o.img !== got.url) o.img = got.url;
+        it.phGen = (o.aiPic && got.url === o.aiPic) ? 'ai' : ''; it.genUrl = ''; rlRowShow(it);
+        return wmOn() && !/^(data|blob):/.test(got.url) ? wmClean(sm) : sm;
       }
       return null;
     };
-    if(o.noImg) return null;                                          // "no photo" chosen by hand
+    if(o.noImg){ it.phGen = ''; return null; }                       // "no photo" chosen by hand
     let im = await tryList([o.img].concat(o.imgs || []));
+    if(!im && !RL.cancel && !/news\.google\./.test(it.link) && left() > 2000){
+      try{ const u = await Promise.race([nwFindImg(it.link), sleep(Math.min(14000, left())).then(() => '')]); if(u) im = await tryList([u]); }catch(e){}
+      if(!im && !RL.cancel && left() > 3000){
+        try{ await Promise.race([sfEnrich(o, { force: true }), sleep(Math.min(22000, left()))]); }catch(e){}
+        im = await tryList([o.img].concat(o.imgs || []));
+      }
+    }
     if(im) return im;
-    if(/news\.google\./.test(it.link)) return null;
-    try{ const u = await nwFindImg(it.link); im = await tryList([u]); if(im) return im; }catch(e){}
-    try{ await sfEnrich(o, { force: true }); im = await tryList([o.img].concat(o.imgs || [])); if(im) return im; }catch(e){}
-    it.tried = true; rlRowShow(it);
-    return null;
+    if(RL.cancel) return null;
+    // the paper's photo could not be brought in → a picture is made for this story, without asking
+    const old = RL_PIC.get(it.link); if(old) return rlGenUse(it, old);
+    it.fixing = false; it.genning = true; rlRowShow(it);
+    let c = await rlAiPic(it), kind = 'ai';
+    it.genning = false;
+    if(!c){ c = rlTxtPic(it); kind = 'txt'; }
+    if(!c){ it.tried = true; rlRowShow(it); return null; }
+    const g = { c, kind }; if(kind === 'ai' || !S.gkey) RL_PIC.set(it.link, g);  // a drawn picture is tried again with AI next time
+    return rlGenUse(it, g);
   })();
   RL.imgs.set(it.link, p);
-  p.then(v => { if(!v) RL.imgs.delete(it.link); });           // try again next time
+  p.then(v => { if(!v) RL.imgs.delete(it.link); }, () => RL.imgs.delete(it.link));
   return p;
+}
+/* waits for a story's picture, but never longer than ms, and stops at once when "বাতিল" is pressed */
+function rlImgSafe(it, ms){
+  return new Promise(res => {
+    let fin = false;
+    const end = v => { if(fin) return; fin = true; clearInterval(iv); clearTimeout(to); res(v); };
+    const iv = setInterval(() => { if(RL.cancel) end(null); }, 250);
+    const to = setTimeout(() => { if(it.o && it.o.noImg) return end(null); RL.imgs.delete(it.link); const c = rlTxtPic(it); end(c ? rlGenUse(it, { c, kind: 'txt' }) : null); }, ms || 150000);
+    rlImg(it).then(end, () => end(null));
+  });
 }
 /* runs by itself when the reel studio opens: real headlines + photos for stories that came with the paper's name / logo,
    and the real words for "যা বললেন অমুক" headlines */
@@ -7644,13 +7797,15 @@ Object.assign(T.bn, {
   rlNews:'টি খবর', rlNewsNone:'খবর', rlNoTitle:'আসল শিরোনাম পাওয়া যায়নি — লেখার ঘরে চাপ দিয়ে লিখে দিন', rlPhHint0:'এই খবরের পাতায় ছবি পাওয়া যায়নি — ফোন থেকে বা লিংক দিয়ে ছবি দিন, অথবা "আবার খুঁজুন" চাপুন।', rlPhAdd:'ছবি দিন', rlFixing:'আসল ছবি ও শিরোনাম আনা হচ্ছে…', rlQuoted:'✓ খবরের ভেতর থেকে মূল কথা বসানো হয়েছে', rlNoPh:'ছবি পাওয়া যায়নি — বাঁ দিকের ঘরে চাপ দিয়ে ছবি দিন',
   rlPhTitle:'খবর {a} / {b} — ছবি', rlPhHint:'খবরের পাতায় পাওয়া ছবিগুলো নিচে — যেটি চান চাপ দিন। অথবা ফোন থেকে বা লিংক দিয়ে নিজের ছবি দিন।',
   rlPhFile:'ফোন থেকে ছবি দিন', rlPhFind:'আবার খুঁজুন', rlPhNoneB:'ছবি ছাড়া রাখুন', rlPhUrl:'ছবির লিংক পেস্ট করুন (https://…)', rlPhUrlGo:'বসান',
-  rlPhEmpty:'এখনো কোনো ছবি নেই', rlPhSet:'ছবি বদলানো হয়েছে', rlPhNone:'এই খবর ছবি ছাড়া রঙিন ব্যাকগ্রাউন্ডে আসবে', rlPhNotFound:'এই খবরের পাতায় আর কোনো ছবি পাওয়া যায়নি — ফোন থেকে ছবি দিন', rlPhBad:'ছবিটি নেওয়া গেল না'
+  rlPhEmpty:'এখনো কোনো ছবি নেই', rlPhSet:'ছবি বদলানো হয়েছে', rlPhNone:'এই খবর ছবি ছাড়া রঙিন ব্যাকগ্রাউন্ডে আসবে', rlPhNotFound:'এই খবরের পাতায় আর কোনো ছবি পাওয়া যায়নি — ফোন থেকে ছবি দিন', rlPhBad:'ছবিটি নেওয়া গেল না',
+  rlGenning:'পত্রিকার ছবি আসেনি — AI দিয়ে ছবি তৈরি হচ্ছে…', rlGenAi:'✨ AI দিয়ে তৈরি প্রতীকী ছবি বসানো হয়েছে — বদলাতে বাঁ দিকের ছবিতে চাপুন', rlGenTxt:'✓ খবরের বিষয় অনুযায়ী ছবি বসানো হয়েছে — বদলাতে বাঁ দিকের ছবিতে চাপুন', rlGenNow:'✨ AI ছবি তৈরি হচ্ছে', rlPhAi:'✨ AI দিয়ে নতুন ছবি', rlPhAiNo:'AI ছবি তৈরি করা গেল না — সেটিংসে Gemini key দেখুন', rlPhAiOk:'AI দিয়ে প্রতীকী ছবি বসানো হয়েছে'
 });
 Object.assign(T.en, {
   rlNews:' stories', rlNewsNone:'Stories', rlNoTitle:'Real headline not found — tap the text box and type it', rlPhHint0:'No photo found on this story page — add one from your phone or by link, or tap "Search again".', rlPhAdd:'Add photo', rlFixing:'Getting the real photo and headline…', rlQuoted:'✓ Main words taken from the story', rlNoPh:'No photo found — tap the box on the left to add one',
   rlPhTitle:'Story {a} / {b} — photo', rlPhHint:'Photos found on the story page are below — tap one. Or add your own from the phone or by link.',
   rlPhFile:'Photo from phone', rlPhFind:'Search again', rlPhNoneB:'No photo', rlPhUrl:'Paste a photo link (https://…)', rlPhUrlGo:'Use',
-  rlPhEmpty:'No photo yet', rlPhSet:'Photo changed', rlPhNone:'This story will use a colour background', rlPhNotFound:'No more photos on this story page — add one from your phone', rlPhBad:'Could not use that photo'
+  rlPhEmpty:'No photo yet', rlPhSet:'Photo changed', rlPhNone:'This story will use a colour background', rlPhNotFound:'No more photos on this story page — add one from your phone', rlPhBad:'Could not use that photo',
+  rlGenning:'No newspaper photo — making one with AI…', rlGenAi:'✨ AI-made symbolic picture added — tap the picture on the left to change it', rlGenTxt:'✓ Topic picture added — tap the picture on the left to change it', rlGenNow:'✨ making AI pictures', rlPhAi:'✨ New AI picture', rlPhAiNo:'Could not make an AI picture — check the Gemini key in settings', rlPhAiOk:'AI symbolic picture added'
 });
 /* ---------------- tap a story's photo in the list: choose another photo / your own / a link / no photo ---------------- */
 const pk = mk('div', 'nsheet hidden no-print'); pk.id = 'rlPk'; pk.setAttribute('role', 'dialog'); pk.setAttribute('aria-modal', 'true');
@@ -7663,6 +7818,7 @@ pk.innerHTML = `<div class="nsbox rlpkbox">
     <div class="rlpkbtns">
       <button type="button" class="btn primary" id="rlPkFile"></button>
       <button type="button" class="btn" id="rlPkFind"></button>
+      <button type="button" class="btn" id="rlPkAi"></button>
       <button type="button" class="btn" id="rlPkNone"></button>
     </div>
     <div class="rlpklink"><input type="url" id="rlPkUrl" inputmode="url" autocomplete="off"><button type="button" class="btn" id="rlPkUrlGo"></button></div>
@@ -7670,14 +7826,14 @@ pk.innerHTML = `<div class="nsbox rlpkbox">
   </div>
 </div>`;
 document.body.appendChild(pk);
-const PK = { open: false, i: 0, busy: false };
+const PK = { open: false, i: 0, busy: false, gen: false };
 function pkIt(){ return RL.items[PK.i]; }
 function pkSet(url){
   const it = pkIt(); if(!it) return;
   const o = it.o;
   if(url){ o.img = url; o.noImg = false; o.picked = true; o.imgs = Array.from(new Set([url].concat(o.imgs || []))); }
   else { o.img = ''; o.noImg = true; o.picked = true; }
-  it.ed = null; it.tried = false; RL.imgs.delete(it.link); RL.cardFiles = null;
+  it.ed = null; it.tried = false; it.genUrl = ''; it.phGen = (url && url === o.aiPic) ? 'ai' : ''; RL.imgs.delete(it.link); RL.cardFiles = null;
   rlRowShow(it); rlPreview(); pkRender();
   toast(url ? t('rlPhSet') : t('rlPhNone'));
 }
@@ -7686,7 +7842,7 @@ function pkRender(){
   $('rlPkT').textContent = tf('rlPhTitle', { a: nwNum(PK.i + 1), b: nwNum(RL.items.length) });
   $('rlPkHint').textContent = t('rlPhHint');
   $('rlPkFile').textContent = '📷 ' + t('rlPhFile'); $('rlPkFind').textContent = PK.busy ? t('rlFixing') : '🔄 ' + t('rlPhFind'); $('rlPkFind').disabled = PK.busy;
-  $('rlPkNone').textContent = t('rlPhNoneB'); $('rlPkUrl').placeholder = t('rlPhUrl'); $('rlPkUrlGo').textContent = t('rlPhUrlGo');
+  $('rlPkNone').textContent = t('rlPhNoneB'); $('rlPkAi').textContent = PK.gen ? t('rlGenNow') + '…' : t('rlPhAi'); $('rlPkAi').disabled = !!PK.gen; $('rlPkUrl').placeholder = t('rlPhUrl'); $('rlPkUrlGo').textContent = t('rlPhUrlGo');
   const cur = $('rlPkCur'), u = it.o.img;
   cur.innerHTML = u ? '<img alt="" referrerpolicy="no-referrer">' : '<span>' + esc(t('rlPhEmpty')) + '</span>';
   if(u){ const im = cur.querySelector('img'); im.onerror = () => { if(im.dataset.f !== '1'){ im.dataset.f = '1'; im.src = u; } }; im.src = /^(data|blob):/.test(u) ? u : proxImg(u, 640); }
@@ -7750,6 +7906,18 @@ $('rlPkFile').addEventListener('click', () => { $('rlPkIn').value = ''; $('rlPkI
 $('rlPkIn').addEventListener('change', e => pkFile(e.target.files && e.target.files[0]));
 $('rlPkFind').addEventListener('click', () => pkFind(true));
 $('rlPkNone').addEventListener('click', () => pkSet(''));
+$('rlPkAi').addEventListener('click', async () => {            // make a fresh AI picture for this story by hand
+  const it = pkIt(); if(!it || PK.gen) return;
+  if(!S.gkey){ toast(t('rlPhAiNo')); return; }
+  PK.gen = true; RL.genOff = 0; pkRender();
+  let c = null; try{ c = await rlAiPic(it); }catch(e){}
+  PK.gen = false;
+  if(!c){ pkRender(); toast(t('rlPhAiNo')); return; }
+  let url = ''; try{ url = c.toDataURL('image/jpeg', 0.9); }catch(e){}
+  if(!url){ pkRender(); toast(t('rlPhAiNo')); return; }
+  if(pkIt() !== it){ return; }
+  it.o.aiPic = url; RL_PIC.set(it.link, { c, kind: 'ai' }); pkSet(url); toast(t('rlPhAiOk'));
+});
 $('rlPkUrlGo').addEventListener('click', () => {
   const v = String($('rlPkUrl').value || '').trim();
   if(!/^https?:\/\/\S+$/i.test(v)){ toast(t('rlPhBad')); $('rlPkUrl').focus(); return; }
@@ -7772,7 +7940,7 @@ pkCss.textContent = `
 .rlpkc img{width:100%;height:100%;object-fit:cover;display:block}
 .rlpkbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .rlpkbtns .btn{min-height:46px;width:auto;font-size:14.5px}
-.rlpkbtns #rlPkFile{grid-column:1/-1}
+.rlpkbtns #rlPkFile,.rlpkbtns #rlPkNone{grid-column:1/-1}
 .rlpklink{display:flex;gap:6px;margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:6px;background:var(--surface)}
 .rlpklink input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font-size:14.5px;padding:8px;outline:none}
 .rlpklink .btn{flex:none;min-height:40px;width:auto}
@@ -7804,7 +7972,7 @@ function rlPaintCard(it, i, st, img, full, opt){
     C.panX = ed.panX || 0; C.panY = ed.panY || 0; C.zoom = ed.zoom || 100;      // photo position & zoom set by hand for this story
     if(ed.textY != null) C.textY = ed.textY;                                     // text moved up / down by hand
     if(!full || opt.noLogo) C.logoImg = null;          // in the video the page logo sits fixed in the corner of every frame instead
-    C.fields = { headline: it.text, sub: '', role: '', desc: '', cat: '', source: it.source, date: it.date, url: it.host, label: img ? t('photoBy') + it.source : '', take: '', points: '', num: '', numLabel: '' };
+    C.fields = { headline: it.text, sub: '', role: '', desc: '', cat: '', source: it.source, date: it.date, url: it.host, label: img ? rlPhLbl(it) : '', take: '', points: '', num: '', numLabel: '' };
     paintCard(cv);
     if(opt.info){ opt.info.regions = C.regions; opt.info.pmax = C.pmax; }
   } finally { Object.assign(C, keep); }
@@ -7877,7 +8045,7 @@ function rlLiveScene(ctx, R, g, p){
   else rlPlainBg(ctx, ac, 0, py, RW, ph);
   const vg = ctx.createLinearGradient(0, py + ph - 120, 0, py + ph); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
   ctx.fillStyle = vg; ctx.fillRect(0, py + ph - 120, RW, 120);
-  if(img && it.source){ ctx.font = fontStr(19, 600, BFAM); const lb = t('photoBy') + it.source, w = ctx.measureText(lb).width + 22;
+  if(img && rlPhLbl(it)){ ctx.font = fontStr(19, 600, BFAM); const lb = rlPhLbl(it), w = ctx.measureText(lb).width + 22;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, 18, py + 16, w, 32, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lb, 29, py + 33); }
   ctx.restore();
   // channel strip
@@ -8138,7 +8306,7 @@ function lvCover(ctx, R, p, d){
   if(cv.img) rlPhoto(ctx, cv.img, 0, 0, RW, ph, z, 0); else rlPlainBg(ctx, ac, 0, 0, RW, ph);
   const g = ctx.createLinearGradient(0, 0, 0, 170); g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, RW, 170);
   rlBrand(ctx, R, 70, true);
-  if(cv.img && cv.src){ ctx.font = fontStr(19, 600, BFAM); const lb = t('photoBy') + cv.src, w = ctx.measureText(lb).width + 22;
+  if(cv.img && cv.lbl){ ctx.font = fontStr(19, 600, BFAM); const lb = cv.lbl, w = ctx.measureText(lb).width + 22;
     ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, 18, ph - 48, w, 32, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lb, 29, ph - 31); }
   // channel strip
   ctx.fillStyle = hl; ctx.fillRect(0, ph, RW, 5); ctx.fillStyle = shade(ac, -0.15); ctx.fillRect(0, ph + 5, RW, 58);
@@ -8227,10 +8395,11 @@ function rlFeatured(items, st, has){
   return best[Math.floor(st.feat * best.length)].i;
 }
 function rlCoverData(R, items, imgs){
-  const st = R.st, i = rlFeatured(items, st, k => !!imgs[k]), it = items[i] || items[0];
+  const st = R.st, real = k => !!imgs[k] && !(items[k] && items[k].phGen);     // the cover prefers a real newspaper photo
+  const i = items.some((_, k) => real(k)) ? rlFeatured(items, st, real) : rlFeatured(items, st, k => !!imgs[k]), it = items[i] || items[0];
   const lbls = t('rlLbls').split('|'), ctas = t('rlCtas').split('|');
   const said = it && it.o && nwHot(it.o) >= 2 && st.lbl < 0.35;
-  return { i, img: imgs[i] || null, text: String((it && it.text) || R.title).replace(/\s+/g, ' ').trim(), src: (it && it.source) || '',
+  return { i, img: imgs[i] || null, text: String((it && it.text) || R.title).replace(/\s+/g, ' ').trim(), src: (it && it.source) || '', lbl: imgs[i] ? rlPhLbl(it) : '',
     label: said ? t('rlLblSaid') : lbls[Math.floor(st.lbl * lbls.length)],
     cta: R.n <= 1 ? t('rlCta1') : tf(ctas[Math.floor(st.cta * ctas.length)], { n: nwNum(R.n), m: nwNum(R.n - 1) }) };
 }
@@ -9007,9 +9176,13 @@ async function rlMake(){
     let done = 0, miss = 0; const imgs = new Array(n);
     prog(tf('rlPrep', { a: nwNum(0), b: nwNum(n) }), 0);
     let next = 0;
-    await Promise.all(Array.from({ length: Math.min(4, n) }, async () => {
-      while(next < n && !RL.cancel){ const i = next++; imgs[i] = await rlImg(items[i]); done++; prog(tf('rlPrep', { a: nwNum(done), b: nwNum(n) }), done / n * 0.9); }
-    }));
+    const pText = () => tf('rlPrep', { a: nwNum(done), b: nwNum(n) }) + (RL.genBusy > 0 ? ' · ' + t('rlGenNow') : '');
+    const pTick = setInterval(() => { if(!RL.cancel) prog(pText(), done / n * 0.9); }, 700);
+    try{
+      await Promise.all(Array.from({ length: Math.min(6, n) }, async () => {
+        while(next < n && !RL.cancel){ const i = next++; imgs[i] = await rlImgSafe(items[i], 150000); done++; prog(pText(), done / n * 0.9); }
+      }));
+    } finally { clearInterval(pTick); }
     if(RL.cancel) throw new Error('cancel');
     // b) cards — kept small; many stories are stored as JPEG and opened just before they show
     const many = n > 20 && 'createImageBitmap' in window;
@@ -9152,7 +9325,8 @@ async function rlCardFiles(){
     for(let i = 0; i < n; i++){
       if(RL.cancel) throw new Error('cancel');
       prog(tf('rlCardMaking', { a: nwNum(i + 1), b: nwNum(n) }), i / n);
-      const img = await rlImg(items[i]);
+      const img = await rlImgSafe(items[i], 150000);
+      if(RL.cancel) throw new Error('cancel');
       const cv = RL.tpl === 'deck' ? dkPost(items, i, st, img) : rlPaintCard(items[i], i, st, img, true);
       const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
       cv.width = cv.height = 1;

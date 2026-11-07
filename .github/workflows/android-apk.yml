@@ -48,6 +48,9 @@ jobs:
       - name: Create the Android project
         run: npx cap add android
 
+      - name: Add the in-app updater (download + install inside the app, no browser)
+        run: node add-updater.mjs
+
       - name: Make icons and splash screen from the logo
         run: npx capacitor-assets generate --android --iconBackgroundColor '#0B1430' --iconBackgroundColorDark '#0B1430' --splashBackgroundColor '#0B1430' --splashBackgroundColorDark '#0B1430'
 
@@ -111,8 +114,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          SUM=$(sha256sum TF-FB-Reels-Post-Maker.apk | cut -d' ' -f1)
           gh release delete android-latest --yes --cleanup-tag || true
           gh release create android-latest TF-FB-Reels-Post-Maker.apk \
             --target "${{ github.sha }}" \
             --title "TF FB Reels & Post Maker — Android app (build ${{ github.run_number }})" \
-            --notes "ফোনে ইনস্টল করতে TF-FB-Reels-Post-Maker.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})"
+            --notes "ফোনে ইনস্টল করতে TF-FB-Reels-Post-Maker.apk ফাইলটি ডাউনলোড করে খুলুন। (Build ${{ github.run_number }})
+
+          SHA256: $SUM"

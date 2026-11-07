@@ -122,55 +122,166 @@
     });
   }
 
-  /* ---------- "New update available" check ----------
-     Every time the app opens (or comes back from the background), it asks
-     GitHub which build is on the Releases page. If that build is newer than
-     the one installed, it shows a message with an "Update" button that
-     downloads the new APK in the phone's browser. */
+  /* ---------- Updates, entirely inside the app ----------
+     Every time the app opens (or comes back from the background) it asks GitHub which
+     build is on the Releases page. If it is newer, a message appears; "আপডেট করুন" downloads
+     the new APK inside the app in the background (progress shown at the bottom, you can keep
+     working), checks it (same app, newer, SHA-256), then opens Android's own Update screen.
+     The very first time Android asks once to "Allow from this source" — the app opens that
+     screen by itself and carries on when you come back. If the in-app download keeps failing,
+     a fallback link is offered so an update is never stuck. */
   var REPO = 'taiful666/TFCRFBPOSTMAKERAIMOBILE';
   var APK_URL = 'https://github.com/' + REPO + '/releases/download/android-latest/TF-FB-Reels-Post-Maker.apk';
-  var myBuild = 0, skipped = 0, lastCheck = 0, dialogOpen = false;
+  var Up = (C.isPluginAvailable && !C.isPluginAvailable('TFUpdater')) ? null : plug('TFUpdater');
+  var hasUp = function () { return !!Up; };
+  var myBuild = 0, skipped = 0, lastCheck = 0, dialogOpen = false, rel = null, upBusy = false, fails = 0;
+  var FONT = 'font-family:"Hind Siliguri","Noto Sans Bengali",sans-serif';
 
-  function showUpdate(newBuild) {
-    if (dialogOpen || !document.body) return;
+  function dialog(html, onAct) {
+    if (dialogOpen || !document.body) return null;
     dialogOpen = true;
     var wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;inset:0;background:rgba(6,10,24,.62);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:22px;font-family:"Hind Siliguri","Noto Sans Bengali",sans-serif';
-    wrap.innerHTML =
-      '<div style="background:#fff;color:#111;border-radius:18px;max-width:380px;width:100%;padding:22px 20px 18px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center">' +
-        '<div style="font-size:42px;line-height:1">🎉</div>' +
-        '<div style="font-size:19px;font-weight:700;margin:10px 0 6px">নতুন আপডেট এসেছে!</div>' +
-        '<div style="font-size:14.5px;line-height:1.6;color:#444">TF FB Reels &amp; Post Maker-এর নতুন ভার্সন <b>1.0.' + newBuild + '</b> পাওয়া যাচ্ছে।<br>' +
-        '(আপনার ফোনে আছে 1.0.' + myBuild + ')<br><br>' +
-        '"আপডেট করুন" চাপলে ফাইল ডাউনলোড হবে। ডাউনলোড শেষে ফাইলটি খুলে <b>Update / ইনস্টল</b> চাপুন — আপনার সব কাজ ও সেটিং থেকে যাবে।</div>' +
-        '<button data-a="go" style="margin-top:16px;width:100%;border:0;border-radius:12px;background:#1877F2;color:#fff;font-size:16px;font-weight:700;padding:13px">আপডেট করুন</button>' +
-        '<button data-a="later" style="margin-top:8px;width:100%;border:0;border-radius:12px;background:#eef1f6;color:#333;font-size:15px;padding:11px">পরে করবো</button>' +
-      '</div>';
+    wrap.style.cssText = 'position:fixed;inset:0;background:rgba(6,10,24,.62);z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:22px;' + FONT;
+    wrap.innerHTML = '<div style="background:#fff;color:#111;border-radius:18px;max-width:380px;width:100%;padding:22px 20px 18px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center">' + html + '</div>';
     function close() { dialogOpen = false; wrap.remove(); document.removeEventListener('keydown', onKey, true); }
-    function onKey(e) { if (e.key === 'Escape') { skipped = newBuild; close(); e.stopImmediatePropagation(); } }
+    function onKey(e) { if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); onAct('esc'); } }
     wrap.addEventListener('click', function (e) {
-      var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
-      if (a === 'go') { close(); say('ডাউনলোড শুরু হচ্ছে…'); window.location.href = APK_URL; }
-      else if (a === 'later') { skipped = newBuild; close(); }
+      var a = e.target && e.target.closest && e.target.closest('[data-a]');
+      if (a) { close(); onAct(a.getAttribute('data-a')); }
     });
     document.addEventListener('keydown', onKey, true);
     document.body.appendChild(wrap);
+    return wrap;
+  }
+  var BTN = 'margin-top:16px;width:100%;border:0;border-radius:12px;background:#1877F2;color:#fff;font-size:16px;font-weight:700;padding:13px;' + FONT;
+  var BTN2 = 'margin-top:8px;width:100%;border:0;border-radius:12px;background:#eef1f6;color:#333;font-size:15px;padding:11px;' + FONT;
+  var TXT = 'font-size:14.5px;line-height:1.6;color:#444';
+
+  /* small bar at the bottom while the update downloads — the app stays usable */
+  var pill = null, pillT = 0;
+  function pillShow(text, pct, tone) {
+    if (!document.body) return;
+    clearTimeout(pillT);
+    if (!pill) {
+      pill = document.createElement('div');
+      pill.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:2147483646;background:rgba(17,20,28,.95);color:#fff;border-radius:14px;padding:11px 14px 12px;box-shadow:0 8px 26px rgba(0,0,0,.35);' + FONT + ';font-size:14px;line-height:1.4;pointer-events:none';
+      pill.innerHTML = '<div data-t></div><div data-w style="height:6px;border-radius:3px;background:rgba(255,255,255,.18);margin-top:8px;overflow:hidden"><i data-b style="display:block;height:100%;width:0;background:#1877F2;border-radius:3px;transition:width .25s"></i></div>';
+      document.body.appendChild(pill);
+    }
+    pill.querySelector('[data-t]').textContent = text;
+    var bar = pill.querySelector('[data-b]');
+    bar.style.width = (pct == null || pct === false ? 100 : Math.max(3, Math.min(100, pct))) + '%';
+    bar.style.background = tone === 'ok' ? '#1e8e3e' : tone === 'bad' ? '#d93025' : '#1877F2';
+    pill.querySelector('[data-w]').style.display = pct === false ? 'none' : '';
+  }
+  function pillHide(ms) { clearTimeout(pillT); pillT = setTimeout(function () { if (pill) { pill.remove(); pill = null; } }, ms || 0); }
+  function mb(n) { return (n / 1048576).toFixed(1); }
+  var INSTALLING = 'ইনস্টল হচ্ছে — Android-এর স্ক্রিনে "আপডেট / Update" চাপুন';
+
+  if (Up && Up.addListener) {
+    Up.addListener('updateProgress', function (p) {
+      var pct = p.total > 0 ? Math.round(p.received * 100 / p.total) : null;
+      pillShow('নতুন আপডেট নামছে… ' + (pct != null ? pct + '% (' + mb(p.received) + ' / ' + mb(p.total) + ' MB)' : mb(p.received) + ' MB') + ' — অ্যাপ চালাতে থাকুন', pct);
+    });
+    Up.addListener('updateState', function (s) {
+      upBusy = false;
+      if (s.state === 'installing') { pillShow(INSTALLING, null, 'ok'); pillHide(7000); }
+      else if (s.state === 'denied') { pillHide(); askPermission(true); }
+      else { pillShow('ইনস্টল শুরু করা যায়নি — আবার "আপডেট করুন" চাপুন', false, 'bad'); pillHide(5000); }
+    });
+  }
+
+  function askPermission(again) {
+    dialog(
+      '<div style="font-size:40px;line-height:1">🔐</div>' +
+      '<div style="font-size:18px;font-weight:700;margin:10px 0 6px">' + (again ? 'অনুমতিটি এখনো চালু হয়নি' : 'শুধু একবার অনুমতি দিন') + '</div>' +
+      '<div style="' + TXT + '">অ্যাপ নিজেই আপডেট বসাতে Android শুধু প্রথমবার একটি অনুমতি চায়। পরের স্ক্রিনে <b>"Allow from this source / এই উৎস থেকে অনুমতি দিন"</b> চালু করে <b>Back</b> চাপুন — আপডেট নিজেই শুরু হবে। পরের আপডেটগুলোতে আর লাগবে না।</div>' +
+      '<button data-a="go" style="' + BTN + '">ঠিক আছে, চালু করি</button><button data-a="later" style="' + BTN2 + '">পরে</button>',
+      function (a) { if (a === 'go') doInstall(true); else { upBusy = false; pillHide(); } }
+    );
+  }
+
+  async function doInstall(afterAsk) {
+    try {
+      var inf = await Up.info();
+      if (!inf.canInstall && !afterAsk) { pillHide(); askPermission(false); return; }
+      upBusy = true;
+      var r = await Up.install();
+      if (r.status === 'installing') { upBusy = false; pillShow(INSTALLING, null, 'ok'); pillHide(7000); }
+      else if (r.status === 'permission') pillShow('"Allow from this source" চালু করে Back চাপুন — বাকিটা নিজেই হবে', false);
+    } catch (e) {
+      upBusy = false; pillShow('ইনস্টল শুরু করা যায়নি — আবার "আপডেট করুন" চাপুন', false, 'bad'); pillHide(5000);
+    }
+  }
+
+  async function startUpdate(build) {
+    if (upBusy) { say('আপডেট আগেই নামছে…'); return; }
+    if (!Up) { say('ডাউনলোড শুরু হচ্ছে…'); window.location.href = APK_URL; return; }   // only the older app builds come here
+    upBusy = true;
+    pillShow('নতুন আপডেট নামানো শুরু হচ্ছে…', 2);
+    var asset = rel && (rel.assets || []).filter(function (x) { return /\.apk$/i.test(x.name || ''); })[0];
+    var urls = [asset && asset.browser_download_url, APK_URL].filter(function (u, i, a) { return u && a.indexOf(u) === i; });
+    var m = /SHA256:\s*([a-f0-9]{64})/i.exec(String((rel && rel.body) || ''));
+    var sum = m ? m[1].toLowerCase() : '';
+    for (var n = 0; n < 3; n++) {
+      try {
+        var r = await Up.download({ url: urls[n % urls.length], sha256: sum, build: build });
+        fails = 0;
+        pillShow(r.cached ? 'আপডেট আগেই নামানো আছে — ইনস্টল হচ্ছে…' : 'নামানো শেষ ✓ — ইনস্টল হচ্ছে…', 100, 'ok');
+        upBusy = false;
+        await doInstall(false);
+        return;
+      } catch (e) {
+        var msg = String((e && e.message) || e);
+        if (/busy/.test(msg)) { return; }
+        if (/not newer/.test(msg)) { upBusy = false; pillShow('আপনার অ্যাপ এখনই সর্বশেষ ভার্সনে আছে ✓', false, 'ok'); pillHide(3500); return; }
+        if (n < 2) { pillShow('নেটে সমস্যা — আবার চেষ্টা করছি (' + (n + 2) + '/3)…', 2); await new Promise(function (res) { setTimeout(res, 2500 * (n + 1)); }); }
+      }
+    }
+    upBusy = false; fails++;
+    pillHide();
+    dialog(
+      '<div style="font-size:40px;line-height:1">📶</div><div style="font-size:18px;font-weight:700;margin:10px 0 6px">আপডেট নামানো যায়নি</div>' +
+      '<div style="' + TXT + '">ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।' + (fails >= 2 ? ' তাতেও না হলে বিকল্প পথে ফাইলটি নামাতে পারেন।' : '') + '</div>' +
+      '<button data-a="retry" style="' + BTN + '">আবার চেষ্টা করুন</button>' +
+      (fails >= 2 ? '<button data-a="link" style="' + BTN2 + '">বিকল্প পথে নামান</button>' : '') +
+      '<button data-a="later" style="' + BTN2 + '">পরে</button>',
+      function (a) { if (a === 'retry') startUpdate(build); else if (a === 'link') window.location.href = APK_URL; }
+    );
+  }
+
+  function showUpdate(newBuild, ready) {
+    dialog(
+      '<div style="font-size:42px;line-height:1">🎉</div>' +
+      '<div style="font-size:19px;font-weight:700;margin:10px 0 6px">নতুন আপডেট এসেছে!</div>' +
+      '<div style="' + TXT + '">TF FB Reels &amp; Post Maker-এর নতুন ভার্সন <b>1.0.' + newBuild + '</b> পাওয়া যাচ্ছে।<br>' +
+      '(আপনার ফোনে আছে 1.0.' + myBuild + ')<br><br>' +
+      (!Up ? '"আপডেট করুন" চাপলে ফাইল ডাউনলোড হবে। ডাউনলোড শেষে ফাইলটি খুলে <b>Update / ইনস্টল</b> চাপুন। এরপর থেকে আপডেট অ্যাপের ভেতরেই হবে।'
+        : ready ? 'আপডেট আগেই নামানো আছে — চাপ দিলেই ইনস্টল শুরু হবে।'
+        : '"আপডেট করুন" চাপলে অ্যাপের ভেতরেই নামতে থাকবে — আপনি কাজ চালিয়ে যেতে পারবেন। শেষ হলে নিজেই ইনস্টল শুরু হবে।') +
+      ' আপনার সব কাজ ও সেটিং থেকে যাবে।</div>' +
+      '<button data-a="go" style="' + BTN + '">আপডেট করুন</button>' +
+      '<button data-a="later" style="' + BTN2 + '">পরে করবো</button>',
+      function (a) { if (a === 'go') startUpdate(newBuild); else skipped = newBuild; }
+    );
   }
 
   async function checkUpdate() {
     var now = Date.now();
-    if (now - lastCheck < 10 * 60 * 1000) return;   // at most once every 10 minutes
+    if (upBusy || now - lastCheck < 10 * 60 * 1000) return;   // at most once every 10 minutes
     lastCheck = now;
     try {
       if (!myBuild && App && App.getInfo) myBuild = parseInt((await App.getInfo()).build, 10) || 0;
       if (!myBuild) return;
+      var ready = -1;
+      if (Up) { try { ready = (await Up.info()).readyVersion; } catch (e) {} }    // also deletes a finished update file
       var r = await fetch('https://api.github.com/repos/' + REPO + '/releases/tags/android-latest', { cache: 'no-store' });
       if (!r.ok) return;
-      var rel = await r.json();
+      rel = await r.json();
       var m = /build\s+(\d+)/i.exec(String(rel.name || ''));
       var latest = m ? parseInt(m[1], 10) : 0;
       var hasApk = (rel.assets || []).some(function (x) { return /\.apk$/i.test(x.name || ''); });
-      if (hasApk && latest > myBuild && latest !== skipped) showUpdate(latest);
+      if (hasApk && latest > myBuild && latest !== skipped) showUpdate(latest, ready >= latest);
     } catch (e) { /* no internet etc. — try again next time */ }
   }
 

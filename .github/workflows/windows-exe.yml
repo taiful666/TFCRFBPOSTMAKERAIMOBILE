@@ -9,6 +9,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'index.html'
       - 'desktop-app/**'
       - '.github/workflows/windows-exe.yml'
 

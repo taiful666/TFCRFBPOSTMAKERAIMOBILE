@@ -1,7 +1,7 @@
 {
   "name": "tf-media-studio",
   "productName": "TF Media Studio",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "TF Media Studio - TF News Studio + TF FB Reels & Post Maker in one Windows app",
   "main": "src/main.js",
   "private": true,

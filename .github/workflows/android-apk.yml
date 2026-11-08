@@ -69,6 +69,7 @@ jobs:
             echo "== $f"; cat "$f"
           done
           ! grep -rq 'android:inset' android/app/src/main/res/mipmap-anydpi-v26/
+          node sharp-icons.mjs
 
       - name: Set version number
         run: |

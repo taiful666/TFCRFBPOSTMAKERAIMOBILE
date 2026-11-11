@@ -7193,7 +7193,7 @@ function rlNewStyle(prev){
   let tr = pick(TRANS); if(prev && TRANS.length > 1) while(tr === prev.trans) tr = pick(TRANS);
   let cov = pick(COVERS); if(prev && COVERS.length > 1) while(cov === prev.cover) cov = pick(COVERS);
   return { trans: tr, kb: pick([1, -1]), pal: Math.floor(Math.random() * PALETTES.length), intro: pick(['stripe', 'burst']),
-    cover: cov, lbl: Math.random(), cta: Math.random(), feat: Math.random(),
+    cover: cov, qs: Math.random(), lbl: Math.random(), cta: Math.random(), feat: Math.random(),
     bpm: 92 + Math.floor(Math.random() * 25), root: 43 + Math.floor(Math.random() * 8), prog: pick(PROGS), shuffle: Math.random() };
 }
 RL.style = rlNewStyle();
@@ -8040,14 +8040,28 @@ function rlBg(img, color){
   x.fillStyle = v; x.fillRect(0, 0, 180, 320);
   return c;
 }
-/* ---- "কোট কার্ড" design: the news itself is the hero — big headline with yellow-highlighted key words on a paper
-        background, a source tag, and the newspaper photo smaller in a rounded frame below ---- */
-const QT = { crop: 1.22, paper: '#ecebe6', ink: '#141414', mark: '#ffe23a', tag: '#0f2a44', tx: 44 };
-function qtPaper(ctx, ac, top){
-  ctx.fillStyle = QT.paper; ctx.fillRect(0, 0, RW, RH);
-  ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 1;                     // light grid, like a notebook page
-  for(let x = 0; x < RW; x += 36){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, top); ctx.stroke(); }
-  for(let y = 0; y < top; y += 36){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(RW, y + .5); ctx.stroke(); }
+/* ---- "কোট কার্ড" design: the news itself is the hero — big headline with highlighted key words, a source tag and the
+        newspaper photo smaller in a rounded frame; a LIVE bar with scrolling headlines under the header, a readable
+        follow ticker and a call-to-action row at the bottom. Every reel gets its own mix and every story its own look
+        (theme, photo above/below, text animation), so no two videos look the same. ---- */
+const QT = { crop: 1.22, mark: '#ffe23a', tx: 44, top: 176, bot: 1040 };
+const QT_THEMES = ['paper', 'dark', 'tint'];
+const QT_ANIMS = ['type', 'rise', 'zoom'];
+function qtTheme(name, ac){
+  if(name === 'dark') return { name, bg: [shade(ac, -0.78), '#070a14'], grid: 'rgba(255,255,255,.05)', ink: '#ffffff', sub: 'rgba(255,255,255,.72)', tag: 'rgba(255,255,255,.12)', qm: '#ffe23a' };
+  if(name === 'tint') return { name, bg: [shade(ac, -0.12), shade(ac, -0.55)], grid: 'rgba(255,255,255,.07)', ink: '#ffffff', sub: 'rgba(255,255,255,.8)', tag: 'rgba(0,0,0,.35)', qm: '#ffe23a' };
+  return { name: 'paper', bg: ['#efeee9', '#e4e3dd'], grid: 'rgba(0,0,0,.06)', ink: '#141414', sub: 'rgba(0,0,0,.6)', tag: '#0f2a44', qm: ac };
+}
+/* the look of one story: changes from story to story, and the starting point changes with every new reel */
+function qtVar(R, i){
+  const q = R.st.qs == null ? 0.37 : R.st.qs, a = Math.floor(q * 997), k = i == null ? 0 : i + 1;
+  return { theme: QT_THEMES[(a + k) % QT_THEMES.length], photoTop: ((Math.floor(a / 3) + k) % 2) === 1 && i != null, anim: QT_ANIMS[(Math.floor(a / 7) + k * 2) % QT_ANIMS.length] };
+}
+function qtBack(ctx, th, ac){
+  const g = ctx.createLinearGradient(0, 0, 0, RH); g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, RW, RH);
+  ctx.strokeStyle = th.grid; ctx.lineWidth = 1;
+  for(let x = 0; x < RW; x += 36){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, QT.bot); ctx.stroke(); }
+  for(let y = 0; y < QT.bot; y += 36){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(RW, y + .5); ctx.stroke(); }
   ctx.fillStyle = ac; ctx.fillRect(0, 0, RW, 8);
 }
 /* words of a headline; *starred* words are highlighted (no stars → the last line is highlighted) */
@@ -8062,101 +8076,155 @@ function qtWrap(ctx, text, maxW, size, maxLines, min){
     if(cur.length) lines.push(cur);
     if(lines.length <= maxLines || s <= min){
       if(!starred && lines.length > 1) lines[lines.length - 1].forEach(tk => tk.hl = true);
-      return { lines: lines.slice(0, Math.max(maxLines, lines.length)), size: s, sp };
+      return { lines, size: s, sp, lh: s * 1.42 };
     }
   }
 }
-/* draws the headline; `shown` = how many words are visible (for the word-by-word reveal) */
-function qtText(ctx, L, x, y, shown, color){
-  const lh = L.size * 1.42; let n = 0;
+/* draws the headline with one of three entrances: words typed in, lines rising, or the block zooming in */
+function qtText(ctx, L, x, y, th, anim, p){
+  const total = L.lines.reduce((a, l) => a + l.length, 0);
+  const tp = anim === 'type' ? clamp((p - 0.15) / 1.3, 0, 1) : 1, shown = Math.ceil(total * tp);
   ctx.font = fontStr(L.size, 700, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.save();
+  if(anim === 'zoom'){ const s = 0.9 + 0.1 * backOut(p / 0.6); ctx.globalAlpha = clamp(p / 0.35, 0, 1); ctx.translate(x, y); ctx.scale(s, s); ctx.translate(-x, -y); }
+  let n = 0;
   L.lines.forEach((ln, k) => {
-    let cx = x; const by = y + k * lh;
+    let cx = x, by = y + k * L.lh;
+    if(anim === 'rise'){ const e = ease((p - 0.1 - k * 0.14) / 0.45); if(e <= 0){ n += ln.length; return; } ctx.globalAlpha = e; by += (1 - e) * 34; }
     ln.forEach((tk, j) => {
       if(n++ >= shown) return;
       const pad = j < ln.length - 1 && ln[j + 1].hl && tk.hl ? L.sp : 0;
       if(tk.hl){ ctx.fillStyle = QT.mark; ctx.fillRect(cx - 4, by - L.size * 0.98, tk.ww + 8 + pad, L.size * 1.3); }
-      ctx.fillStyle = color || QT.ink; ctx.fillText(tk.w, cx, by);
+      ctx.fillStyle = tk.hl ? '#111' : th.ink; ctx.fillText(tk.w, cx, by);
       cx += tk.ww + L.sp;
     });
+    if(anim === 'rise') ctx.globalAlpha = 1;
   });
-  return y + (L.lines.length - 1) * lh;
+  ctx.restore();
+  return y + (L.lines.length - 1) * L.lh;
 }
-function qtQuoteMark(ctx, x, y, color){ ctx.fillStyle = color; ctx.font = fontStr(150, 800, 'Georgia,serif'); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('“', x - 6, y); }
-function qtTag(ctx, text, sub, x, y, ac){
-  ctx.font = fontStr(26, 700, BFAM); const w1 = ctx.measureText(text).width; ctx.font = fontStr(19, 600, BFAM); const w2 = sub ? ctx.measureText(sub).width : 0;
-  const w = Math.min(RW - 2 * x, Math.max(w1, w2) + 36), hgt = sub ? 74 : 50;
-  ctx.fillStyle = QT.tag; ctx.fillRect(x, y, w, hgt); ctx.fillStyle = ac; ctx.fillRect(x, y, 7, hgt);
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = fontStr(26, 700, BFAM); ctx.fillText(text, x + 20, y + (sub ? 25 : hgt / 2 + 1), w - 28);
-  if(sub){ ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = fontStr(19, 600, BFAM); ctx.fillText(sub, x + 20, y + 55, w - 28); }
+function qtQuoteMark(ctx, x, y, color){ ctx.fillStyle = color; ctx.font = fontStr(130, 800, 'Georgia,serif'); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('“', x - 6, y); }
+function qtTag(ctx, text, sub, x, y, ac, th){
+  ctx.font = fontStr(25, 700, BFAM); const w1 = ctx.measureText(text).width; ctx.font = fontStr(19, 600, BFAM); const w2 = sub ? ctx.measureText(sub).width : 0;
+  const w = Math.min(RW - 2 * x, Math.max(w1, w2) + 36), hgt = sub ? 72 : 48;
+  ctx.fillStyle = th.tag; ctx.fillRect(x, y, w, hgt); ctx.fillStyle = th.name === 'paper' ? ac : QT.mark; ctx.fillRect(x, y, 7, hgt);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = fontStr(25, 700, BFAM); ctx.fillText(text, x + 20, y + (sub ? 24 : hgt / 2 + 1), w - 28);
+  if(sub){ ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = fontStr(19, 600, BFAM); ctx.fillText(sub, x + 20, y + 53, w - 28); }
   return y + hgt;
 }
-/* the photo, smaller, in a rounded white frame over an accent block; slow zoom inside */
-function qtPhoto(ctx, img, x, y, w, h, z, ac, lbl, a){
+/* the photo, smaller, in a rounded white frame over an accent block; zoomed in so the edges are trimmed evenly */
+function qtPhoto(ctx, img, x, y, w, h, z, ac, a){
+  if(h < 120) return;
   ctx.save(); ctx.globalAlpha = a;
-  ctx.fillStyle = ac; rr(ctx, x + 26, y + 26, w, h, 30); ctx.fill();                    // accent block behind
+  ctx.fillStyle = ac; rr(ctx, x + 24, y + 24, w, h, 30); ctx.fill();
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
   ctx.fillStyle = '#fff'; rr(ctx, x - 7, y - 7, w + 14, h + 14, 34); ctx.fill(); ctx.shadowColor = 'transparent';
   ctx.save(); rr(ctx, x, y, w, h, 28); ctx.clip();
   if(img){ const iw = img.width, ih = img.height, s = Math.max(w / iw, h / ih) * z, dw = iw * s, dh = ih * s;
     ctx.imageSmoothingQuality = 'high'; ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); }
   else rlPlainBg(ctx, ac, x, y, w, h);
-  ctx.restore();
-  if(img && lbl){ ctx.font = fontStr(18, 600, BFAM); const lw = ctx.measureText(lbl).width + 20;
-    ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(ctx, x + 14, y + h - 44, lw, 30, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, x + 24, y + h - 28); }
-  ctx.restore();
+  ctx.restore(); ctx.restore();
 }
-function qtHead(ctx, R, i){                              // logo + page name + date, and the story counter
-  ctx.fillStyle = QT.ink; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  let x = QT.tx; if(C.logoImg){ rlLogoDisc(ctx, x + 26, 62, 26); x += 64; }
-  ctx.font = fontStr(26, 700, BFAM); ctx.fillText(R.page, x, 52, RW - x - 140);
-  ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillText(R.today, x, 80, RW - x - 140);
-  if(i != null){ ctx.textAlign = 'right'; ctx.fillStyle = QT.ink; ctx.font = fontStr(30, 800, BFAM); ctx.fillText(nwNum(i + 1) + '/' + nwNum(R.n), RW - QT.tx, 64); }
+function qtHead(ctx, R, i, th){                             // logo + page name + date, and the story counter
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  let x = QT.tx; if(C.logoImg){ rlLogoDisc(ctx, x + 26, 58, 26); x += 64; }
+  ctx.fillStyle = th.ink; ctx.font = fontStr(26, 700, BFAM); ctx.fillText(R.page, x, 48, RW - x - 140);
+  ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = th.sub; ctx.fillText(R.today, x, 76, RW - x - 140);
+  if(i != null){ ctx.textAlign = 'right'; ctx.fillStyle = th.ink; ctx.font = fontStr(30, 800, BFAM); ctx.fillText(nwNum(i + 1) + '/' + nwNum(R.n), RW - QT.tx, 60); }
+}
+/* LIVE bar under the header: the reel's own headlines scroll by, like a news channel */
+function qtNewsStrip(R){
+  if(R.qtNews) return R.qtNews;
+  const heads = R.items.map(it => String(it.text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const c = document.createElement('canvas'), x = c.getContext('2d'), size = 25, sep = '   ◆   ';
+  x.font = fontStr(size, 600, BFAM);
+  const txt = heads.join(sep) + sep, w = Math.ceil(x.measureText(txt).width) + 2;
+  c.width = Math.max(300, Math.min(w, 16000)); c.height = 52;
+  x.font = fontStr(size, 600, BFAM); x.textBaseline = 'middle';
+  let cx = 0; heads.forEach(hd => { x.fillStyle = '#fff'; x.fillText(hd, cx, 27); cx += x.measureText(hd).width; x.fillStyle = '#ffd200'; x.fillText(sep, cx, 27); cx += x.measureText(sep).width; });
+  return (R.qtNews = c);
+}
+function qtLiveBar(ctx, R, tm, ac){
+  const y = 104, h = 52, lw = 128;
+  ctx.fillStyle = '#0b0e18'; ctx.fillRect(0, y, RW, h);
+  const strip = qtNewsStrip(R), sw = strip.width, off = (tm * 80) % sw;
+  ctx.save(); ctx.beginPath(); ctx.rect(lw, y, RW - lw, h); ctx.clip();
+  for(let x = lw + 12 - off; x < RW; x += sw) ctx.drawImage(strip, x, y);
+  ctx.restore();
+  ctx.fillStyle = '#e11d2a'; ctx.fillRect(0, y, lw, h);
+  ctx.beginPath(); ctx.moveTo(lw, y); ctx.lineTo(lw + 16, y + h / 2); ctx.lineTo(lw, y + h); ctx.closePath(); ctx.fill();
+  const blink = 0.45 + 0.55 * Math.abs(Math.sin(tm * 3.2));
+  ctx.beginPath(); ctx.arc(26, y + h / 2, 8, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,' + blink.toFixed(3) + ')'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = fontStr(24, 800, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('LIVE', 42, y + h / 2 + 1);
+  ctx.fillStyle = ac; ctx.fillRect(0, y + h, RW, 3);
+}
+/* lays out headline + tag + photo for one story or for the cover */
+function qtBody(ctx, R, o){
+  const { th, ac, text, tag, sub, img, z, p, anim, photoTop, big, a } = o;
+  const maxW = RW - 2 * QT.tx;
+  if(photoTop){
+    const L = qtWrap(ctx, text, maxW, big ? 62 : 54, 4, 34), tagH = sub ? 72 : 48;
+    const textH = 70 + L.lh * (L.lines.length - 1) + L.size * 0.4 + 26 + tagH;
+    const py = QT.top + 30, ph = Math.max(180, Math.min(420, QT.bot - 30 - textH - py - 40));
+    qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a);
+    const qy = py + ph + 110; qtQuoteMark(ctx, QT.tx, qy, th.qm);
+    const end = qtText(ctx, L, QT.tx, qy + L.size * 0.55, th, anim, p);
+    qtTag(ctx, tag, sub, QT.tx, end + 30, ac, th);
+  } else {
+    const L = qtWrap(ctx, text, maxW, big ? 66 : 56, big ? 4 : 5, 34);
+    const qy = QT.top + 110; qtQuoteMark(ctx, QT.tx, qy, th.qm);
+    const end = qtText(ctx, L, QT.tx, qy + L.size * 0.55, th, anim, p);
+    const tagEnd = qtTag(ctx, tag, sub, QT.tx, Math.min(end + 30, 640), ac, th);
+    const py = Math.max(tagEnd + 36, 660), ph = QT.bot - 24 - py;
+    ctx.save(); ctx.translate(0, (1 - a) * 40); qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a); ctx.restore();
+  }
 }
 function qtScene(ctx, R, g, p){
-  const f = clamp(p / g.d, 0, 1), [ac] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {};
-  qtPaper(ctx, ac, 700);
-  qtHead(ctx, R, g.i);
-  qtQuoteMark(ctx, QT.tx, 250, ac);
-  const L = qtWrap(ctx, it.text || '', RW - 2 * QT.tx, 56, 5, 34);
-  const total = L.lines.reduce((a, l) => a + l.length, 0), tp = clamp((p - 0.15) / Math.min(1.3, g.d * 0.45), 0, 1);
-  const end = qtText(ctx, L, QT.tx, 250 + L.size * 0.6, Math.ceil(total * tp));
-  const ty = Math.min(end + 34, 590), tag = it.source ? t('rlSrcL') + it.source : R.page;
-  const tagEnd = qtTag(ctx, tag, it.date || R.today, QT.tx, ty, ac);
-  const img = cardOf(R, g.i), py = Math.max(tagEnd + 40, 640), ph = 1010 - py, inA = ease(p / 0.45);
+  const f = clamp(p / g.d, 0, 1), [ac] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {}, v = qtVar(R, g.i), th = qtTheme(v.theme, ac);
+  qtBack(ctx, th, ac);
+  qtHead(ctx, R, g.i, th);
   const z = QT.crop * ((ed.zoom || 100) / 100) * (R.st.kb > 0 ? 1 + 0.06 * f : 1.06 - 0.06 * f);
-  ctx.save(); ctx.translate(0, (1 - inA) * 40);
-  qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, '', inA);
-  ctx.restore();
+  qtBody(ctx, R, { th, ac, text: it.text || '', tag: it.source ? t('rlSrcL') + it.source : R.page, sub: it.date || R.today, img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45) });
 }
 function qtCover(ctx, R, p, d){
-  const cv = R.cov, [ac, hl] = R.col(cv.i), z = QT.crop * (1 + 0.05 * clamp(p / d, 0, 1));
-  qtPaper(ctx, ac, 720);
-  qtHead(ctx, R, null);
+  const cv = R.cov, [ac, hl] = R.col(cv.i), v = qtVar(R, null), th = qtTheme(v.theme, ac), it = R.items[cv.i] || {};
+  qtBack(ctx, th, ac);
+  qtHead(ctx, R, null, th);
+  qtLiveBar(ctx, R, R.tm || 0, ac);
   const chip = cv.label || t('rlTitleDef'); ctx.font = fontStr(26, 800, BFAM); const cw = ctx.measureText(chip).width + 36;
-  ctx.fillStyle = '#e11d2a'; rr(ctx, QT.tx, 122, cw, 46, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(chip, QT.tx + 18, 146);
-  if(R.n > 1){ const s = nwNum(R.n) + 'টি খবর'; ctx.font = fontStr(26, 800, BFAM); const sw = ctx.measureText(s).width + 36;
-    ctx.fillStyle = QT.ink; rr(ctx, RW - QT.tx - sw, 122, sw, 46, 8); ctx.fill(); ctx.fillStyle = QT.mark; ctx.textAlign = 'center'; ctx.fillText(s, RW - QT.tx - sw / 2, 146); }
-  qtQuoteMark(ctx, QT.tx, 300, ac);
-  const L = qtWrap(ctx, cv.text, RW - 2 * QT.tx, 68, 4, 40);
-  const end = qtText(ctx, L, QT.tx, 300 + L.size * 0.55, 9999);
-  const it = R.items[cv.i] || {};
-  const tagEnd = qtTag(ctx, it.source ? t('rlSrcL') + it.source : R.page, '', QT.tx, Math.min(end + 34, 640), ac);
-  const py = Math.max(tagEnd + 36, 690), ph = 1040 - py;
-  qtPhoto(ctx, cv.img, 70, py, RW - 140, ph, z, ac, '', 1);
-  const by = 1100, bh = 74; ctx.fillStyle = ac; ctx.fillRect(0, by, RW, bh); ctx.fillStyle = hl; ctx.fillRect(0, by, RW, 5);
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(28, 700, BFAM); ctx.fillText('▶ ' + cv.cta, RW / 2, by + bh / 2 + 3, RW - 40);
-  ctx.fillStyle = '#05070f'; ctx.fillRect(0, by + bh, RW, RH - by - bh);
+  ctx.fillStyle = '#e11d2a'; rr(ctx, QT.tx, QT.top + 6, cw, 46, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(chip, QT.tx + 18, QT.top + 30);
+  if(R.n > 1){ const s = nwNum(R.n) + 'টি খবর'; const sw = ctx.measureText(s).width + 36;
+    ctx.fillStyle = th.name === 'paper' ? '#141414' : '#fff'; rr(ctx, RW - QT.tx - sw, QT.top + 6, sw, 46, 8); ctx.fill(); ctx.fillStyle = th.name === 'paper' ? QT.mark : '#111'; ctx.textAlign = 'center'; ctx.fillText(s, RW - QT.tx - sw / 2, QT.top + 30); }
+  ctx.save(); ctx.translate(0, 40);
+  qtBody(ctx, R, { th, ac, text: cv.text, tag: it.source ? t('rlSrcL') + it.source : R.page, sub: '', img: cv.img, z: QT.crop * (1 + 0.05 * clamp(p / d, 0, 1)), p: 9, anim: 'type', photoTop: false, big: true, a: 1 });
+  ctx.restore();
+  qtBottom(ctx, R, ac, hl, R.tm || 0, '▶ ' + cv.cta);
+}
+/* bottom: a white ticker that is easy to read, then a row that asks people to follow and give their opinion */
+function qtBottom(ctx, R, ac, hl, tm, fixed){
+  const ty = 1062, th = 56, lw = 150;
+  ctx.fillStyle = hl; ctx.fillRect(0, ty - 4, RW, 4);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, ty, RW, th);
+  const strip = R.tick, sw = strip.width, off = (tm * 90) % sw;
+  ctx.save(); ctx.beginPath(); ctx.rect(lw, ty, RW - lw, th); ctx.clip();
+  for(let x = lw + 14 - off; x < RW; x += sw) ctx.drawImage(strip, x, ty + (th - strip.height) / 2);
+  ctx.restore();
+  ctx.fillStyle = ac; ctx.fillRect(0, ty, lw, th);
+  ctx.beginPath(); ctx.moveTo(lw, ty); ctx.lineTo(lw + 16, ty + th / 2); ctx.lineTo(lw, ty + th); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; fitFont(ctx, t('rlLatest'), lw - 24, 27, 800); ctx.fillText(t('rlLatest'), lw / 2, ty + th / 2 + 1);
+  const cy = ty + th, ch = 64;
+  ctx.fillStyle = shade(ac, -0.55); ctx.fillRect(0, cy, RW, ch);
+  const msgs = fixed ? [fixed] : ['🔔 নিয়মিত খবর পেতে ' + R.page + ' পেজটি ফলো করুন', '💬 এই খবর নিয়ে আপনার মত কমেন্টে জানান'];
+  const k = Math.floor(tm / 3) % msgs.length, ph = (tm % 3) / 3, a = Math.min(1, ph / 0.12, (1 - ph) / 0.12);
+  ctx.globalAlpha = msgs.length > 1 ? clamp(a, 0, 1) : 1; ctx.fillStyle = '#fff'; fitFont(ctx, msgs[k], RW - 50, 27, 700); ctx.fillText(msgs[k], RW / 2, cy + ch / 2 + 2); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#05070f'; ctx.fillRect(0, cy + ch, RW, RH - cy - ch);
+  return cy + ch;
 }
 function qtOverlay(ctx, R, g, p, tm){
-  const [ac, hl] = R.col(g.i), ty = 1060, th = 58;
-  ctx.fillStyle = ac; ctx.fillRect(0, ty, RW, th); ctx.fillStyle = hl; ctx.fillRect(0, ty - 4, RW, 4);
-  const strip = R.tick, sw = strip.width, off = (tm * 95) % sw;                 // follow-the-page ticker
-  ctx.save(); ctx.beginPath(); ctx.rect(0, ty, RW, th); ctx.clip(); ctx.globalAlpha = 0.97;
-  for(let x = 14 - off; x < RW; x += sw) ctx.drawImage(strip, x, ty + (th - strip.height) / 2);
-  ctx.restore();
-  ctx.fillStyle = '#05070f'; ctx.fillRect(0, ty + th, RW, RH - ty - th);
-  const bw = 560, x0 = (RW - bw) / 2, y0 = ty + th + 34, gap = R.n > 20 ? 0 : 6, sw2 = (bw - gap * (R.n - 1)) / R.n;
+  const [ac, hl] = R.col(g.i);
+  qtLiveBar(ctx, R, tm, ac);
+  const y1 = qtBottom(ctx, R, ac, hl, tm);
+  const bw = 560, x0 = (RW - bw) / 2, y0 = y1 + 40, gap = R.n > 20 ? 0 : 6, sw2 = (bw - gap * (R.n - 1)) / R.n;
   for(let i = 0; i < R.n; i++){
     const f = i < g.i ? 1 : i === g.i ? clamp(p / g.d, 0, 1) : 0, x = x0 + i * (sw2 + gap);
     ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x, y0, sw2, 6);

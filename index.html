@@ -8364,7 +8364,16 @@ function qtScene(ctx, R, g, p){
   qtBack(ctx, th, ac);
   qtHead(ctx, R, g.i, th);
   const z = QT.crop * ((ed.zoom || 100) / 100), fx = Object.assign(rlPicPick(R, g.i), { f, p, hl: R.col(g.i)[1] });
-  qtBody(ctx, R, { th, ac, text: it.text || '', tag: it.source ? t('rlSrcL') + it.source : R.page, sub: it.date || R.today, img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45), fx });
+  qtBody(ctx, R, { th, ac, text: it.text || '', tag: it.date || R.today, sub: '', img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45), fx });
+  rlSrcTiny(ctx, it.source, RW - 26, QT.bot - 12, ease((p - 0.5) / 0.5));
+}
+/* the news source: only a tiny reference in a corner — never a big label */
+function rlSrcTiny(ctx, src, x, y, a){
+  src = String(src || '').trim(); if(!src || a <= 0) return;
+  ctx.save(); ctx.globalAlpha = 0.85 * clamp(a, 0, 1); ctx.font = fontStr(15, 500, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+  const txt = 'সূত্র: ' + (src.length > 28 ? src.slice(0, 27) + '…' : src), w = ctx.measureText(txt).width + 16;
+  ctx.fillStyle = 'rgba(0,0,0,.38)'; rr(ctx, x - w, y - 12, w, 24, 12); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fillText(txt, x - 8, y + 1); ctx.restore();
 }
 function qtCover(ctx, R, p, d){
   const cv = R.cov, [ac, hl] = R.col(cv.i), v = qtVar(R, null), th = qtTheme(v.theme, ac), it = R.items[cv.i] || {};
@@ -8376,7 +8385,7 @@ function qtCover(ctx, R, p, d){
   if(R.n > 1){ const s = nwNum(R.n) + 'টি খবর'; const sw = ctx.measureText(s).width + 36;
     ctx.fillStyle = th.name === 'paper' ? '#141414' : '#fff'; rr(ctx, RW - QT.tx - sw, QT.top + 6, sw, 46, 8); ctx.fill(); ctx.fillStyle = th.name === 'paper' ? QT.mark : '#111'; ctx.textAlign = 'center'; ctx.fillText(s, RW - QT.tx - sw / 2, QT.top + 30); }
   ctx.save(); ctx.translate(0, 40);
-  qtBody(ctx, R, { th, ac, text: cv.text, tag: it.source ? t('rlSrcL') + it.source : R.page, sub: '', img: cv.img, z: QT.crop * (1 + 0.05 * clamp(p / d, 0, 1)), p: 9, anim: 'type', photoTop: false, big: true, a: 1 });
+  qtBody(ctx, R, { th, ac, text: cv.text, tag: R.page, sub: '', img: cv.img, z: QT.crop * (1 + 0.05 * clamp(p / d, 0, 1)), p: 9, anim: 'type', photoTop: false, big: true, a: 1 });
   ctx.restore();
   qtBottom(ctx, R, ac, hl, R.tm || 0, '▶ ' + cv.cta);
 }
@@ -8480,6 +8489,60 @@ async function voWav(text){
   }
   throw new Error('Cartesia বারবার ব্যস্ত — একটু পরে চেষ্টা করুন।');
 }
+/* ===== 🚫 never read out a newspaper / channel name — just the news itself ===== */
+const VO_OUTLETS = ['প্রথম আলো','প্রথম আলোর','বিডিনিউজ টোয়েন্টিফোর','বিডিনিউজ২৪','বিডিনিউজ ২৪','বিডি নিউজ টোয়েন্টিফোর','বিডি নিউজ ২৪','বিডিনিউজ','বিবিসি বাংলা','বিবিসি','এবিপি আনন্দ','এবিপি','টিএমসি নিউজ','আনন্দবাজার পত্রিকা','আনন্দবাজার','যুগান্তর','কালের কণ্ঠ','সমকাল','ইত্তেফাক','জনকণ্ঠ','নয়া দিগন্ত','মানবজমিন','দেশ রূপান্তর','আজকের পত্রিকা','বাংলাদেশ প্রতিদিন','ডেইলি স্টার','দ্য ডেইলি স্টার','ঢাকা ট্রিবিউন','বাংলা ট্রিবিউন','জাগো নিউজ','জাগোনিউজ','ঢাকা পোস্ট','বাংলানিউজ','বাংলানিউজ টোয়েন্টিফোর','সময় টিভি','সময় নিউজ','যমুনা টিভি','চ্যানেল টোয়েন্টিফোর','চ্যানেল ২৪','একাত্তর টিভি','এনটিভি','আরটিভি','ইন্ডিপেন্ডেন্ট টিভি','ডিবিসি নিউজ','ডিবিসি','বাসস','ডয়চে ভেলে','আল জাজিরা','রয়টার্স','এএফপি','সিএনএন','দ্য হিন্দু','হিন্দুস্তান টাইমস','টাইমস অব ইন্ডিয়া','ঢাকা টাইমস','বার্তা২৪','বার্তা টোয়েন্টিফোর','কালবেলা','খবরের কাগজ','ইনকিলাব','সংবাদ প্রতিদিন','পত্রিকাটি','সংবাদমাধ্যমটি','গণমাধ্যমটি',
+  'Prothom Alo','bdnews24.com','bdnews24','BBC Bangla','BBC','ABP Ananda','ABP','TMC News','Anandabazar','Jugantor','Kaler Kantho','Samakal','Ittefaq','Daily Star','The Daily Star','Dhaka Tribune','Bangla Tribune','Jago News','Dhaka Post','Somoy TV','Jamuna TV','Channel 24','Ekattor','NTV','RTV','Kalbela','Reuters','AFP','CNN','Al Jazeera','DW'];
+const voEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function voNoSrc(text){
+  let s = String(text || ''); if(!s) return s;
+  const names = VO_OUTLETS.concat(RL.items.map(x => x.source || '').filter(x => x.length > 1)).map(x => x.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
+  const N = '(?<![\\u0980-\\u09FFA-Za-z])(?:' + names.map(voEsc).join('|') + ')(?:\\s*(?:ডট কম|\\.com|অনলাইন|ডিজিটাল))?';
+  const SUF = '(?:-?এর|-?য়ের|-?র|-?কে|-?তে|-?এ|-?য়)?(?![\\u0980-\\u09FFA-Za-z])';
+  const VERB = '(?:জানিয়েছে|জানায়|জানাচ্ছে|জানিয়েছেন|বলছে|বলেছে|বলেছেন|দিয়েছে|প্রকাশ করেছে|উল্লেখ করেছে|রিপোর্ট করেছে|খবর দিয়েছে)';
+  s = s.replace(new RegExp('^\\s*[A-Za-z\\u0980-\\u09FF .]{2,30}?\\s*(?:News|NEWS|নিউজ)\\s*[:：]\\s*'), '');      // "TMC News: …"
+  s = s.replace(new RegExp('^\\s*' + N + '\\s*[:：]\\s*', 'i'), '');
+  const out = s.split(/(?<=[।!?])\s*/).map(sen => {
+    let t = sen;
+    t = t.replace(new RegExp('(?:এ|এই|এমন)?\\s*(?:খবর|তথ্য)?\\s*' + N + SUF + '\\s*(?:এক\\s*)?(?:প্রতিবেদনে(?:\\s*বলা হয়েছে)?|খবরে(?:\\s*বলা হয়েছে)?|সংবাদে|সূত্রে|সূত্রমতে|অনুযায়ী|মতে)\\s*,?', 'gi'), '');
+    t = t.replace(new RegExp(',?\\s*(?:এ|এই|এমনটাই|এমন)?\\s*(?:খবর|তথ্য)?\\s*' + N + SUF + '\\s*(?:এ|এই|এমনটাই)?\\s*(?:খবর|তথ্য)?\\s*' + VERB, 'gi'), ' ');
+    t = t.replace(new RegExp(N + SUF, 'gi'), ' ');
+    if(t === sen) return sen;
+    t = t.replace(/\s*বলে\s*[।!?]?\s*$/, ' বলে জানা গেছে।').replace(/^\s*(?:জানিয়েছে|জানা যায়|বলছে|বলেছে|প্রতিবেদনে বলা হয়েছে)\s*,?\s*/, '')
+      .replace(/^\s*[,،:]\s*/, '').replace(/\s+([,।!?])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+    const words = t.replace(/[।!?,]/g, '').trim().split(/\s+/).filter(Boolean);
+    if(words.length < 3 || /^(?:এ|এই)?\s*(?:খবর|তথ্য)\s*(?:জানা গেছে|দেওয়া হয়েছে)?[।]?$/.test(t)) return '';
+    return /[।!?]$/.test(t) ? t : t + '।';
+  }).filter(Boolean).join(' ');
+  return out.trim() || s;
+}
+/* ===== 🗣 pronunciation: write words the way they are said, so the AI voice reads them right ===== */
+const VO_LAT = { A:'এ', B:'বি', C:'সি', D:'ডি', E:'ই', F:'এফ', G:'জি', H:'এইচ', I:'আই', J:'জে', K:'কে', L:'এল', M:'এম', N:'এন', O:'ও', P:'পি', Q:'কিউ', R:'আর', S:'এস', T:'টি', U:'ইউ', V:'ভি', W:'ডাবলিউ', X:'এক্স', Y:'ওয়াই', Z:'জেড' };
+const VO_EN = { india:'ইন্ডিয়া', news:'নিউজ', live:'লাইভ', police:'পুলিশ', video:'ভিডিও', online:'অনলাইন', facebook:'ফেসবুক', youtube:'ইউটিউব', google:'গুগল', president:'প্রেসিডেন্ট', minister:'মিনিস্টার', pm:'পিএম', vs:'বনাম', bangladesh:'বাংলাদেশ', dhaka:'ঢাকা', kolkata:'কলকাতা', delhi:'দিল্লি', trump:'ট্রাম্প', modi:'মোদি', mamata:'মমতা', covid:'কোভিড', world:'ওয়ার্ল্ড', cup:'কাপ', cricket:'ক্রিকেট', football:'ফুটবল', update:'আপডেট', breaking:'ব্রেকিং', exclusive:'এক্সক্লুসিভ', mobile:'মোবাইল', internet:'ইন্টারনেট', ai:'এআই', ok:'ওকে', gaza:'গাজা', israel:'ইসরায়েল', iran:'ইরান', usa:'ইউএসএ', unesco:'ইউনেস্কো', nasa:'নাসা', nato:'ন্যাটো', unicef:'ইউনিসেফ', bkash:'বিকাশ', nagad:'নগদ' };
+/* words that end in ত but are said with "ো" (নিহত = নিহতো) — the AI often clips them */
+const VO_TO = 'নিহত আহত গত বিগত আগত হত শত পরাজিত বিজিত অর্জিত সজ্জিত লজ্জিত বর্জিত উপার্জিত অবগত স্বাগত সম্মত অসম্মত ব্যাহত অব্যাহত প্রত্যাহত উদ্যত অজ্ঞাত জ্ঞাত বিখ্যাত খ্যাত প্রখ্যাত কুখ্যাত সুখ্যাত অনুগত উপগত সমাগত অভ্যাগত প্রত্যাগত অনাগত সংহত ব্রত শাশ্বত ভীত গৃহীত সংগৃহীত অবহিত বিপর্যস্ত করত বলত থাকত পারত চলত আসত জানত দেখত শুনত লাগত রাখত খেলত ঘটত পেত যেত দিত নিত খেত চাইত পড়ত লিখত মারত ধরত বসত উঠত ফিরত হাসত কাঁদত বাঁচত ভাবত বুঝত খুঁজত'.split(' ');
+const VO_TO_NOT = /(?:উচিত|পণ্ডিত|কিঞ্চিত|ভিত|জিত|অমিত|সুমিত|সমিত|অতীত|শীত|সঙ্গীত|গীত|বিপরীত|পিরিত|প্রীত|রীত|ভারত|রাত|হাত|সাত|ভাত|দাওয়াত|আদালত|জামায়াত|জামাত|হযরত|ইবাদত|শরবত|বরকত|সুন্নত|খেলাফত|নসিহত|দোস্ত|গোস্ত|দস্ত)$/;
+const BN_L = '\\u0980-\\u09FF';
+function voPron(s){
+  s = String(s || '').normalize('NFC').replace(/ত্‍/g, 'ৎ');
+  // English: dotted / capital abbreviations → letters (BNP → বিএনপি), known words → Bangla sound
+  s = s.replace(/\b(?:[A-Za-z]\.){2,}[A-Za-z]?\.?/g, m => { const w = m.replace(/\./g, ''); return VO_EN[w.toLowerCase()] || w.toUpperCase().split('').map(c => VO_LAT[c] || '').join(''); });
+  s = s.replace(/\b[A-Za-z]+(?:'s)?\b/g, m => { const w = m.replace(/'s$/, ''), lw = w.toLowerCase(); if(VO_EN[lw]) return VO_EN[lw];
+    if(/^[A-Z]{2,6}$/.test(w)) return w.split('').map(c => VO_LAT[c]).join(''); return m; });
+  s = s.replace(/(\S)\.com\b/gi, '$1 ডট কম').replace(/&/g, ' এবং ');
+  // ঃ used as a colon ("যেমনঃ") is not spoken
+  s = s.replace(new RegExp('([' + BN_L + '])ঃ(?=[\\s,।:]|$)', 'g'), '$1');
+  // "ত" at the end of a word, said with "ো"
+  s = s.replace(new RegExp('([' + BN_L + ']+)(?=$|[^' + BN_L + '])', 'g'), w => {
+    if(!/ত$/.test(w)) return w;
+    if(VO_TO.includes(w)) return w + 'ো';
+    if(VO_TO_NOT.test(w)) return w;
+    if(/[ক-হড়ঢ়য়]্[তক-হ]?্?ত$/.test(w) || /(?:ক্ত|স্ত|ন্ত|প্ত|ত্ত|প্ত)$/.test(w)) return w + 'ো';      // যুক্ত, ব্যস্ত, সিদ্ধান্ত, প্রাপ্ত
+    if(/[ক-হড়ঢ়য়]িত$/.test(w) && w.length >= 4) return w + 'ো';                                          // নির্বাচিত, অনুষ্ঠিত, প্রকাশিত
+    return w;
+  });
+  return s;
+}
+const voSpeak = x => voPron(rlSpeak(voPron(x)));
 /* ---- the script: "শুরু:", "১:", "২:" …, "শেষ:" ---- */
 const VO_DIG = s => String(s).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
 function voParse(txt){
@@ -8501,16 +8564,16 @@ function voFormat(o){
 }
 function voStories(){
   return RL.items.map((it, i) => { const o = it.o || {}, d = shorten(norm(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || '')), 400);
-    return (i + 1) + '. ' + plain(o.title || it.text) + ' [সূত্র: ' + (it.source || '') + ']' + (d ? '\n   সারাংশ: ' + d : '') + (o.text ? '\n   মূল লেখা: ' + shorten(norm(o.text), 1200) : ''); }).join('\n');
+    return (i + 1) + '. ' + voNoSrc(plain(o.title || it.text)) + (d ? '\n   সারাংশ: ' + d : '') + (o.text ? '\n   মূল লেখা: ' + shorten(norm(o.text), 1200) : ''); }).join('\n');
 }
 function voPrompt(){
   const page = pageName();
   return 'তুমি একটি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর সংবাদ পাঠক। নিচের ' + RL.items.length + 'টি খবর দিয়ে একটি রিলের ভয়েসওভার স্ক্রিপ্ট লেখো, যা একটি AI কণ্ঠ (টেক্সট-টু-স্পিচ) পড়বে।\n\n' +
     'নিয়ম:\n' +
     '১. প্রতিটি খবরের জন্য ২–৩টি বাক্য, মোট ৩৫–৫৫ শব্দ। স্ক্রিনে শুধু ছোট শিরোনাম থাকে, তাই কণ্ঠে বিস্তারিত বলবে: কী ঘটেছে, কার সাথে বা কোথায়, মূল সংখ্যা বা সিদ্ধান্ত, আর এর প্রভাব কী।\n' +
-    '২. শুধু দেওয়া তথ্য থেকে লিখবে — নতুন তথ্য, মতামত, অনুমান বা অতিরঞ্জন নয়। প্রতিটি খবরে একবার স্বাভাবিকভাবে সূত্রের নাম বলবে (যেমন "প্রথম আলো জানিয়েছে")।\n' +
+    '২. শুধু দেওয়া তথ্য থেকে লিখবে — নতুন তথ্য, মতামত, অনুমান বা অতিরঞ্জন নয়। কোনো পত্রিকা, নিউজ পোর্টাল বা টিভি চ্যানেলের নাম কখনো বলবে না (যেমন "প্রথম আলো জানিয়েছে", "বিবিসির প্রতিবেদনে", "এবিপি আনন্দ বলছে", "টিএমসি নিউজ" — এসব একদম নয়)। "প্রতিবেদনে বলা হয়েছে", "সূত্র জানায়" ধরনের কথাও নয় — সরাসরি মূল খবরটা বলবে। শিরোনামের শুরুতে কোনো চ্যানেল বা পোর্টালের নাম থাকলে (যেমন "TMC News:") সেটা বাদ দেবে।\n' +
     '৩. শিরোনাম যদি অস্পষ্ট হয় ("যা বললেন…", "মুখ খুললেন…"), সারাংশ ও মূল লেখা থেকে আসল কথাটা বলবে।\n' +
-    '৪. কানে শোনার মতো করে লেখো: সব সংখ্যা কথায় লিখবে (৯০ হাজার কোটি → নব্বই হাজার কোটি, ১১ নভেম্বর → এগারো নভেম্বর, ৩৫% → পঁয়ত্রিশ শতাংশ, ২০২৬ সাল → দুই হাজার ছাব্বিশ সাল), সংক্ষেপ পুরো লিখবে (মো. → মোহাম্মদ, ডা. → ডাক্তার, কিমি → কিলোমিটার), ইংরেজি শব্দ বাংলা উচ্চারণে বাংলা অক্ষরে লিখবে। কোনো বন্ধনী, উদ্ধৃতিচিহ্ন, ড্যাশ, ইমোজি, হ্যাশট্যাগ বা লিংক নয়। ছোট বাক্য, স্বাভাবিক বিরতির জন্য কমা।\n' +
+    '৪. কানে শোনার মতো করে লেখো: সব সংখ্যা কথায় লিখবে (৯০ হাজার কোটি → নব্বই হাজার কোটি, ১১ নভেম্বর → এগারো নভেম্বর, ৩৫% → পঁয়ত্রিশ শতাংশ, ২০২৬ সাল → দুই হাজার ছাব্বিশ সাল), সংক্ষেপ পুরো লিখবে (মো. → মোহাম্মদ, ডা. → ডাক্তার, কিমি → কিলোমিটার), ইংরেজি শব্দ ও সংক্ষেপ বাংলা উচ্চারণে বাংলা অক্ষরে লিখবে (BNP → বিএনপি, I.N.D.I.A → ইন্ডিয়া, police → পুলিশ)। শুদ্ধ চলিত বানান লিখবে, আঞ্চলিক বা অপ্রচলিত বানান নয়। কোনো বন্ধনী, উদ্ধৃতিচিহ্ন, ড্যাশ, ইমোজি, হ্যাশট্যাগ বা লিংক নয়। ছোট বাক্য, স্বাভাবিক বিরতির জন্য কমা।\n' +
     '৫. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা; সহিংস বা ভয় দেখানো বর্ণনা নয়।\n' +
     '৬. শুরু: এক বাক্যে সালাম ও স্বাগত, যেমন "আসসালামু আলাইকুম, ' + page + '-এ আপনাকে স্বাগতম, দেখে নিন আজকের গুরুত্বপূর্ণ খবরগুলো।"\n' +
     '৭. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া একটি প্রশ্ন, আর নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করার অনুরোধ।\n\n' +
@@ -8521,7 +8584,7 @@ function voFallback(){
   const page = pageName();
   return { intro: 'আসসালামু আলাইকুম, ' + page + '-এ আপনাকে স্বাগতম। দেখে নিন আজকের গুরুত্বপূর্ণ খবরগুলো।',
     items: RL.items.map(it => { const o = it.o || {}, d = plain(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || ''));
-      const s = (d.split(/(?<=[।!?])\s+/).slice(0, 2).join(' ') || '').trim(); return plain(it.text) + '। ' + (s && !s.includes(plain(it.text).slice(0, 15)) ? s + ' ' : '') + (it.source ? it.source + ' এ খবর জানিয়েছে।' : ''); }),
+      const s = (d.split(/(?<=[।!?])\s+/).slice(0, 2).join(' ') || '').trim(); return plain(it.text) + '। ' + (s && !s.includes(plain(it.text).slice(0, 15)) ? s : ''); }),
     outro: 'এই খবরগুলো নিয়ে আপনার মতামত কমেন্টে জানান। নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করুন।' };
 }
 const voSig = () => RL.items.map(x => x.link).join('|');
@@ -8581,8 +8644,8 @@ async function voVoices(quiet){
 async function voSample(btn){
   const b = btn || $('rlVoTry'); if(b) b.disabled = true; voSay('নমুনা তৈরি হচ্ছে…'); const st = $('cartState'); if(btn && st) st.textContent = 'নমুনা তৈরি হচ্ছে…';
   try{ let txt = 'আসসালামু আলাইকুম, ' + pageName() + '-এ আপনাকে স্বাগতম। এটি আমার কণ্ঠের একটি নমুনা।';
-    if(!btn && RL.items.length){ const s = voScript(); txt = s.items[0] || s.intro; }
-    const ab = await voWav(rlSpeak(txt).slice(0, 300));
+    if(!btn && RL.items.length){ const s = voScript(); txt = voNoSrc(s.items[0]) || s.intro; }
+    const ab = await voWav(voSpeak(txt).slice(0, 300));
     const a = new Audio(URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }))); a.play().catch(() => {}); voSay('▶ নমুনা বাজছে।', true); if(btn && st) st.textContent = '▶ নমুনা বাজছে — ' + (VO.voiceName || ''); }
   catch(e){ voSay('✖ ' + voErr(e)); if(btn && st) st.textContent = '✖ ' + voErr(e); } finally{ if(b) b.disabled = false; }
 }
@@ -8621,7 +8684,7 @@ async function voBuild(ac, R, prog){
   if(!VO.on) return null;
   if(!voKey()) throw new Error(voErr('NOKEY')); if(!VO.voice) throw new Error(voErr('NOVOICE'));
   if((S.gkey || S.ckey) && RL.voSig !== voSig()) await voAiWrite(true);   // fresh stories → write their script first
-  const s = voScript(), texts = [s.intro].concat(s.items, [s.outro]).map(x => rlSpeak(x || ''));
+  const s = voScript(), texts = [s.intro].concat(s.items.map(voNoSrc), [s.outro]).map(x => voSpeak(x || ''));
   const bufs = [];
   for(let i = 0; i < texts.length; i++){
     if(RL.cancel) throw new Error('cancel');
@@ -8763,8 +8826,8 @@ function rlLiveScene(ctx, R, g, p){
   // date & source
   ctx.globalAlpha = ease((p - 0.3 - typeDur) / 0.4);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(21, 500, BFAM); ctx.fillStyle = 'rgba(255,255,255,.7)';
-  ctx.fillText([it.source ? t('rlSrcL') + it.source : '', it.date || R.today].filter(Boolean).join('  ·  '), RW / 2, hy + hh - 26, RW - 60);
-  ctx.globalAlpha = 1;
+  ctx.fillText(it.date || R.today, RW / 2, hy + hh - 26, RW - 60);
+  ctx.globalAlpha = 1; rlSrcTiny(ctx, it.source, RW - 18, hy + hh - 26, ease((p - 0.5) / 0.5));
 }
 function rlBreakBar(ctx, R, g, p, tm){
   const [ac, hl] = R.col(g.i == null ? 0 : g.i), ty = 1002, th = 52, by = ty + th, bh = 64, lw = 210;
@@ -8836,8 +8899,8 @@ function dkBuild(R, i, ph, label, sc){
   const ty = y + nameH / 2 - (L.lines.length - 1) * lh / 2;
   L.lines.forEach((l, k) => x.fillText(l, W / 2, ty + k * lh + 2));
   y += nameH;
-  const src = t('rlSrcL') + (it.source || it.host || '—'), dt = it.date || R.today;
-  x.fillStyle = '#1b1b1b'; fitFont(x, src, iw - 30, 32, 600); x.fillText(src, W / 2, y + creamH / 2 + 2);
+  const src = 'সূত্র: ' + (it.source || it.host || '—'), dt = it.date || R.today;
+  x.fillStyle = 'rgba(27,27,27,.55)'; fitFont(x, src, iw - 30, 19, 500); x.fillText(src, W / 2, y + creamH / 2 + 2);
   y += creamH;
   x.fillStyle = '#8c0a12'; rr(x, pad + 14, y, iw - 28, redH - 8, 8); x.fill();
   x.fillStyle = '#fff'; fitFont(x, dt, iw - 60, 34, 700); x.fillText(dt, W / 2, y + (redH - 8) / 2 + 2);

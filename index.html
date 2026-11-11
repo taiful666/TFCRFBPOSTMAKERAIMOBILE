@@ -7273,6 +7273,8 @@ body.rlsel .rlbar{display:flex}
 .rlstage{position:relative;display:flex;justify-content:center;margin-bottom:12px}
 .rlstage canvas,.rlstage video{height:min(48vh,430px);aspect-ratio:9/16;width:auto;border-radius:14px;background:#111;box-shadow:0 6px 24px rgba(0,0,0,.25);display:block}
 .rlstage .hidden{display:none}
+.rlmute{position:absolute;top:10px;right:calc(50% - min(48vh,430px) * 9 / 32 + 10px);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:21px;line-height:44px;padding:0;cursor:pointer;z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.rlmute.on{background:var(--accent,#16a34a)}
 .rlprog{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(92%,300px);background:rgba(0,0,0,.72);color:#fff;border-radius:12px;padding:10px 12px;font-size:12.5px;display:flex;flex-direction:column;gap:7px;align-items:stretch;text-align:center}
 .rlprog.hidden{display:none}
 .rlprog .rlpb{height:6px;background:rgba(255,255,255,.2);border-radius:9px;overflow:hidden}
@@ -7392,7 +7394,7 @@ const sheet = mk('div', 'nsheet hidden no-print'); sheet.id = 'rlSheet'; sheet.s
 sheet.innerHTML = `<div class="nsbox rlbox">
   <div class="nshead"><b id="rlHeadT"></b><span class="nwupd" id="rlSub"></span><button type="button" class="x" id="rlClose" aria-label="close">×</button></div>
   <div class="rlbody">
-    <div class="rlstage"><canvas id="rlCanvas" width="${RW}" height="${RH}"></canvas><video id="rlVideo" class="hidden" playsinline controls loop></video>
+    <div class="rlstage"><canvas id="rlCanvas" width="${RW}" height="${RH}"></canvas><video id="rlVideo" class="hidden" playsinline controls loop></video><button type="button" id="rlMute" class="rlmute hidden" title="মিউট / আনমিউট">🔇</button>
       <div class="rlprog hidden" id="rlProg"><span id="rlProgT"></span><div class="rlpb"><i id="rlProgF"></i></div><button type="button" class="btn" id="rlCancel"></button></div></div>
     <p class="rlmeta rlpvhint" id="rlPvHint"></p>
     <div class="rlres hidden" id="rlRes">
@@ -10093,7 +10095,15 @@ function rlMime(audio){
   return '';
 }
 function prog(text, f){ $('rlProg').classList.remove('hidden'); $('rlProgT').textContent = text; $('rlProgF').style.width = Math.round(clamp(f, 0, 1) * 100) + '%'; }
+/* 🔇 finished reel: muted (the default) → it just waits, no auto-play; unmuted → it plays with sound. The choice is remembered. */
+let rlSound = !!store.get('rlSound', false);
+function rlMuteUi(){ const b = $('rlMute'), v = $('rlVideo'); if(!b) return; b.textContent = rlSound ? '🔊' : '🔇'; b.classList.toggle('on', rlSound); b.title = rlSound ? 'শব্দ চালু — চাপলে মিউট' : 'মিউট — চাপলে শব্দসহ চলবে'; if(v) v.muted = !rlSound; }
+function rlMuteToggle(){ const v = $('rlVideo'); rlSound = !rlSound; store.set('rlSound', rlSound); rlMuteUi();
+  if(!v) return; if(rlSound){ try{ v.play().catch(() => {}); }catch(e){} } else { try{ v.pause(); }catch(e){} } }
+function rlAfterExport(){ const v = $('rlVideo'); rlMuteUi(); try{ v.currentTime = 0; }catch(e){} if(rlSound){ try{ v.play().catch(() => {}); }catch(e){} } }
 function rlShowVideo(on){
+  const mb = $('rlMute'); if(mb){ mb.classList.toggle('hidden', !on); if(!mb.dataset.w){ mb.dataset.w = 1; mb.onclick = rlMuteToggle;
+    $('rlVideo').addEventListener('volumechange', () => { const v = $('rlVideo'); if(v.muted === !rlSound) return; rlSound = !v.muted; store.set('rlSound', rlSound); rlMuteUi(); }); } rlMuteUi(); }
   $('rlVideo').classList.toggle('hidden', !on); $('rlCanvas').classList.toggle('hidden', on); $('rlRes').classList.toggle('hidden', !on);
 }
 function rlBusy(on){
@@ -10215,7 +10225,7 @@ async function rlMake(){
     if(RL.url) URL.revokeObjectURL(RL.url);
     RL.blob = blob; RL.url = URL.createObjectURL(blob);
     v.src = RL.url; rlShowVideo(true);
-    try{ v.currentTime = 0; v.play().catch(() => {}); }catch(e){}
+    rlAfterExport();                                     // no auto-play while muted
     RL.vidStyle = st;                                    // separate cards keep the look of this video
     RL.style = rlNewStyle(RL.style);                     // next reel gets a different motion, colours and music
     toast(t('rlDone'));

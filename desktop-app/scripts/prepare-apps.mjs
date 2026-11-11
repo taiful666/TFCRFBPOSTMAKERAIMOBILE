@@ -38,10 +38,12 @@ post = mustReplace(post, "    // c) record in real time\n", `    // c0) desktop 
         if(await FR.available()){
           const cv0 = $('rlCanvas'), ctx0 = cv0.getContext('2d'), fps0 = 30, tot0 = R.tl.total, N0 = Math.max(1, Math.ceil(tot0 * fps0));
           let wav0 = null;
-          if(RL.music !== 'none'){
+          if(RL.music !== 'none' || R.vo){                    // music and/or the voice-over
             const sr0 = 44100, oc0 = new OfflineAudioContext(2, Math.ceil(tot0 * sr0), sr0);
             const px0 = new Proxy(oc0, { get(t0, k){ if(k === 'currentTime') return 1e6; const v = Reflect.get(t0, k, t0); return typeof v === 'function' ? v.bind(t0) : v; } });
-            const stop0 = rlAudio(px0, oc0.destination, R, 0);
+            const stop0 = RL.music !== 'none' ? rlAudio(px0, oc0.destination, R, 0) : null;
+            if(RL.music === 'none' && R.vo) rlSfx(px0, oc0.destination, R, 0);
+            if(typeof voPlay === 'function') voPlay(px0, oc0.destination, R, 0);   // the voice itself (was missing: only the music dipped)
             const buf0 = await oc0.startRendering(); try{ if(stop0) stop0(); }catch(e){}
             const len0 = buf0.length, dv0 = new DataView(new ArrayBuffer(44 + len0 * 4)), ws0 = (o, s) => { for(let i = 0; i < s.length; i++) dv0.setUint8(o + i, s.charCodeAt(i)); };
             ws0(0, 'RIFF'); dv0.setUint32(4, 36 + len0 * 4, true); ws0(8, 'WAVE'); ws0(12, 'fmt '); dv0.setUint32(16, 16, true); dv0.setUint16(20, 1, true); dv0.setUint16(22, 2, true);
@@ -71,7 +73,7 @@ post = mustReplace(post, "    // c) record in real time\n", `    // c0) desktop 
             if(RL.url) URL.revokeObjectURL(RL.url);
             RL.blob = blobF; RL.url = URL.createObjectURL(blobF);
             v.src = RL.url; rlShowVideo(true);
-            try{ v.currentTime = 0; v.play().catch(() => {}); }catch(e){}
+            if(typeof rlAfterExport === 'function') rlAfterExport(); else try{ v.currentTime = 0; v.play().catch(() => {}); }catch(e){}
             RL.vidStyle = st; RL.style = rlNewStyle(RL.style); toast(t('rlDone'));
             fastDone = true;
           }

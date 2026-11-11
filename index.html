@@ -8042,7 +8042,7 @@ function rlBg(img, color){
 }
 /* ---- "কোট কার্ড" design: the news itself is the hero — big headline with yellow-highlighted key words on a paper
         background, a source tag, and the newspaper photo smaller in a rounded frame below ---- */
-const QT = { paper: '#ecebe6', ink: '#141414', mark: '#ffe23a', tag: '#0f2a44', tx: 44 };
+const QT = { crop: 1.22, paper: '#ecebe6', ink: '#141414', mark: '#ffe23a', tag: '#0f2a44', tx: 44 };
 function qtPaper(ctx, ac, top){
   ctx.fillStyle = QT.paper; ctx.fillRect(0, 0, RW, RH);
   ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 1;                     // light grid, like a notebook page
@@ -8098,7 +8098,9 @@ function qtPhoto(ctx, img, x, y, w, h, z, ac, lbl, a){
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
   ctx.fillStyle = '#fff'; rr(ctx, x - 7, y - 7, w + 14, h + 14, 34); ctx.fill(); ctx.shadowColor = 'transparent';
   ctx.save(); rr(ctx, x, y, w, h, 28); ctx.clip();
-  if(img) rlPhoto(ctx, img, x, y, w, h, z, 0); else rlPlainBg(ctx, ac, x, y, w, h);
+  if(img){ const iw = img.width, ih = img.height, s = Math.max(w / iw, h / ih) * z, dw = iw * s, dh = ih * s;
+    ctx.imageSmoothingQuality = 'high'; ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); }
+  else rlPlainBg(ctx, ac, x, y, w, h);
   ctx.restore();
   if(img && lbl){ ctx.font = fontStr(18, 600, BFAM); const lw = ctx.measureText(lbl).width + 20;
     ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(ctx, x + 14, y + h - 44, lw, 30, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, x + 24, y + h - 28); }
@@ -8122,13 +8124,13 @@ function qtScene(ctx, R, g, p){
   const ty = Math.min(end + 34, 590), tag = it.source ? t('rlSrcL') + it.source : R.page;
   const tagEnd = qtTag(ctx, tag, it.date || R.today, QT.tx, ty, ac);
   const img = cardOf(R, g.i), py = Math.max(tagEnd + 40, 640), ph = 1010 - py, inA = ease(p / 0.45);
-  const z = ((ed.zoom || 100) / 100) * (R.st.kb > 0 ? 1 + 0.08 * f : 1.08 - 0.08 * f);
+  const z = QT.crop * ((ed.zoom || 100) / 100) * (R.st.kb > 0 ? 1 + 0.06 * f : 1.06 - 0.06 * f);
   ctx.save(); ctx.translate(0, (1 - inA) * 40);
-  qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, img ? rlPhLbl(it) : '', inA);
+  qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, '', inA);
   ctx.restore();
 }
 function qtCover(ctx, R, p, d){
-  const cv = R.cov, [ac, hl] = R.col(cv.i), z = 1 + 0.05 * clamp(p / d, 0, 1);
+  const cv = R.cov, [ac, hl] = R.col(cv.i), z = QT.crop * (1 + 0.05 * clamp(p / d, 0, 1));
   qtPaper(ctx, ac, 720);
   qtHead(ctx, R, null);
   const chip = cv.label || t('rlTitleDef'); ctx.font = fontStr(26, 800, BFAM); const cw = ctx.measureText(chip).width + 36;
@@ -8141,7 +8143,7 @@ function qtCover(ctx, R, p, d){
   const it = R.items[cv.i] || {};
   const tagEnd = qtTag(ctx, it.source ? t('rlSrcL') + it.source : R.page, '', QT.tx, Math.min(end + 34, 640), ac);
   const py = Math.max(tagEnd + 36, 690), ph = 1040 - py;
-  qtPhoto(ctx, cv.img, 70, py, RW - 140, ph, z, ac, cv.img ? cv.lbl : '', 1);
+  qtPhoto(ctx, cv.img, 70, py, RW - 140, ph, z, ac, '', 1);
   const by = 1100, bh = 74; ctx.fillStyle = ac; ctx.fillRect(0, by, RW, bh); ctx.fillStyle = hl; ctx.fillRect(0, by, RW, 5);
   ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(28, 700, BFAM); ctx.fillText('▶ ' + cv.cta, RW / 2, by + bh / 2 + 3, RW - 40);
   ctx.fillStyle = '#05070f'; ctx.fillRect(0, by + bh, RW, RH - by - bh);
@@ -8816,7 +8818,7 @@ function rlFrame(ctx, R, t){
   if(k > 0 && p < XT && !(R.deck && g.k === 'card' && segs[k - 1].k === 'card')) rlTrans(ctx, R, segs[k - 1], g, p, p / XT);
   else rlScene(ctx, R, g, p);
   rlOverlay(ctx, R, g, p, t);
-  if(C.logoImg && g.k === 'card' && !R.deck) rlLogoDisc(ctx, 66, 104, 46);     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
+  if(C.logoImg && g.k === 'card' && !R.deck && !R.quote) rlLogoDisc(ctx, 66, 104, 46);   // the quote design has the logo in its own header     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
 }
 function rlMakeR(items, st){
   const page = pageName();

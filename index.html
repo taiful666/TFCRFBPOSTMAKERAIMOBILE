@@ -1177,6 +1177,28 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
           </div>
         </div>
         <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 10px">
+        <div id="cartBox" class="claudebox">
+          <h4><span>🎙 Cartesia API কী — রিলের ভয়েসের জন্য (নিজের কণ্ঠ)</span></h4>
+          <div style="font-size:12.5px;color:var(--muted);margin:4px 0 8px">একবার কী আর ভয়েস বেছে দিলে সেটাই সেভ থাকবে — প্রতিবার রিল বানানোর সময় শুধু ভয়েস চালু রাখলেই অটো ভয়েস তৈরি হবে। কী শুধু এই ফোন/ব্রাউজারেই থাকে।</div>
+          <div style="display:flex;gap:6px">
+            <input type="password" id="cartKeyInput" placeholder="sk_car_..." autocomplete="off" spellcheck="false" style="flex:1">
+            <button type="button" class="btn" id="cartShowBtn" title="show">👁️</button>
+          </div>
+          <label class="fld" style="margin-top:8px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px"><span>ভয়েস (একবার বাছলেই সেভ থাকবে)</span>
+            <span style="display:flex;gap:6px"><select id="cartVoiceSel" style="flex:1;min-width:0"><option value="">— আগে তালিকা আনুন —</option></select><button type="button" class="btn" id="cartListBtn">🔄 তালিকা</button></span>
+          </label>
+          <input type="text" id="cartVoiceId" placeholder="অথবা ভয়েস ID পেস্ট করুন" autocomplete="off" spellcheck="false" style="margin-top:8px">
+          <label class="fld" style="margin-top:8px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px"><span>কথার গতি</span>
+            <select id="cartSpeedSel"><option value="0.9">একটু ধীরে</option><option value="1">স্বাভাবিক</option><option value="1.1">একটু দ্রুত</option><option value="1.2">দ্রুত</option></select>
+          </label>
+          <div class="row">
+            <span id="cartState" style="margin-right:auto;font-size:12.5px;color:var(--muted);align-self:center"></span>
+            <button type="button" class="btn" id="cartRemoveBtn" data-i18n="remove">সরান</button>
+            <button type="button" class="btn" id="cartTestBtn">▶ নমুনা</button>
+            <button type="button" class="btn primary" id="cartSaveBtn" data-i18n="save">সংরক্ষণ</button>
+          </div>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:14px 0 10px">
         <h4><span data-i18n="proxyTitle">⚙️ নিজস্ব প্রক্সি / Cloudflare Worker (ঐচ্ছিক)</span></h4></h4>
         <p data-i18n="proxyDesc">সাধারণত দরকার নেই। কোনো পত্রিকা বারবার আটকে গেলে নিজের ফ্রি Cloudflare Worker-এর ঠিকানা দিন (ঠিকানার শেষে ?url= যুক্ত হয়ে পত্রিকার লিংক যাবে)।</p>
         <input type="url" id="workerInput" placeholder="https://my-proxy.workers.dev">
@@ -4520,7 +4542,7 @@ function newSearch(){
 }
 async function wipeData(){
   if(!window.confirm(t('wipeConfirm'))) return;
-  const keep = ['tfcr_gkey', 'tfcr_gmodel', 'tfcr_imodel', 'tfcr_aiFirst'];
+  const keep = ['tfcr_gkey', 'tfcr_gmodel', 'tfcr_imodel', 'tfcr_aiFirst', 'tfcr_ckey', 'tfcr_cmodel', 'tfcr_rlVo', 'tfcr_rlVoList'];
   try{ Object.keys(localStorage).filter(k => k.startsWith('tfcr_') && !keep.includes(k)).forEach(k => localStorage.removeItem(k)); }catch(e){}
   try{ sessionStorage.clear(); }catch(e){}
   try{ if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } }catch(e){}
@@ -7174,7 +7196,7 @@ Object.assign(T.en, {
 });
 const tf = (k, o) => { let s = t(k); Object.keys(o || {}).forEach(x => { s = s.split('{' + x + '}').join(o[x]); }); return s; };
 const IC_FILM = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>';
-const RL_MAX = 100, RW = 720, RH = 1280, XT = 0.5, CARD_CY = 590;
+const RL_MAX = 100, RW = 720, RH = 1280, XT = 0.62, CARD_CY = 590;
 const RL = {
   on: false, open: false, sel: new Map(), items: [], imgs: new Map(), busy: false, cancel: false,
   secs: store.get('rlSecs', 3), music: (m => ['beat','headline','war','alert','trailer','countdown','march','breaking','piano','emotional','tension','happy','lofi','file','none'].includes(m) ? m : 'beat')(store.get('rlMusic', 'beat')), tpl: (store.get('rlLiveMig', 0) ? (store.get('rlQuoteMig', 0) ? store.get('rlTpl', 'live') : 'quote') : (store.set('rlLiveMig', 1), store.set('rlTpl', 'live'), 'quote')), mixColor: store.get('rlMixColor', true),
@@ -7216,7 +7238,7 @@ body.rlsel .nwitem.rlon{background:var(--accent-soft);border-color:var(--accent)
 body.rlsel .rlbar{display:flex}
 .rlbar .rlcount{flex:1;font-weight:700;font-size:14.5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rlbar .btn{min-height:42px;white-space:nowrap}
-#rlSheet{z-index:85}
+#rlSheet{z-index:85} #v6sheet{z-index:88}
 .rlbox{max-width:620px}
 .rlbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 14px 18px}
 .rlstage{position:relative;display:flex;justify-content:center;margin-bottom:12px}
@@ -7269,6 +7291,12 @@ html[data-theme="dark"] .rlopts button.on{color:#111}
 .rlcap textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);font:14px/1.55 var(--sans);resize:vertical;outline:none}
 .rlfoot{flex:none;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
 .rlfoot .btn{width:100%;min-height:50px;font-size:16px}
+.rlfoot{display:flex;gap:8px;align-items:stretch}.rlfoot #rlMake{flex:1;width:auto}
+.rlfoot .rlvotg{flex:none;width:auto;display:flex;align-items:center;gap:8px;padding:0 12px;font-size:14px;font-weight:700}
+.rlvotg .sw{position:relative;width:38px;height:22px;border-radius:22px;background:var(--line);transition:background .2s;flex:none}
+.rlvotg .sw::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.rlvotg.on{border-color:var(--accent);color:var(--accent)}.rlvotg.on .sw{background:var(--accent)}.rlvotg.on .sw::after{transform:translateX(16px)}
+.rlvoinfo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.rlvoinfo span{flex:1;font-size:13px;font-weight:600;min-width:140px}
 .qtile.rlwide{grid-column:1/-1;flex-direction:row;text-align:left;padding:12px 14px;gap:12px}
 .qtile.rlwide .qt{display:flex;flex-direction:column;gap:2px}
 `;
@@ -7364,20 +7392,16 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div class="rlf"><label for="rlTickIn" id="rlTickL"></label><input type="text" id="rlTickIn" maxlength="160" autocomplete="off"></div>
       <p class="rlmeta" id="rlTip"></p>
     </div>
-    <details class="rlsec rlcap" id="rlVoBox"><summary><b>🎙 ভয়েস (Cartesia — নিজের কণ্ঠ)</b></summary>
-      <label class="rlchk"><input type="checkbox" id="rlVoOn"><span>ভিডিওতে ভয়েস দিন</span></label>
-      <div class="rlf" style="margin-top:10px"><span>Cartesia API কী (শুধু এই ফোনে থাকে)</span><div style="display:flex;gap:6px"><input type="password" id="rlVoKey" autocomplete="off" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text)"><button type="button" class="btn" id="rlVoKeySave">সেভ</button></div></div>
-      <div class="rlf"><span>ভয়েস</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn" id="rlVoList">ভয়েস তালিকা আনুন</button><select id="rlVoSel" class="hidden" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--text)"></select></div>
-        <input type="text" id="rlVoId" placeholder="অথবা ভয়েস ID পেস্ট করুন" autocomplete="off" style="margin-top:6px"></div>
-      <div class="rlf"><span>গতি</span><select id="rlVoSpeed" style="border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--text)"><option value="0.9">একটু ধীরে</option><option value="1">স্বাভাবিক</option><option value="1.1">একটু দ্রুত</option><option value="1.2">দ্রুত</option></select></div>
+    <details class="rlsec rlcap" id="rlVoBox"><summary><b>🎙 ভয়েস-স্ক্রিপ্ট (Cartesia — নিজের কণ্ঠ)</b></summary>
+      <div class="rlvoinfo"><span id="rlVoWho">ভয়েস: —</span><button type="button" class="btn" id="rlVoSet">⚙️ কী ও ভয়েস (সেটিংস)</button></div>
       <div class="rlf"><span>ভয়েস-স্ক্রিপ্ট (স্ক্রিনে ছোট লেখা, কণ্ঠে বিস্তারিত)</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><button type="button" class="btn" id="rlVoAi">✨ AI দিয়ে লিখুন</button><button type="button" class="btn" id="rlVoCopy">📋 কপি করে জেমিনি খুলুন</button><button type="button" class="btn" id="rlVoPaste">📥 উত্তর পেস্ট</button><button type="button" class="btn" id="rlVoTry">▶ নমুনা</button></div>
         <textarea id="rlVoTxt" spellcheck="false" placeholder="শুরু: …&#10;&#10;১: …&#10;&#10;২: …&#10;&#10;শেষ: …"></textarea></div>
-      <p class="rlmeta" id="rlVoSt">ভয়েস চালু থাকলে প্রতিটি খবর যতক্ষণ পড়া হয় ততক্ষণ স্ক্রিনে থাকবে, মিউজিক নিচু হয়ে বাজবে। সংখ্যা ও সংক্ষেপ নিজে থেকেই পড়ার মতো করে নেওয়া হয়।</p>
+      <p class="rlmeta" id="rlVoSt">শুরুতে কয়েক সেকেন্ড শুধু মিউজিক, তারপর ভয়েস। কথা বলার সময় মিউজিক নিচু হয়ে যায়, থামলে একটু বাড়ে, দুই খবরের মাঝে বিরতিতে জোরে বেজে ওঠে। সংখ্যা ও সংক্ষেপ নিজে থেকেই পড়ার মতো করে নেওয়া হয়।</p>
     </details>
     <details class="rlsec rlcap" id="rlCapBox"><summary><b id="rlCapT"></b></summary><textarea id="rlCapIn" spellcheck="false"></textarea></details>
   </div>
-  <div class="rlfoot"><button type="button" class="btn primary" id="rlMake">${ic(IC_FILM)}<span></span></button></div>
+  <div class="rlfoot"><button type="button" class="btn rlvotg" id="rlVoTg" aria-pressed="false"><span class="vt">🎙 AI ভয়েস</span><i class="sw"></i></button><button type="button" class="btn primary" id="rlMake">${ic(IC_FILM)}<span></span></button></div>
 </div>`;
 document.body.appendChild(sheet);
 
@@ -8125,8 +8149,149 @@ function qtTag(ctx, text, sub, x, y, ac, th){
   return y + hgt;
 }
 /* the photo, smaller, in a rounded white frame over an accent block; zoomed in so the edges are trimmed evenly */
-function qtPhoto(ctx, img, x, y, w, h, z, ac, a){
+/* ===================== 📸 photo presentation: every story shows its photo in a different way =====================
+   10 looks (rounded card, sharp frame, 3D swing, round in a corner, book-page turn, polaroid, split panels, blinds,
+   hexagon, picture-in-picture) × 8 camera moves (zoom in/out, pan left/right/up/down, diagonal drift, push).
+   Neighbouring stories never get the same look; the mix changes with every reel ("🔀 নতুন স্টাইল"). */
+const PIC_STY = ['round', 'tilt', 'circle', 'flip', 'rect', 'polaroid', 'split', 'hex', 'blinds', 'pip'];
+const PIC_MOT = ['in', 'panR', 'out', 'panU', 'diag', 'panL', 'push', 'panD'];
+function rlPicPick(R, i){
+  const q = R.st.shuffle == null ? 0.41 : R.st.shuffle, b = Math.floor(q * 1000);
+  return { style: PIC_STY[(b + i * 3) % PIC_STY.length], mot: PIC_MOT[(Math.floor(b / 10) + i * 3) % PIC_MOT.length], side: (Math.floor(b / 7) + i) % 2 };
+}
+const rlPicPool = new Map();
+function rlPicCanvas(w, h, tag){
+  const k = Math.round(w) + 'x' + Math.round(h) + (tag || ''); let c = rlPicPool.get(k);
+  if(!c){ if(rlPicPool.size > 12) rlPicPool.clear(); c = document.createElement('canvas'); c.width = Math.max(2, Math.round(w)); c.height = Math.max(2, Math.round(h)); rlPicPool.set(k, c); }
+  return c;
+}
+/* the photo with its camera move, drawn into a w×h canvas */
+function rlPicSrc(img, w, h, z, mot, f, tag){
+  const c = rlPicCanvas(w, h, tag), x = c.getContext('2d'), e = 0.5 - 0.5 * Math.cos(Math.PI * clamp(f, 0, 1));
+  let sc = 1.1, px = 0, py = 0;
+  switch(mot){
+    case 'in': sc = 1 + 0.17 * e; break;
+    case 'out': sc = 1.17 - 0.17 * e; break;
+    case 'panL': sc = 1.16; px = 1 - 2 * e; break;
+    case 'panR': sc = 1.16; px = -1 + 2 * e; break;
+    case 'panU': sc = 1.16; py = 1 - 2 * e; break;
+    case 'panD': sc = 1.16; py = -1 + 2 * e; break;
+    case 'diag': sc = 1.1 + 0.08 * e; px = -0.8 + 1.6 * e; py = 0.6 - 1.2 * e; break;
+    default: sc = 1 + 0.14 * e; px = 0.7 * (1 - 2 * e);
+  }
+  const iw = img.width, ih = img.height, s = Math.max(w / iw, h / ih) * (z || 1) * sc, dw = iw * s, dh = ih * s;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(img, (w - dw) / 2 + px * (dw - w) / 2, (h - dh) * 0.4 + py * (dh - h) * 0.4, dw, dh);
+  return c;
+}
+/* fake 3D: turn a picture around its vertical axis (ax 0 = hinge on the left edge, .5 = middle) */
+function rlYRot(ctx, src, x, y, w, h, th, ax, shadeIt){
+  const N = 44, D = w * 1.7, cs = Math.cos(th), sn = Math.sin(th), cy = y + h / 2, ox = x + ax * w;
+  const P = u => { const X = (u - ax) * w, zr = X * sn, k = D / (D + zr); return { x: ox + X * cs * k, k }; };
+  for(let j = 0; j < N; j++){
+    const a = P(j / N), b = P((j + 1) / N), k = (a.k + b.k) / 2, hh = h * k, dx = b.x - a.x;
+    if(Math.abs(dx) < 0.05) continue;
+    ctx.drawImage(src, j / N * src.width, 0, src.width / N + 1, src.height, Math.min(a.x, b.x), cy - hh / 2, Math.abs(dx) + 0.8, hh);
+    if(shadeIt){ const d = clamp((1 - k) * 2.2 + Math.abs(sn) * 0.18, 0, 0.6); if(d > 0.01){ ctx.fillStyle = 'rgba(0,0,0,' + d.toFixed(3) + ')'; ctx.fillRect(Math.min(a.x, b.x), cy - hh / 2, Math.abs(dx) + 0.8, hh); } }
+  }
+}
+function rlHexPath(ctx, cx, cy, r, rot){ ctx.beginPath(); for(let k = 0; k < 6; k++){ const a = rot + k * Math.PI / 3; ctx[k ? 'lineTo' : 'moveTo'](cx + r * Math.cos(a), cy + r * Math.sin(a)); } ctx.closePath(); }
+/* o: { style, mot, side, f (0‥1 of the story), p (seconds into the story), ac, hl, bd (paint a soft backdrop), z } */
+function rlPicFx(ctx, img, x, y, w, h, o){
+  const ac = o.ac || '#c0262d', hl = o.hl || '#ffe23a', p = o.p || 0, f = o.f || 0, a = ease(p / 0.6), bo = backOut(p / 0.7);
+  if(!img){ rlPlainBg(ctx, ac, x, y, w, h); return; }
+  const st = o.style, inset = !/^(rect|blinds|split)$/.test(st);
+  ctx.save();
+  if(o.clip){ ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); }
+  if(o.bd && inset){                                   // soft, darker copy of the photo behind the inset looks
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.globalAlpha = 0.9; ctx.drawImage(rlPicSrc(img, w / 4, h / 4, (o.z || 1) * 1.25, o.mot, f, 'bd'), x, y, w, h);
+    ctx.globalAlpha = 1; const g = ctx.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, hexA(shade(ac, -0.5), 0.72)); g.addColorStop(1, 'rgba(0,0,0,.78)'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+    ctx.restore();
+  }
+  const shadow = (b, oy) => { ctx.shadowColor = 'rgba(0,0,0,.42)'; ctx.shadowBlur = b || 26; ctx.shadowOffsetY = oy == null ? 10 : oy; };
+  const noShadow = () => { ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; };
+  if(st === 'round' || st === 'pip'){
+    const m = st === 'pip' ? 0.14 : (o.bd ? 0.07 : 0), iw = w * (1 - 2 * m), ih = h * (1 - 2 * m) * (st === 'pip' ? 0.92 : 1);
+    const ix = x + (w - iw) / 2 + (st === 'pip' ? (o.side ? 1 : -1) * w * 0.06 : 0), iy = y + (h - ih) / 2;
+    const s = 0.82 + 0.18 * bo; ctx.translate(ix + iw / 2, iy + ih / 2); ctx.scale(s, s); ctx.translate(-(ix + iw / 2), -(iy + ih / 2)); ctx.globalAlpha = a;
+    if(st === 'pip'){ ctx.fillStyle = hl; rr(ctx, ix + 16, iy + 16, iw, ih, 22); ctx.fill(); }
+    shadow(); ctx.fillStyle = '#fff'; rr(ctx, ix - 7, iy - 7, iw + 14, ih + 14, 30); ctx.fill(); noShadow();
+    ctx.save(); rr(ctx, ix, iy, iw, ih, 24); ctx.clip(); ctx.drawImage(rlPicSrc(img, iw, ih, o.z, o.mot, f), ix, iy); ctx.restore();
+  }
+  else if(st === 'rect'){
+    const k = 1 - 0.08 * (1 - a); ctx.translate(x + w / 2, y + h / 2); ctx.scale(k, k); ctx.translate(-x - w / 2, -y - h / 2); ctx.globalAlpha = a;
+    shadow(20, 8); ctx.fillStyle = '#0b0b0b'; ctx.fillRect(x - 6, y - 6, w + 12, h + 12); noShadow();
+    ctx.drawImage(rlPicSrc(img, w, h, o.z, o.mot, f), x, y);
+    const L = 46 * a; ctx.strokeStyle = hl; ctx.lineWidth = 7;               // corner brackets
+    [[x + 10, y + 10, 1, 1], [x + w - 10, y + 10, -1, 1], [x + 10, y + h - 10, 1, -1], [x + w - 10, y + h - 10, -1, -1]].forEach(([cx, cy, sx, sy]) => { ctx.beginPath(); ctx.moveTo(cx, cy + sy * L); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx * L, cy); ctx.stroke(); });
+  }
+  else if(st === 'tilt'){
+    const m = o.bd ? 0.08 : 0.02, iw = w * (1 - 2 * m), ih = h * (1 - 2 * m), ix = x + (w - iw) / 2, iy = y + (h - ih) / 2;
+    const dir = o.side ? 1 : -1, th = dir * ((1 - a) * 1.25 + 0.2 * Math.sin(p * 0.9) * (0.5 + 0.5 * a));
+    const src = rlPicSrc(img, iw, ih, o.z, o.mot, f), fr = rlPicCanvas(iw + 16, ih + 16, 'fr'), fx = fr.getContext('2d');
+    fx.clearRect(0, 0, fr.width, fr.height); fx.fillStyle = '#fff'; rr(fx, 0, 0, fr.width, fr.height, 18); fx.fill();
+    fx.save(); rr(fx, 8, 8, iw, ih, 12); fx.clip(); fx.drawImage(src, 8, 8); fx.restore();
+    ctx.globalAlpha = clamp(a * 1.6, 0, 1); ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x + w / 2, iy + ih + 18, iw * 0.42 * Math.abs(Math.cos(th)), 14, 0, 0, Math.PI * 2); ctx.fill();
+    rlYRot(ctx, fr, ix - 8, iy - 8, iw + 16, ih + 16, th, 0.5, true);
+  }
+  else if(st === 'circle'){
+    const r = Math.min(w, h) * (o.bd ? 0.4 : 0.47) * (0.3 + 0.7 * bo), cx = o.bd ? (o.side ? x + w - r - w * 0.07 : x + r + w * 0.07) : x + w / 2 + (o.side ? 1 : -1) * Math.max(0, w / 2 - r - 8) * 0.55, cy = y + h / 2;
+    if(r > 4){
+      ctx.globalAlpha = a; shadow(30, 10); ctx.beginPath(); ctx.arc(cx, cy, r + 10, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); noShadow();
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(rlPicSrc(img, r * 2, r * 2, o.z, o.mot, f, 'c'), cx - r, cy - r); ctx.restore();
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(p * 0.6); ctx.setLineDash([22, 14]); ctx.lineWidth = 6; ctx.strokeStyle = hl; ctx.beginPath(); ctx.arc(0, 0, r + 24, 0, Math.PI * 2 * a); ctx.stroke(); ctx.restore();
+      const r2 = r * 0.3, c2x = cx + (o.side ? -1 : 1) * r * 0.86, c2y = cy + r * 0.62, b2 = backOut((p - 0.35) / 0.6);
+      if(b2 > 0){ ctx.beginPath(); ctx.arc(c2x, c2y, r2 * b2 + 6, 0, Math.PI * 2); ctx.fillStyle = ac; ctx.fill();
+        ctx.save(); ctx.beginPath(); ctx.arc(c2x, c2y, r2 * b2, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(rlPicSrc(img, r * 2, r * 2, (o.z || 1) * 1.9, o.mot, 1 - f, 'c2'), c2x - r2 * b2 * 1.6, c2y - r2 * b2 * 1.6, r2 * b2 * 3.2, r2 * b2 * 3.2); ctx.restore(); }
+    }
+  }
+  else if(st === 'flip'){                               // like turning a page of a book: hinge on the left, then it lies flat
+    const m = o.bd ? 0.06 : 0, iw = w * (1 - 2 * m), ih = h * (1 - 2 * m), ix = x + (w - iw) / 2, iy = y + (h - ih) / 2;
+    const tp = easeIO(p / 0.85), th = -(1 - tp) * 1.45;
+    ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(ix - 4, iy - 4, 8, ih + 8);
+    if(tp < 1){ shadow(18, 6); }
+    const src = rlPicSrc(img, iw, ih, o.z, o.mot, f);
+    if(tp >= 1){ shadow(22, 8); ctx.fillStyle = '#fff'; ctx.fillRect(ix - 6, iy - 6, iw + 12, ih + 12); noShadow(); ctx.drawImage(src, ix, iy);
+      const g = ctx.createLinearGradient(ix, 0, ix + 40, 0); g.addColorStop(0, 'rgba(0,0,0,.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ix, iy, 40, ih); }
+    else { noShadow(); rlYRot(ctx, src, ix, iy, iw, ih, th, 0, true);
+      const ex = ix + iw * Math.cos(th) * 0.98; const g = ctx.createLinearGradient(ex - 60, 0, ex, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.35)'); ctx.fillStyle = g; ctx.fillRect(ex - 60, iy, 60, ih); }
+  }
+  else if(st === 'polaroid'){
+    const iw = Math.min(w * 0.8, h * 1.05), ih = Math.min(h * 0.74, iw * 0.82), pad = 16, bot = 54, fw = iw + pad * 2, fh = ih + pad + bot;
+    const cx = x + w / 2, cy = y + h / 2 + 4, drop = (1 - bo) * -h * 0.28, rot = (o.side ? 1 : -1) * (0.05 + 0.02 * Math.sin(p * 1.2)) * (1 + (1 - a) * 3);
+    ctx.globalAlpha = clamp(a * 1.4, 0, 1); ctx.translate(cx, cy + drop); ctx.rotate(rot);
+    ctx.save(); ctx.rotate(-rot * 1.8); ctx.fillStyle = hexA(hl, 0.85); ctx.fillRect(-fw / 2 + 10, -fh / 2 + 6, fw, fh); ctx.restore();
+    shadow(28, 12); ctx.fillStyle = '#fbfaf6'; ctx.fillRect(-fw / 2, -fh / 2, fw, fh); noShadow();
+    ctx.drawImage(rlPicSrc(img, iw, ih, o.z, o.mot, f), -fw / 2 + pad, -fh / 2 + pad);
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(-48, -fh / 2 - 14, 96, 30);    // a bit of tape
+  }
+  else if(st === 'split'){
+    const n = 3, gap = 8, pw = (w - gap * (n - 1)) / n, src = rlPicSrc(img, w, h, o.z, o.mot, f);
+    for(let k = 0; k < n; k++){
+      const e = ease((p - k * 0.12) / 0.55), dy = (1 - e) * (k % 2 ? 1 : -1) * h * 0.45, sx = k * (pw + gap);
+      if(e <= 0) continue; ctx.globalAlpha = e;
+      ctx.drawImage(src, sx, 0, pw, h, x + sx, y + dy, pw, h);
+      ctx.fillStyle = hl; ctx.fillRect(x + sx, y + dy + (k % 2 ? h - 6 : 0), pw * e, 6);
+    }
+  }
+  else if(st === 'blinds'){
+    const n = 7, bh = h / n, src = rlPicSrc(img, w, h, o.z, o.mot, f);
+    for(let k = 0; k < n; k++){ const e = ease((p - k * 0.06) / 0.4); if(e <= 0) continue; const hh = bh * e;
+      ctx.drawImage(src, 0, k * bh, w, bh, x, y + k * bh + (bh - hh) / 2, w, hh + 0.6); }
+    if(a > 0){ ctx.fillStyle = ac; ctx.fillRect(x, y + h - 8, w * a, 8); }
+  }
+  else if(st === 'hex'){
+    const r = Math.min(w * 0.46, h * 0.46) * (0.25 + 0.75 * bo), cx = x + w / 2, cy = y + h / 2, rot = (1 - a) * -0.9 + Math.PI / 6;
+    if(r > 4){ ctx.globalAlpha = a; shadow(28, 10); rlHexPath(ctx, cx, cy, r + 12, rot); ctx.fillStyle = hl; ctx.fill(); noShadow();
+      ctx.save(); rlHexPath(ctx, cx, cy, r, rot); ctx.clip(); ctx.drawImage(rlPicSrc(img, r * 2, r * 2, o.z, o.mot, f, 'h'), cx - r, cy - r); ctx.restore();
+      ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; rlHexPath(ctx, cx, cy, r, rot); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+function qtPhoto(ctx, img, x, y, w, h, z, ac, a, fx){
   if(h < 120) return;
+  if(fx && img){ rlPicFx(ctx, img, x, y, w, h, Object.assign({ ac, z }, fx)); return; }
   ctx.save(); ctx.globalAlpha = a;
   ctx.fillStyle = ac; rr(ctx, x + 24, y + 24, w, h, 30); ctx.fill();
   ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
@@ -8175,13 +8340,13 @@ function qtLiveBar(ctx, R, tm, ac){
 }
 /* lays out headline + tag + photo for one story or for the cover */
 function qtBody(ctx, R, o){
-  const { th, ac, text, tag, sub, img, z, p, anim, photoTop, big, a } = o;
+  const { th, ac, text, tag, sub, img, z, p, anim, photoTop, big, a, fx } = o;
   const maxW = RW - 2 * QT.tx;
   if(photoTop){
     const L = qtWrap(ctx, text, maxW, big ? 62 : 54, 4, 34), tagH = sub ? 72 : 48;
     const textH = 70 + L.lh * (L.lines.length - 1) + L.size * 0.4 + 26 + tagH;
     const py = QT.top + 30, ph = Math.max(180, Math.min(420, QT.bot - 30 - textH - py - 40));
-    qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a);
+    qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a, fx);
     const qy = py + ph + 110; qtQuoteMark(ctx, QT.tx, qy, th.qm);
     const end = qtText(ctx, L, QT.tx, qy + L.size * 0.55, th, anim, p);
     qtTag(ctx, tag, sub, QT.tx, end + 30, ac, th);
@@ -8191,15 +8356,15 @@ function qtBody(ctx, R, o){
     const end = qtText(ctx, L, QT.tx, qy + L.size * 0.55, th, anim, p);
     const tagEnd = qtTag(ctx, tag, sub, QT.tx, Math.min(end + 30, 640), ac, th);
     const py = Math.max(tagEnd + 36, 660), ph = QT.bot - 24 - py;
-    ctx.save(); ctx.translate(0, (1 - a) * 40); qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a); ctx.restore();
+    if(fx) qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a, fx); else { ctx.save(); ctx.translate(0, (1 - a) * 40); qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a); ctx.restore(); }
   }
 }
 function qtScene(ctx, R, g, p){
   const f = clamp(p / g.d, 0, 1), [ac] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {}, v = qtVar(R, g.i), th = qtTheme(v.theme, ac);
   qtBack(ctx, th, ac);
   qtHead(ctx, R, g.i, th);
-  const z = QT.crop * ((ed.zoom || 100) / 100) * (R.st.kb > 0 ? 1 + 0.06 * f : 1.06 - 0.06 * f);
-  qtBody(ctx, R, { th, ac, text: it.text || '', tag: it.source ? t('rlSrcL') + it.source : R.page, sub: it.date || R.today, img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45) });
+  const z = QT.crop * ((ed.zoom || 100) / 100), fx = Object.assign(rlPicPick(R, g.i), { f, p, hl: R.col(g.i)[1] });
+  qtBody(ctx, R, { th, ac, text: it.text || '', tag: it.source ? t('rlSrcL') + it.source : R.page, sub: it.date || R.today, img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45), fx });
 }
 function qtCover(ctx, R, p, d){
   const cv = R.cov, [ac, hl] = R.col(cv.i), v = qtVar(R, null), th = qtTheme(v.theme, ac), it = R.items[cv.i] || {};
@@ -8291,9 +8456,9 @@ async function voFetch(path, opt){
 }
 function voErr(e){
   const m = String((e && e.message) || e);
-  if(m === 'NOKEY') return 'আগে Cartesia API কী দিন।';
+  if(m === 'NOKEY') return 'সেটিংসে (⚙️ → Cartesia) API কী দিন।';
   if(m === 'BADKEY') return 'Cartesia কী ঠিক নেই বা মেয়াদ শেষ।';
-  if(m === 'NOVOICE') return 'আগে একটা ভয়েস বেছে নিন ("ভয়েস তালিকা আনুন") বা ভয়েস ID দিন।';
+  if(m === 'NOVOICE') return 'সেটিংসে (⚙️ → Cartesia) একটা ভয়েস বেছে নিন — একবার বাছলেই সেভ থাকবে।';
   if(m === 'NET') return 'Cartesia-তে পৌঁছানো যায়নি — ইন্টারনেট দেখুন।';
   return m;
 }
@@ -8382,23 +8547,74 @@ async function voPaste(){
   if(!tx){ const ta = $('rlVoTxt'); ta.focus(); voSay('ফোন অনুমতি দেয়নি — বক্সে লম্বা চাপ দিয়ে Paste করুন।'); return; }
   if(voSetScript(tx)) voSay('✔ জেমিনির লেখা বসানো হয়েছে।', true); else { $('rlVoTxt').value = tx; voSay('লেখাটা "শুরু: / ১: / ২: / শেষ:" ফরম্যাটে নেই — দেখে ঠিক করে নিন।'); }
 }
-async function voVoices(){
-  voSay('ভয়েস তালিকা আনা হচ্ছে…'); const sel = $('rlVoSel');
+/* ---- voice settings live in ⚙️ Settings (with the Gemini / Claude keys). The chosen voice is saved once and used every time. ---- */
+const voListMem = () => store.get('rlVoList', []);
+function voFillSel(list){
+  const sel = $('cartVoiceSel'); if(!sel) return;
+  sel.innerHTML = '';
+  const add = (parent, v) => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.name; parent.appendChild(o); };
+  if(!list.length){ const o = document.createElement('option'); o.value = ''; o.textContent = VO.voice ? (VO.voiceName || 'সেভ করা ভয়েস') : '— আগে তালিকা আনুন —'; if(VO.voice) o.value = VO.voice; sel.appendChild(o); }
+  [['আমার ভয়েস', list.filter(v => v.mine)], ['বাংলা ভয়েস', list.filter(v => !v.mine)]].forEach(([label, l]) => { if(!l.length) return; const g = document.createElement('optgroup'); g.label = label; l.forEach(v => add(g, v)); sel.appendChild(g); });
+  if(VO.voice && ![...sel.options].some(o => o.value === VO.voice)){ const o = document.createElement('option'); o.value = VO.voice; o.textContent = VO.voiceName || ('ID: ' + VO.voice.slice(0, 10) + '…'); sel.insertBefore(o, sel.firstChild); }
+  if(VO.voice) sel.value = VO.voice;
+}
+function voUi(){
+  const has = !!voKey(), name = VO.voice ? (VO.voiceName || 'ID ' + VO.voice.slice(0, 8) + '…') : '';
+  const st = $('cartState'); if(st) st.textContent = !has ? 'কী দেওয়া নেই' : name ? '✅ ' + name : 'কী আছে — ভয়েস বেছে নিন';
+  const ki = $('cartKeyInput'); if(ki && !ki.value) ki.placeholder = has ? '•••••• (সেভ করা আছে)' : 'sk_car_...';
+  const w = $('rlVoWho'); if(w) w.textContent = !has ? '⚠ সেটিংসে Cartesia কী দেওয়া নেই' : name ? '🎙 ভয়েস: ' + name : '⚠ সেটিংসে একটা ভয়েস বেছে নিন';
+  const tg = $('rlVoTg'); if(tg){ tg.classList.toggle('on', !!VO.on); tg.setAttribute('aria-pressed', VO.on ? 'true' : 'false'); }
+}
+async function voVoices(quiet){
+  const st = $('cartState'); if(st && !quiet) st.textContent = 'ভয়েস তালিকা আনা হচ্ছে…';
   try{
     const get = async q => { const r = await voFetch('/voices?limit=100' + q); if(r.status === 401 || r.status === 403) throw new Error('BADKEY'); if(!r.ok) throw new Error('Cartesia: ' + r.status); return (await r.json()).data || []; };
     const mine = await get('&is_owner=true'); let pub = []; try{ pub = (await get('')).filter(v => !v.is_owner && v.language === 'bn'); }catch(e){}
-    sel.innerHTML = '';
-    const grp = (label, list) => { if(!list.length) return; const g = document.createElement('optgroup'); g.label = label; list.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.name; g.appendChild(o); }); sel.appendChild(g); };
-    grp('আমার ভয়েস', mine); grp('বাংলা ভয়েস', pub);
-    if(VO.voice && [...sel.options].some(o => o.value === VO.voice)) sel.value = VO.voice; else if(sel.options.length){ VO.voice = sel.value; VO.voiceName = sel.options[sel.selectedIndex].textContent; voSave(); }
-    sel.classList.remove('hidden'); voSay('✔ ' + nwNum(mine.length) + 'টি নিজের ভয়েস পাওয়া গেছে।', true);
-  }catch(e){ voSay('✖ ' + voErr(e)); }
+    const list = mine.map(v => ({ id: v.id, name: v.name, mine: 1 })).concat(pub.map(v => ({ id: v.id, name: v.name, mine: 0 })));
+    store.set('rlVoList', list);
+    if(!VO.voice && list.length){ VO.voice = list[0].id; VO.voiceName = list[0].name; voSave(); }          // first time only — afterwards your choice stays
+    else if(VO.voice){ const f = list.find(v => v.id === VO.voice); if(f && f.name !== VO.voiceName){ VO.voiceName = f.name; voSave(); } }
+    voFillSel(list); voUi();
+    if(!quiet && st) st.textContent = '✔ ' + nwNum(mine.length) + 'টি নিজের ভয়েস · নির্বাচিত: ' + (VO.voiceName || '—');
+  }catch(e){ if(st && !quiet) st.textContent = '✖ ' + voErr(e); }
 }
-async function voSample(){
-  const b = $('rlVoTry'); b.disabled = true; voSay('নমুনা তৈরি হচ্ছে…');
-  try{ const s = voScript(), t = rlSpeak(s.items[0] || s.intro).slice(0, 300); const ab = await voWav(t);
-    const a = new Audio(URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }))); a.play().catch(() => {}); voSay('▶ নমুনা বাজছে।', true); }
-  catch(e){ voSay('✖ ' + voErr(e)); } finally{ b.disabled = false; }
+async function voSample(btn){
+  const b = btn || $('rlVoTry'); if(b) b.disabled = true; voSay('নমুনা তৈরি হচ্ছে…'); const st = $('cartState'); if(btn && st) st.textContent = 'নমুনা তৈরি হচ্ছে…';
+  try{ let txt = 'আসসালামু আলাইকুম, ' + pageName() + '-এ আপনাকে স্বাগতম। এটি আমার কণ্ঠের একটি নমুনা।';
+    if(!btn && RL.items.length){ const s = voScript(); txt = s.items[0] || s.intro; }
+    const ab = await voWav(rlSpeak(txt).slice(0, 300));
+    const a = new Audio(URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }))); a.play().catch(() => {}); voSay('▶ নমুনা বাজছে।', true); if(btn && st) st.textContent = '▶ নমুনা বাজছে — ' + (VO.voiceName || ''); }
+  catch(e){ voSay('✖ ' + voErr(e)); if(btn && st) st.textContent = '✖ ' + voErr(e); } finally{ if(b) b.disabled = false; }
+}
+(function voSettings(){
+  const kin = $('cartKeyInput'); if(!kin) return;
+  $('cartSpeedSel').value = String(VO.speed || 1); $('cartVoiceId').value = VO.voice || '';
+  voFillSel(voListMem()); voUi();
+  $('cartShowBtn').addEventListener('click', () => { kin.type = kin.type === 'password' ? 'text' : 'password'; });
+  const pickVoice = (id, name) => { VO.voice = id; VO.voiceName = name || ''; $('cartVoiceId').value = id; voSave(); voUi(); };
+  $('cartVoiceSel').addEventListener('change', e => { const o = e.target.options[e.target.selectedIndex]; if(o && o.value) pickVoice(o.value, o.textContent); toast('✅ ভয়েস সেভ হয়েছে: ' + (VO.voiceName || '')); });
+  $('cartVoiceId').addEventListener('change', e => { const id = e.target.value.trim(); if(!id) return; const f = voListMem().find(v => v.id === id); pickVoice(id, f ? f.name : ''); voFillSel(voListMem()); });
+  $('cartSpeedSel').addEventListener('change', e => { VO.speed = +e.target.value || 1; voSave(); });
+  $('cartListBtn').addEventListener('click', () => { if(kin.value.trim()){ try{ localStorage.setItem('tfx_cartkey', kin.value.trim()); }catch(e){} kin.value = ''; } voVoices(false); });
+  $('cartSaveBtn').addEventListener('click', () => {
+    const v = kin.value.trim(); if(v){ try{ localStorage.setItem('tfx_cartkey', v); }catch(e){} kin.value = ''; }
+    VO.speed = +$('cartSpeedSel').value || 1; voSave(); voUi();
+    if(!voKey()){ toast('আগে Cartesia কী লিখুন'); return; }
+    toast('✅ Cartesia কী সংরক্ষিত'); voVoices(false);
+  });
+  $('cartRemoveBtn').addEventListener('click', () => { try{ localStorage.removeItem('tfx_cartkey'); }catch(e){} kin.value = ''; voUi(); toast('Cartesia কী সরানো হয়েছে'); });
+  $('cartTestBtn').addEventListener('click', e => { if(kin.value.trim()){ try{ localStorage.setItem('tfx_cartkey', kin.value.trim()); }catch(err){} kin.value = ''; voUi(); } voSample(e.currentTarget); });
+  if(voKey() && !voListMem().length) setTimeout(() => voVoices(true), 1500);   // fill the list quietly once; the saved voice stays selected
+})();
+/* ---- voice timing: music plays alone first, then the voice. Each story: transition → voice → a short music break. ---- */
+const VO_LEAD = 2.8, VO_IN = 0.75, VO_GAP = 1.5;
+/* where the voice actually speaks inside a clip (short word gaps are merged, real pauses are kept) */
+function voSpeechParts(buf, at){
+  const d = buf.getChannelData(0), sr = buf.sampleRate, win = Math.round(sr * 0.03), rms = [];
+  for(let i = 0; i < d.length; i += win){ let s = 0; const e = Math.min(d.length, i + win); for(let j = i; j < e; j += 2) s += d[j] * d[j]; rms.push(Math.sqrt(s / ((e - i) / 2 || 1))); }
+  const peak = Math.max(0.0001, ...rms), thr = Math.max(0.006, peak * 0.07), out = []; let cur = null;
+  rms.forEach((v, k) => { const t = k * 0.03; if(v > thr){ if(cur && t - cur.e < 0.22) cur.e = t + 0.03; else { cur = { s: t, e: t + 0.03 }; out.push(cur); } } });
+  return out.filter(r => r.e - r.s > 0.08).map(r => ({ s: at + r.s, e: at + r.e }));
 }
 /* used by rlMake: makes every part's audio, sets each story's time to its sentence, returns the parts */
 async function voBuild(ac, R, prog){
@@ -8412,36 +8628,54 @@ async function voBuild(ac, R, prog){
     prog('🎙 ভয়েস তৈরি হচ্ছে… ' + nwNum(i + 1) + '/' + nwNum(texts.length), i / texts.length);
     bufs.push(texts[i] ? await ac.decodeAudioData((await voWav(texts[i])).slice(0)) : null);
   }
-  const len = b => b ? b.duration : 0;
-  const intro = Math.max(2.4, len(bufs[0]) + 0.4), cards = RL.items.map((_, i) => Math.max(RL.secs, len(bufs[i + 1]) + 0.6)), outro = Math.max(2.4, len(bufs[bufs.length - 1]) + 0.5);
+  const len = b => b ? b.duration : 0, hasMusic = RL.music !== 'none';
+  const lead = hasMusic ? VO_LEAD : 0.4;                                   // music alone at the start
+  const intro = Math.max(3, lead + len(bufs[0]) + (hasMusic ? 1.1 : 0.5));
+  const cards = RL.items.map((_, i) => Math.max(RL.secs, VO_IN + len(bufs[i + 1]) + (hasMusic ? VO_GAP : 0.7)));
+  const outro = Math.max(2.8, VO_IN + len(bufs[bufs.length - 1]) + 1.6);
   const segs = [{ k: 'intro', s: 0, d: intro }]; let t = intro;
   cards.forEach((d, i) => { segs.push({ k: 'card', i, s: t, d }); t += d; });
   segs.push({ k: 'outro', s: t, d: outro });
   R.tl = { segs, total: t + outro };
-  R.vo = segs.map((g, k) => ({ at: g.s + (k ? 0.35 : 0.25), buf: bufs[k] })).filter(x => x.buf);
+  R.vo = segs.map((g, k) => ({ at: g.s + (k ? VO_IN : lead), buf: bufs[k] })).filter(x => x.buf);
+  R.speech = []; R.vo.forEach(v => { R.speech.push(...voSpeechParts(v.buf, v.at)); });
   return R.vo;
 }
 function voPlay(ac, dest, R, T0){
   if(!R.vo) return;
-  const g = ac.createGain(); g.gain.value = 1; const c = ac.createDynamicsCompressor(); c.threshold.value = -18; c.ratio.value = 3;
+  const g = ac.createGain(); g.gain.value = 1.05; const c = ac.createDynamicsCompressor(); c.threshold.value = -18; c.ratio.value = 3;
   g.connect(c); c.connect(dest);
   R.vo.forEach(v => { const s = ac.createBufferSource(); s.buffer = v.buf; s.connect(g); s.start(T0 + v.at); });
 }
+/* music level follows the voice: low while speaking, a little up in pauses, full between stories */
+function voDuck(gain, R, T0, full){
+  const sp = (R.speech || []).slice().sort((a, b) => a.s - b.s); if(!sp.length) return;
+  const LOW = full * 0.14, MID = full * 0.42, P = gain.gain;
+  let last = 0;
+  const at = (v, t) => { t = Math.max(t, last + 0.01); P.linearRampToValueAtTime(v, T0 + t); last = t; };
+  P.setValueAtTime(full, T0 + Math.max(0, sp[0].s - 0.5)); last = Math.max(0, sp[0].s - 0.5);
+  sp.forEach((r, k) => {
+    at(LOW, r.s - 0.05);                                                  // dip just before the words
+    const nx = sp[k + 1], gap = nx ? nx.s - r.e : 99;
+    if(gap < 0.35){ at(LOW, r.e); return; }
+    const lvl = gap > 1.1 ? full : MID, up = Math.min(0.45, gap * 0.35);
+    at(LOW, r.e + 0.05); at(lvl, r.e + 0.05 + up);                         // pause → music rises
+    if(nx) at(lvl, nx.s - 0.05 - Math.min(0.3, gap * 0.3));
+  });
+}
 function voInit(){
-  if(voInit.done) return; voInit.done = true;
-  const kin = $('rlVoKey'); kin.placeholder = voKey() ? '•••••• (সেভ করা আছে)' : 'sk_car_…';
-  $('rlVoOn').checked = VO.on; $('rlVoSpeed').value = String(VO.speed || 1); $('rlVoId').value = VO.voice || '';
-  if(VO.voiceName) voSay('ভয়েস: ' + VO.voiceName, true);
-  $('rlVoOn').addEventListener('change', () => { VO.on = $('rlVoOn').checked; voSave(); if(VO.on && !voKey()) voSay('Cartesia কী দিন, তারপর ভয়েস বেছে নিন।'); });
-  $('rlVoKeySave').addEventListener('click', () => { const v = kin.value.trim(); if(!v) return; try{ localStorage.setItem('tfx_cartkey', v); }catch(e){} kin.value = ''; kin.placeholder = '•••••• (সেভ করা আছে)'; voVoices(); });
-  $('rlVoList').addEventListener('click', voVoices);
-  $('rlVoSel').addEventListener('change', e => { VO.voice = e.target.value; VO.voiceName = e.target.options[e.target.selectedIndex].textContent; $('rlVoId').value = VO.voice; voSave(); });
-  $('rlVoId').addEventListener('change', e => { VO.voice = e.target.value.trim(); VO.voiceName = ''; voSave(); });
-  $('rlVoSpeed').addEventListener('change', e => { VO.speed = +e.target.value || 1; voSave(); });
+  if(voInit.done){ voUi(); return; } voInit.done = true;
+  voUi();
+  $('rlVoTg').addEventListener('click', () => {
+    VO.on = !VO.on; voSave(); voUi();
+    if(VO.on && (!voKey() || !VO.voice)){ toast(!voKey() ? 'সেটিংসে Cartesia কী দিন' : 'সেটিংসে একটা ভয়েস বেছে নিন'); $('rlVoBox').open = true; }
+    else toast(VO.on ? '🎙 AI ভয়েস চালু — মিউজিকের সাথে ভয়েস যোগ হবে' : '🎵 ভয়েস বন্ধ — শুধু মিউজিক');
+  });
+  $('rlVoSet').addEventListener('click', () => { togglePanel('proxyPanel', true); setTimeout(() => { const b = $('cartBox'); if(b) b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 400); });
   $('rlVoAi').addEventListener('click', () => voAiWrite(false));
   $('rlVoCopy').addEventListener('click', voCopyGemini);
   $('rlVoPaste').addEventListener('click', voPaste);
-  $('rlVoTry').addEventListener('click', voSample);
+  $('rlVoTry').addEventListener('click', () => voSample());
   $('rlVoTxt').addEventListener('input', () => { RL.voSig = voSig(); });
 }
 function rlTimeline(n, secs){
@@ -8487,7 +8721,7 @@ function rlLiveScene(ctx, R, g, p){
   const py = LV.py, ph = LV.ph, img = cardOf(R, g.i), inA = ease(p / 0.4);
   // photo — slides down a little and slowly zooms (Ken Burns)
   ctx.save(); ctx.globalAlpha = inA; ctx.translate(0, (1 - inA) * -36);
-  if(img){ const z = ((ed.zoom || 100) / 100) * (R.st.kb > 0 ? 1 + 0.09 * f : 1.09 - 0.09 * f); rlPhoto(ctx, img, 0, py, RW, ph, z, 0); }
+  if(img){ ctx.restore(); ctx.save(); rlPicFx(ctx, img, 0, py, RW, ph, Object.assign(rlPicPick(R, g.i), { f, p, ac, hl, bd: true, clip: true, z: (ed.zoom || 100) / 100 })); }
   else rlPlainBg(ctx, ac, 0, py, RW, ph);
   const vg = ctx.createLinearGradient(0, py + ph - 120, 0, py + ph); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
   ctx.fillStyle = vg; ctx.fillRect(0, py + ph - 120, RW, 120);
@@ -8807,7 +9041,12 @@ function rlScene(ctx, R, g, p){
     const cd = cardOf(R, g.i);
     const f = p / g.d, sc = R.st.kb > 0 ? 1 + 0.035 * f : 1.035 - 0.035 * f, size = RW * sc, top = CARD_CY - size / 2;
     ctx.fillStyle = R.col(g.i)[1]; ctx.fillRect(0, top - 6, RW, 6);
-    if(cd){ ctx.imageSmoothingQuality = 'medium'; ctx.drawImage(cd, (RW - size) / 2, top, size, size); }
+    if(cd){ ctx.imageSmoothingQuality = 'medium';
+      const ent = ['flip', 'tilt', 'pop', 'rise'][(Math.floor((R.st.shuffle || 0.4) * 100) + g.i) % 4], ep = clamp(p / 0.85, 0, 1);
+      if(ep >= 1 || ent === 'rise'){ const dy = ent === 'rise' ? (1 - ease(ep)) * 140 : 0; ctx.globalAlpha = ent === 'rise' ? ease(ep * 1.4) : 1; ctx.drawImage(cd, (RW - size) / 2, top + dy, size, size); ctx.globalAlpha = 1; }
+      else if(ent === 'flip') rlYRot(ctx, cd, (RW - size) / 2, top, size, size, -(1 - easeIO(ep)) * 1.45, 0, true);
+      else if(ent === 'tilt') rlYRot(ctx, cd, (RW - size) / 2, top, size, size, (g.i % 2 ? 1 : -1) * (1 - ease(ep)) * 1.3, 0.5, true);
+      else { const k = backOut(ep); ctx.save(); ctx.translate(RW / 2, top + size / 2); ctx.scale(k, k); ctx.rotate((1 - ep) * 0.12); ctx.drawImage(cd, -size / 2, -size / 2, size, size); ctx.restore(); } }
     else { ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(0, top, RW, size); }
     ctx.fillStyle = R.col(g.i)[1]; ctx.fillRect(0, top + size, RW, 6);
     // story number badge, pops in
@@ -9021,8 +9260,38 @@ function rlOutro(ctx, R, p, d){
   ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = fontStr(26, 600, BFAM); ctx.fillText(t('rlLcs'), RW / 2, by + 110);
   ctx.globalAlpha = 1;
 }
+const TRANS_ALL = ['cube', 'slide', 'page', 'zoom', 'blinds', 'flipcard', 'wipe', 'zoomout', 'circle', 'push', 'fade', 'flash'];
 function rlTrans(ctx, R, ga, gb, pb, e){
-  const E = easeIO(e), tr = R.st.trans;
+  const E = easeIO(e), k0 = Math.max(0, TRANS_ALL.indexOf(R.st.trans)), idx = R.tl.segs.indexOf(gb), tr = TRANS_ALL[(k0 + Math.max(0, idx) * 5) % TRANS_ALL.length];
+  const dark = a => { if(a > 0.005){ ctx.fillStyle = 'rgba(0,0,0,' + a.toFixed(3) + ')'; ctx.fillRect(0, 0, RW, RH); } };
+  if(tr === 'cube'){                                   // the screen turns like the side of a cube
+    ctx.save(); ctx.scale(Math.max(0.001, 1 - E), 1); rlScene(ctx, R, ga, ga.d); dark(E * 0.55); ctx.restore();
+    ctx.save(); ctx.translate(RW * (1 - E), 0); ctx.scale(Math.max(0.001, E), 1); rlScene(ctx, R, gb, pb); dark((1 - E) * 0.55); ctx.restore();
+    return;
+  }
+  if(tr === 'page'){                                   // the old story is turned over like a book page
+    rlScene(ctx, R, gb, pb); dark((1 - E) * 0.35);
+    const w = RW * (1 - E);
+    if(w > 1){ ctx.save(); ctx.beginPath(); ctx.rect(0, 0, w, RH); ctx.clip(); ctx.scale(1 - E * 0.5, 1); rlScene(ctx, R, ga, ga.d); ctx.restore();
+      const g = ctx.createLinearGradient(w - 70, 0, w + 40, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.6, 'rgba(0,0,0,.35)'); g.addColorStop(0.62, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(w - 70, 0, 110, RH); }
+    return;
+  }
+  if(tr === 'flipcard'){
+    const h = E < 0.5, s2 = Math.max(0.001, Math.abs(1 - 2 * E));
+    ctx.save(); ctx.translate(RW / 2, 0); ctx.scale(s2, 1); ctx.translate(-RW / 2, 0); rlScene(ctx, R, h ? ga : gb, h ? ga.d : pb); dark((1 - s2) * 0.5); ctx.restore();
+    return;
+  }
+  if(tr === 'blinds'){
+    rlScene(ctx, R, ga, ga.d); const n = 8, bh = RH / n;
+    ctx.save(); ctx.beginPath(); for(let k = 0; k < n; k++){ const q = clamp((e - k * 0.05) / 0.6, 0, 1), hh = bh * easeIO(q); if(hh > 0) ctx.rect(0, k * bh, RW, hh + 0.5); } ctx.clip(); rlScene(ctx, R, gb, pb); ctx.restore();
+    return;
+  }
+  if(tr === 'zoomout'){
+    ctx.save(); const s1 = 1 + 0.25 * E; ctx.translate(RW / 2, RH / 2); ctx.scale(s1, s1); ctx.translate(-RW / 2, -RH / 2); rlScene(ctx, R, ga, ga.d); ctx.restore();
+    ctx.save(); ctx.globalAlpha = E; const s3 = 0.86 + 0.14 * E; ctx.translate(RW / 2, RH / 2); ctx.scale(s3, s3); ctx.translate(-RW / 2, -RH / 2); rlScene(ctx, R, gb, pb); ctx.restore();
+    return;
+  }
   if(tr === 'fade'){ rlScene(ctx, R, ga, ga.d); ctx.globalAlpha = E; rlScene(ctx, R, gb, pb); ctx.globalAlpha = 1; }
   else if(tr === 'flash'){ rlScene(ctx, R, E < .5 ? ga : gb, E < .5 ? ga.d : pb); ctx.fillStyle = 'rgba(255,255,255,' + ((1 - Math.abs(2 * E - 1)) * 0.95).toFixed(3) + ')'; ctx.fillRect(0, 0, RW, RH); }
   else if(tr === 'slide' || tr === 'push'){
@@ -9406,11 +9675,30 @@ const RL_GEN = {
 };
 const RL_TRACKS = ['beat', 'headline', 'war', 'alert', 'trailer', 'countdown', 'march', 'breaking', 'piano', 'emotional', 'tension', 'happy', 'lofi'];
 function rlMusicOpts(){ return RL_TRACKS.map(k => [k, t('rlm_' + k)]).concat([['file', t('rlmFile')], ['none', t('rlmNone')]]); }
+/* soft "slide change" sound on every new story: an airy swoosh + a light paper tick — on its own bus, never ducked */
+function rlSfx(ac, dest, R, T0, nb){
+  nb = nb || noiseBuf(ac);
+  const bus = ac.createGain(); bus.gain.value = R.vo ? 0.5 : 0.42; bus.connect(dest);
+  R.tl.segs.slice(1).forEach((g, k) => {
+    const t = T0 + g.s - 0.18; if(t < T0) return;
+    const s = ac.createBufferSource(); s.buffer = nb; const fl = ac.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = 0.9;
+    const up = k % 2 === 0; fl.frequency.setValueAtTime(up ? 380 : 2600, t); fl.frequency.exponentialRampToValueAtTime(up ? 2600 : 420, t + 0.42);
+    const gg = ac.createGain(); gg.gain.setValueAtTime(0.0001, t); gg.gain.exponentialRampToValueAtTime(0.32, t + 0.2); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    const pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+    if(pan){ pan.pan.setValueAtTime(up ? -0.6 : 0.6, t); pan.pan.linearRampToValueAtTime(up ? 0.6 : -0.6, t + 0.45); s.connect(fl); fl.connect(gg); gg.connect(pan); pan.connect(bus); }
+    else { s.connect(fl); fl.connect(gg); gg.connect(bus); }
+    s.start(t, Math.random() * 0.4, 0.6);
+    const tk = t + 0.2, o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(1500, tk); o.frequency.exponentialRampToValueAtTime(900, tk + 0.06);
+    og.gain.setValueAtTime(0.0001, tk); og.gain.exponentialRampToValueAtTime(0.09, tk + 0.004); og.gain.exponentialRampToValueAtTime(0.0001, tk + 0.09);
+    o.connect(og); og.connect(bus); o.start(tk); o.stop(tk + 0.12);
+  });
+}
 function rlAudio(ac, dest, R, T0){
-  const total = R.tl.total, master = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = R.vo ? 0.2 : 0.85;
-  comp.threshold.value = -14; comp.ratio.value = 4; master.connect(comp); comp.connect(dest);
+  const total = R.tl.total, master = ac.createGain(), duck = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = 0.85;
+  comp.threshold.value = -14; comp.ratio.value = 4; master.connect(duck); duck.connect(comp); comp.connect(dest);
   master.gain.setValueAtTime(0, T0); master.gain.linearRampToValueAtTime(vol, T0 + 0.35);
   master.gain.setValueAtTime(vol, T0 + Math.max(0.4, total - 1.8)); master.gain.linearRampToValueAtTime(0, T0 + total);
+  duck.gain.setValueAtTime(1, T0); if(R.vo) voDuck(duck, R, T0, 1);       // music dips under the voice, rises in the pauses
   const nb = noiseBuf(ac), timers = [];
   const env = (g, t, a, peak, dec) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); };
   const noise = (t, dur, type, f, q, peak, dec, out) => {
@@ -9418,14 +9706,7 @@ function rlAudio(ac, dest, R, T0){
     const g = ac.createGain(); env(g, t, 0.003, peak, dec); s.connect(fl); fl.connect(g); g.connect(out || master);
     s.start(t, Math.random() * 0.5, dur + 0.05); return fl;
   };
-  // whoosh on every change of story + a soft boom at the start
-  R.tl.segs.slice(1).forEach(g => {
-    const t = T0 + g.s - 0.22; if(t < T0) return;
-    const s = ac.createBufferSource(); s.buffer = nb; const fl = ac.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = 1.2;
-    fl.frequency.setValueAtTime(350, t); fl.frequency.exponentialRampToValueAtTime(3200, t + 0.45);
-    const gg = ac.createGain(); gg.gain.setValueAtTime(0.0001, t); gg.gain.exponentialRampToValueAtTime(0.22, t + 0.25); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
-    s.connect(fl); fl.connect(gg); gg.connect(master); s.start(t, 0, 0.6);
-  });
+  rlSfx(ac, dest, R, T0, nb);
   { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(110, T0); o.frequency.exponentialRampToValueAtTime(38, T0 + 0.9);
     g.gain.setValueAtTime(0.0001, T0); g.gain.exponentialRampToValueAtTime(0.7, T0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, T0 + 1.1); o.connect(g); g.connect(master); o.start(T0); o.stop(T0 + 1.2); }
   if(RL.music === 'file' && R.musicBuf){
@@ -9673,7 +9954,7 @@ async function rlMake(){
     if(ac){
       try{ await ac.resume(); }catch(e){}
       const dest = ac.createMediaStreamDestination(); T0 = ac.currentTime + 0.15;
-      stopAudio = RL.music !== 'none' ? rlAudio(ac, dest, R, T0) : null; voPlay(ac, dest, R, T0); dest.stream.getAudioTracks().forEach(tk => tracks.push(tk));
+      stopAudio = RL.music !== 'none' ? rlAudio(ac, dest, R, T0) : null; if(RL.music === 'none' && R.vo) rlSfx(ac, dest, R, T0); voPlay(ac, dest, R, T0); dest.stream.getAudioTracks().forEach(tk => tracks.push(tk));
     }
     const ms = new MediaStream(tracks), o = { videoBitsPerSecond: 5000000 };
     if(mime) o.mimeType = mime; if(ac) o.audioBitsPerSecond = 128000;

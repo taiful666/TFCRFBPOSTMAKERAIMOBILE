@@ -2274,7 +2274,7 @@ async function gemini(body, ms){
 S.ckey = store.get('ckey', ''); S.cmodel = store.get('cmodel', 'claude-sonnet-5-5'); S.writer = store.get('writer', 'claude');
 const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
 const useClaude = () => !!S.ckey && S.writer !== 'gemini';
-const canWrite = () => useClaude() || !!S.gkey;
+const canWrite = () => !!S.ckey || !!S.gkey;
 async function claude(system, prompt, ms, maxTokens, json){
   if(!S.ckey) throw new Error('NOKEY');
   const models = [S.cmodel].concat(CLAUDE_MODELS).filter((m, i, a) => m && a.indexOf(m) === i);
@@ -2338,20 +2338,32 @@ Short and human. First line = a hook under 15 words (the most interesting fact o
 - Output only what is asked (JSON when JSON is asked, plain text otherwise) — no preface, no markdown.`;
 
 /* write with Claude when chosen, otherwise Gemini; if Claude fails and a Gemini key exists, Gemini takes over */
+/* if one AI has no balance / is down, the other takes over automatically (and stays first for 30 minutes) */
+let aiDown = { claude: 0, gemini: 0 };
+const aiIsDown = w => Date.now() < (aiDown[w] || 0);
+const aiMarkDown = (w, e) => { if(e && e.name === 'AbortError') return; aiDown[w] = Date.now() + 30 * 60000; };
 async function writeAi(body, ms){
-  if(!useClaude()) return gemini(body, ms);
+  const geminiFirst = !!S.gkey && (!S.ckey || S.writer === 'gemini' || (aiIsDown('claude') && !aiIsDown('gemini')));
+  if(geminiFirst){
+    try{ return await gemini(body, ms); }
+    catch(e){
+      if(S.ckey && e.name !== 'AbortError'){ aiMarkDown('gemini', e); toast('Gemini: ' + aiErrMsg(e) + ' — Claude লিখছে'); return writeClaude(body, ms); }
+      throw e;
+    }
+  }
+  try{ return await writeClaude(body, ms); }
+  catch(e){
+    if(S.gkey && e.name !== 'AbortError'){ aiMarkDown('claude', e); toast('Claude: ' + aiErrMsg(e) + ' — Gemini লিখছে'); return gemini(body, ms); }
+    throw e;
+  }
+}
+async function writeClaude(body, ms){
   const prompt = (body.contents || []).map(c => (c.parts || []).map(p => p.text || '').join('\n')).join('\n\n');
   const wantJson = /JSON/.test(prompt);
   const ok = r => { if(!wantJson) return !!norm(r.text); try{ const o = parseAiJson(r.text); const list = o.card_options || o.takes || o.options; return !Array.isArray(list) || list.length >= 3 || !/exactly 3/.test(prompt); }catch(e){ return false; } };
-  try{
-    let r = await claude(CLAUDE_STYLE, prompt, ms, 8000, wantJson);
-    if(!ok(r)) r = await claude(CLAUDE_STYLE, prompt + '\n\nIMPORTANT: give the complete result with exactly 3 options.', ms, 8000, wantJson);   // one retry
-    return r;
-  }
-  catch(e){
-    if(S.gkey && e.name !== 'AbortError' && e.status !== 400){ toast('Claude: ' + aiErrMsg(e) + ' — Gemini'); return gemini(body, ms); }
-    throw e;
-  }
+  let r = await claude(CLAUDE_STYLE, prompt, ms, 8000, wantJson);
+  if(!ok(r)) r = await claude(CLAUDE_STYLE, prompt + '\n\nIMPORTANT: give the complete result with exactly 3 options.', ms, 8000, wantJson);   // one retry
+  return r;
 }
 const AI_RULES = 'Rules: Copy the article text EXACTLY as written, in its original language. Never summarize, shorten, translate, paraphrase or add anything. Include every paragraph of the main article body from first to last, and its in-article subheadings. Exclude everything that is not the article itself: advertisements, navigation/menus, "read more"/"আরও পড়ুন" lines, related/latest news lists, share/follow/subscribe prompts, tags, image captions and photo credits, comments, cookie notices, newsletter boxes, copyright lines. Remove hyperlinks (keep only their visible words when they are part of a sentence).';
 const AI_SHAPE = 'Return ONLY one JSON object, no markdown fences, with this shape: {"title":"headline","byline":"author or reporter, or empty","published":"publication date-time as ISO 8601 if known, else empty","site":"newspaper name, or empty","image":"absolute URL of the main lead photo, or empty","blocks":[{"t":"p","text":"paragraph"},{"t":"h","text":"subheading"}]}';
@@ -7296,6 +7308,7 @@ html[data-theme="dark"] .rlopts button.on{color:#111}
 .rlvotg .sw{position:relative;width:38px;height:22px;border-radius:22px;background:var(--line);transition:background .2s;flex:none}
 .rlvotg .sw::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
 .rlvotg.on{border-color:var(--accent);color:var(--accent)}.rlvotg.on .sw{background:var(--accent)}.rlvotg.on .sw::after{transform:translateX(16px)}
+.rlwr .rlwrb{display:flex;gap:6px}.rlwr .rlwrb .btn{min-height:36px;padding:0 14px}.rlwr .rlwrb .btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}.rlwr .rlwrb .btn:disabled{opacity:.4}
 .rlvoinfo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.rlvoinfo span{flex:1;font-size:13px;font-weight:600;min-width:140px}
 .qtile.rlwide{grid-column:1/-1;flex-direction:row;text-align:left;padding:12px 14px;gap:12px}
 .qtile.rlwide .qt{display:flex;flex-direction:column;gap:2px}
@@ -7387,13 +7400,15 @@ sheet.innerHTML = `<div class="nsbox rlbox">
         <label class="rlchk"><input type="checkbox" id="rlMixC"><span id="rlMixL"></span></label>
         <label class="rlchk"><input type="checkbox" id="rlLookC"><span id="rlLookL"></span></label>
         <label class="rlchk"><input type="checkbox" id="rlOwnC"><span id="rlOwnL"></span></label>
-        <label class="rlchk"><input type="checkbox" id="rlWmC"><span id="rlWmL"></span></label></div>
+        <label class="rlchk"><input type="checkbox" id="rlWmC"><span id="rlWmL"></span></label>
+        <label class="rlchk"><input type="checkbox" id="rlPgWmC"><span>💧 কার্ডে পেজের নামের হালকা জলছাপ (কপি ঠেকাতে)</span></label></div>
       <div class="rlf rlstyle"><span id="rlStyleT"></span><button type="button" class="btn" id="rlShuffle">${ic(IC_SHUF)}<span></span></button></div>
       <div class="rlf"><label for="rlTickIn" id="rlTickL"></label><input type="text" id="rlTickIn" maxlength="160" autocomplete="off"></div>
       <p class="rlmeta" id="rlTip"></p>
     </div>
     <details class="rlsec rlcap" id="rlVoBox"><summary><b>🎙 ভয়েস-স্ক্রিপ্ট (Cartesia — নিজের কণ্ঠ)</b></summary>
       <div class="rlvoinfo"><span id="rlVoWho">ভয়েস: —</span><button type="button" class="btn" id="rlVoSet">⚙️ কী ও ভয়েস (সেটিংস)</button></div>
+      <div class="rlvoinfo rlwr"><span id="rlWrWho">✍️ স্ক্রিপ্ট লিখবে:</span><span class="rlwrb"><button type="button" class="btn" data-w="claude">Claude</button><button type="button" class="btn" data-w="gemini">Gemini</button></span></div>
       <div class="rlf"><span>ভয়েস-স্ক্রিপ্ট (স্ক্রিনে ছোট লেখা, কণ্ঠে বিস্তারিত)</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><button type="button" class="btn" id="rlVoAi">✨ AI দিয়ে লিখুন</button><button type="button" class="btn" id="rlVoCopy">📋 কপি করে জেমিনি খুলুন</button><button type="button" class="btn" id="rlVoPaste">📥 উত্তর পেস্ট</button><button type="button" class="btn" id="rlVoTry">▶ নমুনা</button></div>
         <textarea id="rlVoTxt" spellcheck="false" placeholder="শুরু: …&#10;&#10;১: …&#10;&#10;২: …&#10;&#10;শেষ: …"></textarea></div>
@@ -7563,6 +7578,8 @@ $('rlTitleIn').addEventListener('input', () => { rlSyncTexts(); rlCaptionAuto();
 $('rlPageIn').addEventListener('input', () => { store.set('fbPageName', $('rlPageIn').value.trim()); RL.cardFiles = null; try{ renderFbPost(); }catch(e){} rlPreview(); });
 $('rlTickIn').addEventListener('input', () => { rlSyncTexts(); rlPreview(); });
 $('rlWmC').addEventListener('change', () => { store.set('wmHide', $('rlWmC').checked); RL.imgs.clear(); rlPreview(); });
+$('rlPgWmC').checked = !!store.get('rlPgWm', false);
+$('rlPgWmC').addEventListener('change', () => { store.set('rlPgWm', $('rlPgWmC').checked); rlPreview(); toast($('rlPgWmC').checked ? '💧 জলছাপ চালু' : 'জলছাপ বন্ধ'); });
 $('rlLookC').addEventListener('change', () => { store.set('rlLook', $('rlLookC').checked); RL.imgs.clear(); RL.cardFiles = null; rlPreview(); });
 $('rlOwnC').addEventListener('change', () => { store.set('rlOwnPic', $('rlOwnC').checked); RL.imgs.clear(); RL.cardFiles = null; rlPreview(); toast(t($('rlOwnC').checked ? 'rlOwnOn' : 'rlOwnOff')); });
 $('rlMixC').addEventListener('change', () => { RL.mixColor = $('rlMixC').checked; store.set('rlMixColor', RL.mixColor); rlPreview(); });
@@ -8370,10 +8387,12 @@ function qtScene(ctx, R, g, p){
 /* the news source: only a tiny reference in a corner — never a big label */
 function rlSrcTiny(ctx, src, x, y, a){
   src = String(src || '').trim(); if(!src || a <= 0) return;
-  ctx.save(); ctx.globalAlpha = 0.85 * clamp(a, 0, 1); ctx.font = fontStr(15, 500, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
-  const txt = 'সূত্র: ' + (src.length > 28 ? src.slice(0, 27) + '…' : src), w = ctx.measureText(txt).width + 16;
-  ctx.fillStyle = 'rgba(0,0,0,.38)'; rr(ctx, x - w, y - 12, w, 24, 12); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.fillText(txt, x - 8, y + 1); ctx.restore();
+  ctx.save(); ctx.globalAlpha = clamp(a, 0, 1); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const name = src.length > 28 ? src.slice(0, 27) + '…' : src;
+  ctx.font = fontStr(19, 700, BFAM); const lw = ctx.measureText('সূত্র: ').width; ctx.font = fontStr(19, 600, BFAM); const nw = ctx.measureText(name).width, w = lw + nw + 24;
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(ctx, x - w, y - 16, w, 32, 16); ctx.fill();
+  ctx.font = fontStr(19, 700, BFAM); ctx.fillStyle = '#ffd84a'; ctx.fillText('সূত্র: ', x - w + 12, y + 1);
+  ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = '#fff'; ctx.fillText(name, x - w + 12 + lw, y + 1); ctx.restore();
 }
 function qtCover(ctx, R, p, d){
   const cv = R.cov, [ac, hl] = R.col(cv.i), v = qtVar(R, null), th = qtTheme(v.theme, ac), it = R.items[cv.i] || {};
@@ -8513,7 +8532,7 @@ function voNoSrc(text){
     if(words.length < 3 || /^(?:এ|এই)?\s*(?:খবর|তথ্য)\s*(?:জানা গেছে|দেওয়া হয়েছে)?[।]?$/.test(t)) return '';
     return /[।!?]$/.test(t) ? t : t + '।';
   }).filter(Boolean).join(' ');
-  return out.trim() || s;
+  return out.trim();
 }
 /* ===== 🗣 pronunciation: write words the way they are said, so the AI voice reads them right ===== */
 const VO_LAT = { A:'এ', B:'বি', C:'সি', D:'ডি', E:'ই', F:'এফ', G:'জি', H:'এইচ', I:'আই', J:'জে', K:'কে', L:'এল', M:'এম', N:'এন', O:'ও', P:'পি', Q:'কিউ', R:'আর', S:'এস', T:'টি', U:'ইউ', V:'ভি', W:'ডাবলিউ', X:'এক্স', Y:'ওয়াই', Z:'জেড' };
@@ -8522,6 +8541,9 @@ const VO_EN = { india:'ইন্ডিয়া', news:'নিউজ', live:'ল
 const VO_TO = 'নিহত আহত গত বিগত আগত হত শত পরাজিত বিজিত অর্জিত সজ্জিত লজ্জিত বর্জিত উপার্জিত অবগত স্বাগত সম্মত অসম্মত ব্যাহত অব্যাহত প্রত্যাহত উদ্যত অজ্ঞাত জ্ঞাত বিখ্যাত খ্যাত প্রখ্যাত কুখ্যাত সুখ্যাত অনুগত উপগত সমাগত অভ্যাগত প্রত্যাগত অনাগত সংহত ব্রত শাশ্বত ভীত গৃহীত সংগৃহীত অবহিত বিপর্যস্ত করত বলত থাকত পারত চলত আসত জানত দেখত শুনত লাগত রাখত খেলত ঘটত পেত যেত দিত নিত খেত চাইত পড়ত লিখত মারত ধরত বসত উঠত ফিরত হাসত কাঁদত বাঁচত ভাবত বুঝত খুঁজত'.split(' ');
 const VO_TO_NOT = /(?:উচিত|পণ্ডিত|কিঞ্চিত|ভিত|জিত|অমিত|সুমিত|সমিত|অতীত|শীত|সঙ্গীত|গীত|বিপরীত|পিরিত|প্রীত|রীত|ভারত|রাত|হাত|সাত|ভাত|দাওয়াত|আদালত|জামায়াত|জামাত|হযরত|ইবাদত|শরবত|বরকত|সুন্নত|খেলাফত|নসিহত|দোস্ত|গোস্ত|দস্ত)$/;
 const BN_L = '\\u0980-\\u09FF';
+/* verb stems that are said without the middle "অ" (বদলে = বদ্লে, আটকে = আট্কে). Only before a vowel sign — the noun "বদল" stays. */
+const VO_STEMS = [['বদল','বদ্ল'],['সামল','সাম্ল'],['আটক','আট্ক'],['চমক','চম্ক'],['থমক','থম্ক'],['ধমক','ধম্ক'],['আঁকড়','আঁক্ড়'],['কামড়','কাম্ড়'],['আছড়','আছ্ড়'],['উলট','উল্ট'],['পালট','পাল্ট'],['ঝলস','ঝল্স'],['ফসক','ফস্ক'],['ছিটক','ছিট্ক'],['আগল','আগ্ল'],['বাতল','বাত্ল'],['হাতড়','হাত্ড়'],['মুচড়','মুচ্ড়'],['কচল','কচ্ল'],['বিগড়','বিগ্ড়'],['ঝটক','ঝট্ক'],['চটক','চট্ক'],['আলগ','আল্গ']];
+const VO_FIX = [[/(^|[^\u0980-\u09FF])বদলি(?=$|[^\u0980-\u09FF])/g, '$1বদ্লি']];
 function voPron(s){
   s = String(s || '').normalize('NFC').replace(/ত্‍/g, 'ৎ');
   // English: dotted / capital abbreviations → letters (BNP → বিএনপি), known words → Bangla sound
@@ -8529,6 +8551,8 @@ function voPron(s){
   s = s.replace(/\b[A-Za-z]+(?:'s)?\b/g, m => { const w = m.replace(/'s$/, ''), lw = w.toLowerCase(); if(VO_EN[lw]) return VO_EN[lw];
     if(/^[A-Z]{2,6}$/.test(w)) return w.split('').map(c => VO_LAT[c]).join(''); return m; });
   s = s.replace(/(\S)\.com\b/gi, '$1 ডট কম').replace(/&/g, ' এবং ');
+  VO_STEMS.forEach(([a, b]) => { s = s.replace(new RegExp('(^|[^' + BN_L + '])' + a + '(?=[েোিীাৈৌ])', 'g'), '$1' + b); });
+  VO_FIX.forEach(([re, to]) => { s = s.replace(re, to); });
   // ঃ used as a colon ("যেমনঃ") is not spoken
   s = s.replace(new RegExp('([' + BN_L + '])ঃ(?=[\\s,।:]|$)', 'g'), '$1');
   // "ত" at the end of a word, said with "ো"
@@ -8566,6 +8590,30 @@ function voStories(){
   return RL.items.map((it, i) => { const o = it.o || {}, d = shorten(norm(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || '')), 400);
     return (i + 1) + '. ' + voNoSrc(plain(o.title || it.text)) + (d ? '\n   সারাংশ: ' + d : '') + (o.text ? '\n   মূল লেখা: ' + shorten(norm(o.text), 1200) : ''); }).join('\n');
 }
+/* the opening changes every time — salam, greeting, welcome, a time-of-day line … — and never says the page name */
+function voDayPart(){ const h = new Date().getHours(); return h < 5 ? 'রাত' : h < 12 ? 'সকাল' : h < 16 ? 'দুপুর' : h < 18 ? 'বিকেল' : h < 20 ? 'সন্ধ্যা' : 'রাত'; }
+const VO_INTROS = () => { const d = voDayPart(); return [
+  'আসসালামু আলাইকুম। আজকের গুরুত্বপূর্ণ খবরগুলো এক নজরে দেখে নিন।',
+  'শুভ ' + d + '। চলুন জেনে নিই এই মুহূর্তের আলোচিত খবরগুলো।',
+  'আসসালামু আলাইকুম, সবাইকে স্বাগতম। শুরু করছি আজকের বাছাই করা খবর।',
+  'সবাইকে শুভেচ্ছা। এক মিনিটে জেনে নিন আজকের সবচেয়ে বড় খবরগুলো।',
+  'স্বাগতম। দেশ আর বিদেশের গুরুত্বপূর্ণ খবর নিয়ে আমরা আছি আপনার সাথে।',
+  'আসসালামু আলাইকুম। আপনি কি জানেন আজ কী কী ঘটেছে? চলুন দেখে নিই।',
+  'শুভ ' + d + ', প্রিয় দর্শক। এই মুহূর্তের আলোচিত খবরগুলো নিয়ে শুরু করছি।',
+  'নমস্কার এবং আসসালামু আলাইকুম। আজকের খবরের সংক্ষিপ্ত আয়োজনে আপনাকে স্বাগতম।',
+  'আপনার ব্যস্ত দিনের মাঝে এক মিনিট সময় দিন, জেনে নিন আজকের গুরুত্বপূর্ণ খবর।',
+  'আসসালামু আলাইকুম। শুরুতেই জেনে নিই আজকের সবচেয়ে আলোচিত ঘটনাগুলো।'
+]; };
+const VO_OUTROS = page => [
+  'এই খবরগুলো নিয়ে আপনার মতামত কী? কমেন্টে জানান। আর নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করুন।',
+  'কোন খবরটি আপনাকে সবচেয়ে বেশি ভাবিয়েছে, কমেন্টে লিখুন। সবার আগে খবর পেতে ফলো করুন ' + page + '।',
+  'আপনার ভাবনা আমাদের জানাতে ভুলবেন না। এমন আরও খবরের জন্য ' + page + ' পেজটি ফলো করে রাখুন।',
+  'খবরগুলো কেমন লাগলো, কমেন্টে জানান। পরের আপডেট মিস করতে না চাইলে এখনই ফলো করুন ' + page + '।',
+  'এ বিষয়ে আপনি কী ভাবছেন? মতামত দিন কমেন্টে, আর প্রতিদিনের খবর পেতে ' + page + ' পেজের সাথেই থাকুন।'
+];
+let voPickI = -1, voPickO = -1;
+function voIntroHint(){ const L = VO_INTROS(); voPickI = Math.floor(Math.random() * L.length); return 'এই ভাবের সাথে মিল রেখে নিজের ভাষায় লেখো: "' + L[voPickI] + '"।'; }
+function voOutroHint(){ const L = VO_OUTROS(pageName()); voPickO = Math.floor(Math.random() * L.length); return 'এই ভাবের সাথে মিল রেখে: "' + L[voPickO] + '"।'; }
 function voPrompt(){
   const page = pageName();
   return 'তুমি একটি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর সংবাদ পাঠক। নিচের ' + RL.items.length + 'টি খবর দিয়ে একটি রিলের ভয়েসওভার স্ক্রিপ্ট লেখো, যা একটি AI কণ্ঠ (টেক্সট-টু-স্পিচ) পড়বে।\n\n' +
@@ -8575,21 +8623,36 @@ function voPrompt(){
     '৩. শিরোনাম যদি অস্পষ্ট হয় ("যা বললেন…", "মুখ খুললেন…"), সারাংশ ও মূল লেখা থেকে আসল কথাটা বলবে।\n' +
     '৪. কানে শোনার মতো করে লেখো: সব সংখ্যা কথায় লিখবে (৯০ হাজার কোটি → নব্বই হাজার কোটি, ১১ নভেম্বর → এগারো নভেম্বর, ৩৫% → পঁয়ত্রিশ শতাংশ, ২০২৬ সাল → দুই হাজার ছাব্বিশ সাল), সংক্ষেপ পুরো লিখবে (মো. → মোহাম্মদ, ডা. → ডাক্তার, কিমি → কিলোমিটার), ইংরেজি শব্দ ও সংক্ষেপ বাংলা উচ্চারণে বাংলা অক্ষরে লিখবে (BNP → বিএনপি, I.N.D.I.A → ইন্ডিয়া, police → পুলিশ)। শুদ্ধ চলিত বানান লিখবে, আঞ্চলিক বা অপ্রচলিত বানান নয়। কোনো বন্ধনী, উদ্ধৃতিচিহ্ন, ড্যাশ, ইমোজি, হ্যাশট্যাগ বা লিংক নয়। ছোট বাক্য, স্বাভাবিক বিরতির জন্য কমা।\n' +
     '৫. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা; সহিংস বা ভয় দেখানো বর্ণনা নয়।\n' +
-    '৬. শুরু: এক বাক্যে সালাম ও স্বাগত, যেমন "আসসালামু আলাইকুম, ' + page + '-এ আপনাকে স্বাগতম, দেখে নিন আজকের গুরুত্বপূর্ণ খবরগুলো।"\n' +
-    '৭. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া একটি প্রশ্ন, আর নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করার অনুরোধ।\n\n' +
+    '৬. শুরু: এক–দুই ছোট বাক্যের উষ্ণ সূচনা। এবারের ধরন: ' + voIntroHint() + ' শুরুতে পেজের নাম একদম বলবে না।\n' +
+    '৭. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া একটি প্রশ্ন, আর নিয়মিত খবর পেতে "' + page + '" পেজটি ফলো করার অনুরোধ — পেজের নাম শুধু এখানেই একবার বলবে। এবারের ধরন: ' + voOutroHint() + '\n' +
+    '৮. প্রতিটি খবর এক রকম শব্দ দিয়ে শুরু করবে না; খবরগুলোর মাঝে স্বাভাবিক যোগসূত্র রাখবে ("এদিকে", "অন্যদিকে", "এবার আসি", "আর শেষ খবরে")।\n\n' +
     'উত্তর শুধু এই ফরম্যাটে দেবে, অন্য কিছু লিখবে না:\nশুরু: …\n১: …\n২: …\n(প্রতিটি খবরের জন্য একটি করে, একই ক্রমে)\nশেষ: …\n\nখবরগুলো:\n' + voStories();
 }
-/* when no AI script exists: headline + the first sentence of the summary, still made easy to speak */
+/* when no AI script exists: still a clean, natural script — headline, the two best summary sentences, smooth links between stories */
+const VO_LINKS = ['', 'এদিকে, ', 'অন্যদিকে, ', 'এবার আসি আরেকটি খবরে। ', 'এছাড়া, ', 'আরেকটি গুরুত্বপূর্ণ খবর, ', 'এবারের খবর, '];
+function voCleanLine(x){
+  return String(x || '').replace(/https?:\/\/\S+/g, '').replace(/[#@]\S+/g, '')
+    .replace(/^\s*[^,।:]{2,25},\s*[০-৯\d]{1,2}\s+\S+\s*(?:\([^)]{1,30}\))?\s*[:—–-]\s*/, '')          // "ঢাকা, ১১ নভেম্বর (বাসস) :" dateline
+    .replace(/^\s*(?:নিজস্ব প্রতিবেদক|স্টাফ রিপোর্টার|অনলাইন ডেস্ক|ডেস্ক রিপোর্ট|জেলা প্রতিনিধি)[^।]*?[:।]\s*/, '')
+    .replace(/["“”‘’'«»]/g, '').replace(/\s*(?:আরও পড়ুন|বিস্তারিত আসছে|বিস্তারিত পড়ুন)[^।]*।?/g, '').replace(/\s{2,}/g, ' ').trim();
+}
 function voFallback(){
-  const page = pageName();
-  return { intro: 'আসসালামু আলাইকুম, ' + page + '-এ আপনাকে স্বাগতম। দেখে নিন আজকের গুরুত্বপূর্ণ খবরগুলো।',
-    items: RL.items.map(it => { const o = it.o || {}, d = plain(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || ''));
-      const s = (d.split(/(?<=[।!?])\s+/).slice(0, 2).join(' ') || '').trim(); return plain(it.text) + '। ' + (s && !s.includes(plain(it.text).slice(0, 15)) ? s : ''); }),
-    outro: 'এই খবরগুলো নিয়ে আপনার মতামত কমেন্টে জানান। নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করুন।' };
+  const page = pageName(), L = VO_INTROS(), O = VO_OUTROS(page);
+  const key = RL.items.map(x => x.link).join('|'), seed = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  return { intro: L[seed % L.length],
+    items: RL.items.map((it, i) => { const o = it.o || {};
+      const raw = typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || '');
+      const head = voCleanLine(voNoSrc(plain(o.title || it.text))).replace(/[।.]+$/, '');
+      const pool = (voCleanLine(plain(raw)) + ' ' + voCleanLine(shorten(norm(o.text || ''), 900))).split(/(?<=[।!?])\s+/)
+        .map(x => voNoSrc(x.trim())).filter(x => x && x.split(/\s+/).length >= 5 && x.split(/\s+/).length <= 40 && !x.includes(head.slice(0, 18)));
+      const seen = new Set(), body = []; for(const x of pool){ const k = x.slice(0, 25); if(seen.has(k)) continue; seen.add(k); body.push(x); if(body.length === 2 || body.join(' ').split(/\s+/).length > 38) break; }
+      const link = i === 0 ? 'প্রথম খবর, ' : i === RL.items.length - 1 && RL.items.length > 2 ? 'আর শেষ খবরে, ' : VO_LINKS[(seed + i) % VO_LINKS.length];
+      return link + head + (/[?!]$/.test(head) ? ' ' : '। ') + body.join(' '); }),
+    outro: O[(seed >> 3) % O.length] };
 }
 const voSig = () => RL.items.map(x => x.link).join('|');
-function voScript(){ const tx = $('rlVoTxt') ? $('rlVoTxt').value : ''; const o = voParse(tx), fb = voFallback();
-  return { intro: o.intro || fb.intro, items: RL.items.map((_, i) => o.items[i] || fb.items[i]), outro: o.outro || fb.outro }; }
+function voScript(){ const tx = $('rlVoTxt') ? $('rlVoTxt').value : ''; const o = voParse(tx), fb = voFallback(), pg = pageName();
+  return { intro: o.intro && !(pg && o.intro.includes(pg)) ? o.intro : fb.intro, items: RL.items.map((_, i) => o.items[i] || fb.items[i]), outro: o.outro || fb.outro }; }
 function voSetScript(txt){ const o = voParse(txt); if(!o.items.filter(Boolean).length) return false; $('rlVoTxt').value = voFormat(o); RL.voSig = voSig(); $('rlVoBox').open = true; return true; }
 async function voAiWrite(quiet){
   if(!(S.gkey || S.ckey)){ if(!quiet) voSay('অটো লেখার জন্য সেটিংসে Gemini/Claude কী লাগবে — না থাকলে "কপি করে জেমিনি খুলুন" ব্যবহার করুন।'); return false; }
@@ -8626,6 +8689,12 @@ function voUi(){
   const st = $('cartState'); if(st) st.textContent = !has ? 'কী দেওয়া নেই' : name ? '✅ ' + name : 'কী আছে — ভয়েস বেছে নিন';
   const ki = $('cartKeyInput'); if(ki && !ki.value) ki.placeholder = has ? '•••••• (সেভ করা আছে)' : 'sk_car_...';
   const w = $('rlVoWho'); if(w) w.textContent = !has ? '⚠ সেটিংসে Cartesia কী দেওয়া নেই' : name ? '🎙 ভয়েস: ' + name : '⚠ সেটিংসে একটা ভয়েস বেছে নিন';
+  const wr = $('rlWrWho'); if(wr){
+    const c = !!S.ckey, g = !!S.gkey, cur = !c ? (g ? 'gemini' : '') : !g ? 'claude' : S.writer === 'gemini' ? 'gemini' : 'claude';
+    wr.textContent = !c && !g ? '✍️ AI কী নেই — অ্যাপ নিজেই গুছিয়ে স্ক্রিপ্ট বানাবে' : '✍️ স্ক্রিপ্ট লিখবে:' + (c && g ? ' (একটায় ব্যালেন্স না থাকলে অন্যটায় যাবে)' : '');
+    document.querySelectorAll('.rlwr .rlwrb .btn').forEach(b => { const w = b.dataset.w; b.disabled = w === 'claude' ? !c : !g; b.classList.toggle('on', w === cur); });
+    const bx = document.querySelector('.rlwr .rlwrb'); if(bx) bx.classList.toggle('hidden', !c && !g);
+  }
   const tg = $('rlVoTg'); if(tg){ tg.classList.toggle('on', !!VO.on); tg.setAttribute('aria-pressed', VO.on ? 'true' : 'false'); }
 }
 async function voVoices(quiet){
@@ -8683,7 +8752,10 @@ function voSpeechParts(buf, at){
 async function voBuild(ac, R, prog){
   if(!VO.on) return null;
   if(!voKey()) throw new Error(voErr('NOKEY')); if(!VO.voice) throw new Error(voErr('NOVOICE'));
-  if((S.gkey || S.ckey) && RL.voSig !== voSig()) await voAiWrite(true);   // fresh stories → write their script first
+  if(RL.voSig !== voSig()){                                                  // fresh stories → write their script first
+    const ok = (S.gkey || S.ckey) ? await voAiWrite(true) : false;
+    if(!ok && $('rlVoTxt')){ $('rlVoTxt').value = ''; RL.voSig = voSig(); }   // no AI → the app's own script, never an old one
+  }
   const s = voScript(), texts = [s.intro].concat(s.items.map(voNoSrc), [s.outro]).map(x => voSpeak(x || ''));
   const bufs = [];
   for(let i = 0; i < texts.length; i++){
@@ -8735,6 +8807,7 @@ function voInit(){
     else toast(VO.on ? '🎙 AI ভয়েস চালু — মিউজিকের সাথে ভয়েস যোগ হবে' : '🎵 ভয়েস বন্ধ — শুধু মিউজিক');
   });
   $('rlVoSet').addEventListener('click', () => { togglePanel('proxyPanel', true); setTimeout(() => { const b = $('cartBox'); if(b) b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 400); });
+  document.querySelectorAll('.rlwr .rlwrb .btn').forEach(b => b.addEventListener('click', () => { if(b.disabled) return; setWriter(b.dataset.w); voUi(); }));
   $('rlVoAi').addEventListener('click', () => voAiWrite(false));
   $('rlVoCopy').addEventListener('click', voCopyGemini);
   $('rlVoPaste').addEventListener('click', voPaste);
@@ -8910,6 +8983,7 @@ function dkBuild(R, i, ph, label, sc){
   else rlPlainBg(x, R.col(i)[0], pad, y, iw, photoH);
   x.restore();
   x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 2; rr(x, pad, y, iw, photoH, 14); x.stroke();
+  if(store.get('rlPgWm', false)) rlPageWm(x, R.page, pad, y, iw, photoH);
   // your page: logo + name on every card (the cards are also shared one by one)
   y += photoH + 10;
   x.fillStyle = 'rgba(0,0,0,.28)'; rr(x, pad, y, iw, footH - 10, 12); x.fill();
@@ -9431,7 +9505,20 @@ function rlFrame(ctx, R, t){
   if(k > 0 && p < XT && !(R.deck && g.k === 'card' && segs[k - 1].k === 'card')) rlTrans(ctx, R, segs[k - 1], g, p, p / XT);
   else rlScene(ctx, R, g, p);
   rlOverlay(ctx, R, g, p, t);
+  if(g.k === 'card' && store.get('rlPgWm', false)) rlPageWm(ctx, R.page, 0, 150, RW, 880);
   if(C.logoImg && g.k === 'card' && !R.deck && !R.quote) rlLogoDisc(ctx, 66, 104, 46);   // the quote design has the logo in its own header     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
+}
+/* 💧 a very faint, diagonal page-name watermark — readable only when you look for it, so copies still carry your name */
+function rlPageWm(ctx, name, x, y, w, h){
+  name = String(name || '').trim(); if(!name) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.translate(x + w / 2, y + h / 2); ctx.rotate(-0.42);
+  ctx.font = fontStr(44, 800, BFAM); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(name).width + 110, rows = [-1, 0, 1];
+  rows.forEach((r, k) => { for(let c = -2; c <= 2; c++){ const tx = c * tw + (k % 2 ? tw / 2 : 0), ty = r * 300;
+    ctx.fillStyle = 'rgba(0,0,0,.055)'; ctx.fillText(name, tx + 1.5, ty + 1.5);
+    ctx.fillStyle = 'rgba(255,255,255,.075)'; ctx.fillText(name, tx, ty); } });
+  ctx.restore();
 }
 function rlMakeR(items, st){
   const page = pageName();

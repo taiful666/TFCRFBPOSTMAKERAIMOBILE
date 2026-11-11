@@ -64,7 +64,7 @@ post = mustReplace(post, "    // c) record in real time\n", `    // c0) desktop 
               const enc0 = new Promise(r => cv0.toBlob(r, 'image/jpeg', 0.92)).then(b => b.arrayBuffer());
               chain0 = chain0.then(() => enc0).then(b => FR.frame(b)); pend0.push(chain0);
               if(pend0.length >= 8) await pend0.shift();
-              if(f % 6 === 0){ prog(tf('rlRec', { a: nwNum(Math.floor(tt0)), b: nwNum(Math.round(tot0)) }), tt0 / tot0); await sleep(0); }
+              if(f % 6 === 0){ prog(tf('rlRec', { p: nwNum(Math.min(100, Math.floor(tt0 / tot0 * 100))), a: (typeof nwMin === 'function' ? nwMin : nwNum)(Math.floor(tt0)), b: (typeof nwMin === 'function' ? nwMin : nwNum)(tot0) }), tt0 / tot0); await sleep(0); }
             }
             await Promise.all(pend0);
             const fin = await FR.finish({ bytes: true }); began = false;

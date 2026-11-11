@@ -4721,6 +4721,8 @@ const NW = { src:'all', items:{}, fail:{}, at:{}, busy:{}, open:false, shown:40,
 const NW_REFRESH = 3 * 60 * 1000;
 
 function nwNum(s){ return S.lang === 'bn' ? bnNum(s) : String(s); }
+/* seconds → minutes as m:ss (৭৫ → ১:১৫) */
+function nwMin(sec){ sec = Math.max(0, Math.round(+sec || 0)); return nwNum(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0')); }
 function nwAgo(d){
   if(!d) return '';
   const m = Math.round((Date.now() - d.getTime()) / 60000);
@@ -7179,9 +7181,9 @@ Object.assign(T.bn, {
   rlTickDef:'সর্বশেষ ও গুরুত্বপূর্ণ খবর সবার আগে পেতে {p} পেজটি ফলো করুন',
   rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'আমার মিউজিক', mmTitle:'আমার মিউজিক', mmSafe:'· ফোনে সেভ থাকে, ক্লিয়ার দিলেও মুছবে না', mmAdd:'মিউজিক যোগ করুন', mmDel:'মুছুন', mmDelAsk:'"{n}" মিউজিকটি ফোন থেকে মুছে ফেলবেন?', mmDeleted:'মিউজিক মুছে ফেলা হয়েছে', mmSaved:'মিউজিক ফোনে সেভ হয়েছে — পরেও থাকবে', mmNoSave:'এবার ব্যবহার করা যাবে, কিন্তু ফোনে সেভ করা গেল না (জায়গা কম?)', rlmNone:'ছাড়া', rlm_beat:'নিউজ বিট', rlm_breaking:'ব্রেকিং নিউজ', rlm_piano:'নরম পিয়ানো', rlm_emotional:'আবেগী', rlm_tension:'টানটান রহস্য', rlm_happy:'হাসিখুশি', rlm_lofi:'লো-ফাই চিল', rlm_headline:'টিভি হেডলাইন', rlm_war:'যুদ্ধের দামামা', rlm_alert:'জরুরি আপডেট', rlm_trailer:'এপিক ট্রেলার', rlm_countdown:'কাউন্টডাউন', rlm_march:'মার্চিং ড্রাম', rlPvPlay:'▶ শুনুন', rlPvStop:'■ থামান',
   rlDesign:'কার্ড ডিজাইন', rldQuote:'কোট কার্ড', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlLook:'পত্রিকার ছবিতে পেজের রঙের হালকা টোন', rlOwn:'শুধু AI/নিজের ছবি — পত্রিকার ছবি একদম নয়', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
-  rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} সেকেন্ডের',
+  rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} মিনিটের',
   rlMake:'ভিডিও তৈরি করুন', rlRemake:'আবার তৈরি করুন', rlCancel:'বাতিল', rlSave:'সেভ', rlThumb:'থাম্বনেইল', rlThumbNo:'আগে ভিডিও তৈরি করুন', rlThumbSaved:'থাম্বনেইল সেভ হয়েছে — Facebook অন্য ফ্রেম বাছলে "Edit cover" থেকে এটি দিন', rlShare:'শেয়ার', rlCap:'ক্যাপশন', rlCapCopy:'ক্যাপশন কপি',
-  rlPrep:'ছবি ও কার্ড তৈরি হচ্ছে… {a}/{b}', rlRec:'ভিডিও তৈরি হচ্ছে… {a}/{b} সে. — স্ক্রিন খোলা রাখুন',
+  rlPrep:'ছবি ও কার্ড তৈরি হচ্ছে… {a}/{b}', rlRec:'ভিডিও তৈরি হচ্ছে… {p}% সম্পন্ন · {a} / {b} মিনিট — স্ক্রিন খোলা রাখুন',
   rlDone:'রিল তৈরি হয়েছে', rlCanceled:'ভিডিও তৈরি বাতিল হয়েছে', rlHidden:'অ্যাপ থেকে বের হলে ভিডিও থেমে যায় — আবার "ভিডিও তৈরি করুন" চাপুন',
   rlNoRec:'এই ব্রাউজারে ভিডিও তৈরি করা যায় না — Chrome দিয়ে খুলুন', rlNeedOne:'অন্তত ১টি খবর বেছে নিন', rlMax:'একসাথে সর্বোচ্চ {n}টি খবর',
   rlLong:'অনেক খবর — ভিডিও তৈরি হতে ভিডিওর সমান সময় লাগবে', rlNoImg:'{n}টি খবরের ছবি আনা যায়নি — রঙিন ব্যাকগ্রাউন্ড দেওয়া হয়েছে',
@@ -7205,9 +7207,9 @@ Object.assign(T.en, {
   rlTickDef:'Follow {p} for the latest and most important news first',
   rlSecs:'Each story', rlSec:'s', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My music', mmTitle:'My music', mmSafe:'· saved on this phone, Clear does not remove it', mmAdd:'Add music', mmDel:'Delete', mmDelAsk:'Delete "{n}" from this phone?', mmDeleted:'Music deleted', mmSaved:'Music saved on this phone — it will stay', mmNoSave:'Usable now, but could not be saved on the phone (low space?)', rlmNone:'None', rlm_beat:'News beat', rlm_breaking:'Breaking news', rlm_piano:'Soft piano', rlm_emotional:'Emotional', rlm_tension:'Suspense', rlm_happy:'Happy', rlm_lofi:'Lo-fi chill', rlm_headline:'TV headline', rlm_war:'War drums', rlm_alert:'Urgent update', rlm_trailer:'Epic trailer', rlm_countdown:'Countdown', rlm_march:'Military march', rlPvPlay:'▶ Listen', rlPvStop:'■ Stop',
   rlDesign:'Card design', rldQuote:'Quote card', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlLook:'Light page-colour tone on newspaper photos', rlOwn:'Only AI/own pictures — never newspaper photos', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
-  rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} seconds',
+  rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} min',
   rlMake:'Create video', rlRemake:'Create again', rlCancel:'Cancel', rlSave:'Save', rlThumb:'Thumbnail', rlThumbNo:'Create the video first', rlThumbSaved:'Thumbnail saved — if Facebook picks another frame, set this one under "Edit cover"', rlShare:'Share', rlCap:'Caption', rlCapCopy:'Copy caption',
-  rlPrep:'Preparing photos and cards… {a}/{b}', rlRec:'Recording video… {a}/{b} s — keep the screen on',
+  rlPrep:'Preparing photos and cards… {a}/{b}', rlRec:'Making video… {p}% done · {a} / {b} min — keep the screen on',
   rlDone:'Reel ready', rlCanceled:'Video cancelled', rlHidden:'The video stops if you leave the app — tap "Create video" again',
   rlNoRec:'This browser cannot record video — open in Chrome', rlNeedOne:'Pick at least 1 story', rlMax:'At most {n} stories at once',
   rlLong:'Many stories — making the video takes as long as the video itself', rlNoImg:'No photo for {n} stories — a colour background was used',
@@ -7473,7 +7475,7 @@ function rlTexts(){
 function rlTickDef(){ return tf('rlTickDef', { p: pageName() }); }
 function rlMeta(){
   const n = RL.items.length, total = Math.round(rlTimeline(n, RL.secs).total);
-  $('rlSub').textContent = n ? tf('rlPicked', { n: nwNum(n) }) + ' · ' + tf('rlLen', { n: nwNum(total) }) : '';
+  $('rlSub').textContent = n ? tf('rlPicked', { n: nwNum(n) }) + ' · ' + tf('rlLen', { n: nwMin(total) }) : '';
   $('rlNewsT').textContent = n ? nwNum(n) + t('rlNews') : t('rlNewsNone');
   $('rlStyleT').textContent = t('rlStyle') + ': ' + t('tr_' + RL.style.trans);
   $('rlMusicName').textContent = RL.music === 'file' && RL.musicName ? '♪ ' + RL.musicName : '';
@@ -10197,7 +10199,7 @@ async function rlMake(){
         if(ci !== lastCi){ lastCi = ci; keepNear(ci); }
         rlFrame(ctx, R, tt);
         const now = performance.now();
-        if(now - lastP > 300){ lastP = now; prog(tf('rlRec', { a: nwNum(Math.floor(tt)), b: nwNum(Math.round(total)) }), tt / total); }
+        if(now - lastP > 300){ lastP = now; prog(tf('rlRec', { p: nwNum(Math.min(100, Math.floor(tt / total * 100))), a: nwMin(Math.floor(tt)), b: nwMin(total) }), tt / total); }
         nextF();
       };
       // next frame: normally the screen's own timing; if the phone holds that back (busy graphics), a timer keeps the video moving

@@ -2333,6 +2333,7 @@ Short and human. First line = a hook under 15 words (the most interesting fact o
 
 === ALWAYS ===
 - Accuracy first: every name, number, date and statement must come from the article. Never invent quotes.
+- Greetings: the page owner is Muslim. If you ever greet, use only the Islamic salam (আসসালামু আলাইকুম). Never write নমস্কার, নমস্তে, আদাব, প্রণাম, রাধে রাধে, জয় শ্রীরাম or any greeting of another religion — not even together with salam. Neutral words like স্বাগতম or শুভ সকাল are fine.
 - Report, don't take sides: never add your own praise, blame or opinion about the government, any party, leader, religion or group. The page owner's safety matters more than drama.
 - Advertiser-friendly for Facebook monetization: no graphic or gory detail, no slurs, no fear-mongering. Write sensitive words normally — the app masks them itself.
 - Output only what is asked (JSON when JSON is asked, plain text otherwise) — no preface, no markdown.`;
@@ -2342,7 +2343,23 @@ Short and human. First line = a hook under 15 words (the most interesting fact o
 let aiDown = { claude: 0, gemini: 0 };
 const aiIsDown = w => Date.now() < (aiDown[w] || 0);
 const aiMarkDown = (w, e) => { if(e && e.name === 'AbortError') return; aiDown[w] = Date.now() + 30 * 60000; };
+/* 🕌 the page owner is Muslim: a greeting is only ever the salam — নমস্কার / আদাব / প্রণাম … are removed or turned into salam */
+const NON_SALAM = '(?:নমস্কার|নমষ্কার|নমস্তে|আদাব|প্রণাম|রাধে\\s*রাধে|জয়\\s*শ্রী\\s*রাম|হরে\\s*কৃষ্ণ|জয়\\s*মা\\s*কালী)';
+function salamOnly(t){
+  if(typeof t !== 'string' || !t) return t;
+  const B = '(?<![\\u0980-\\u09FF])', E = '(?![\\u0980-\\u09FF])', SAL = 'আস[-\\s]?সালামু?\\s*আলাইকুম';
+  return t
+    .replace(new RegExp(B + NON_SALAM + E + '\\s*(?:এবং|ও|আর|/|,|।)?\\s*(?=' + SAL + ')', 'g'), '')                // "নমস্কার এবং আসসালামু…" → salam
+    .replace(new RegExp('(' + SAL + ')\\s*(?:এবং|ও|আর|/|,)?\\s*' + NON_SALAM + E + '\\s*', 'g'), '$1 ')              // "আসসালামু… ও নমস্কার" → salam
+    .replace(new RegExp('(^|["\\n।!]\\s*)(?:সবাইকে\\s*|সকলকে\\s*|প্রিয়\\s*দর্শক,?\\s*)?' + NON_SALAM + '(?=\\s*[,।!—"\\n]|\\s*$)', 'g'), '$1আসসালামু আলাইকুম')   // a greeting on its own → salam
+    .replace(/(আসসালামু আলাইকুম)\s+([,।!])/g, '$1$2');
+}
 async function writeAi(body, ms){
+  const r = await writeAiRaw(body, ms);
+  if(r && typeof r.text === 'string') r.text = salamOnly(r.text);
+  return r;
+}
+async function writeAiRaw(body, ms){
   const geminiFirst = !!S.gkey && (!S.ckey || S.writer === 'gemini' || (aiIsDown('claude') && !aiIsDown('gemini')));
   if(geminiFirst){
     try{ return await gemini(body, ms); }
@@ -8543,6 +8560,22 @@ const VO_TO_NOT = /(?:উচিত|পণ্ডিত|কিঞ্চিত|ভ�
 const BN_L = '\\u0980-\\u09FF';
 /* verb stems that are said without the middle "অ" (বদলে = বদ্লে, আটকে = আট্কে). Only before a vowel sign — the noun "বদল" stays. */
 const VO_STEMS = [['বদল','বদ্ল'],['সামল','সাম্ল'],['আটক','আট্ক'],['চমক','চম্ক'],['থমক','থম্ক'],['ধমক','ধম্ক'],['আঁকড়','আঁক্ড়'],['কামড়','কাম্ড়'],['আছড়','আছ্ড়'],['উলট','উল্ট'],['পালট','পাল্ট'],['ঝলস','ঝল্স'],['ফসক','ফস্ক'],['ছিটক','ছিট্ক'],['আগল','আগ্ল'],['বাতল','বাত্ল'],['হাতড়','হাত্ড়'],['মুচড়','মুচ্ড়'],['কচল','কচ্ল'],['বিগড়','বিগ্ড়'],['ঝটক','ঝট্ক'],['চটক','চট্ক'],['আলগ','আল্গ']];
+/* ব-ফলা / ম-ফলা are not said as "ব"/"ম": at the start of a word they are silent (দ্বিমত = দিমত, স্বাগত = সাগত, জ্বালানি = জালানি),
+   in the middle they double the letter before (বিশ্ব = বিশ্শো, উদ্বেগ = উদ্দেগ, আত্মীয় = আত্তীয়, পদ্মা = পদ্দা). ম্ব / র্ব / ল্ব / ব্ব / জন্ম etc. keep their sound. */
+const VO_PH_C = '[\\u0995-\\u09AB\\u09AD\\u09AF\\u09B6-\\u09B9\\u09DC\\u09DD\\u09DF]';
+const VO_PH_KEEP = /কাশ্মী?ি?র|বিস্মিল্লা|ইস্মাই/;
+function voPhala(w){
+  if(!/্[বম]/.test(w) || VO_PH_KEEP.test(w)) return w;
+  let x = w;
+  x = x.replace(/ক্ষ্ম/g, 'ক্খ');                                                                     // লক্ষ্মী, সূক্ষ্ম
+  x = x.replace(new RegExp('^(' + VO_PH_C + ')্ব'), '$1');                                               // দ্বিমত, স্বাগত, ধ্বংস
+  x = x.replace(/^([সশ])্ম/, '$1');                                                                       // স্মরণ, শ্মশান
+  x = x.replace(new RegExp('(্' + VO_PH_C + ')্ব', 'g'), '$1');                                          // তত্ত্ব, সান্ত্বনা, উজ্জ্বল
+  x = x.replace(new RegExp('(' + VO_PH_C + ')্ব', 'g'), '$1্$1');                                        // বিশ্ব, উদ্বেগ, অন্বেষণ
+  x = x.replace(/([তদশষস])্ম/g, '$1্$1');                                                                // আত্মা, পদ্মা, ভস্ম, গ্রীষ্ম, বিস্ময়
+  if(x !== w && /্[ক-হ]$/.test(x)) x += 'ো';                                                            // বিশ্ব → বিশ্শো, আত্ম → আত্তো
+  return x;
+}
 const VO_FIX = [[/(^|[^\u0980-\u09FF])বদলি(?=$|[^\u0980-\u09FF])/g, '$1বদ্লি']];
 function voPron(s){
   s = String(s || '').normalize('NFC').replace(/ত্‍/g, 'ৎ');
@@ -8564,6 +8597,7 @@ function voPron(s){
     if(/[ক-হড়ঢ়য়]িত$/.test(w) && w.length >= 4) return w + 'ো';                                          // নির্বাচিত, অনুষ্ঠিত, প্রকাশিত
     return w;
   });
+  s = s.replace(new RegExp('[' + BN_L + ']+', 'g'), voPhala);           // ব-ফলা / ম-ফলা, after the ত rule so স্বাগত → সাগতো
   return s;
 }
 const voSpeak = x => voPron(rlSpeak(voPron(x)));
@@ -8600,7 +8634,7 @@ const VO_INTROS = () => { const d = voDayPart(); return [
   'স্বাগতম। দেশ আর বিদেশের গুরুত্বপূর্ণ খবর নিয়ে আমরা আছি আপনার সাথে।',
   'আসসালামু আলাইকুম। আপনি কি জানেন আজ কী কী ঘটেছে? চলুন দেখে নিই।',
   'শুভ ' + d + ', প্রিয় দর্শক। এই মুহূর্তের আলোচিত খবরগুলো নিয়ে শুরু করছি।',
-  'নমস্কার এবং আসসালামু আলাইকুম। আজকের খবরের সংক্ষিপ্ত আয়োজনে আপনাকে স্বাগতম।',
+  'আসসালামু আলাইকুম। আজকের খবরের সংক্ষিপ্ত আয়োজনে আপনাকে স্বাগতম।',
   'আপনার ব্যস্ত দিনের মাঝে এক মিনিট সময় দিন, জেনে নিন আজকের গুরুত্বপূর্ণ খবর।',
   'আসসালামু আলাইকুম। শুরুতেই জেনে নিই আজকের সবচেয়ে আলোচিত ঘটনাগুলো।'
 ]; };
@@ -8623,7 +8657,7 @@ function voPrompt(){
     '৩. শিরোনাম যদি অস্পষ্ট হয় ("যা বললেন…", "মুখ খুললেন…"), সারাংশ ও মূল লেখা থেকে আসল কথাটা বলবে।\n' +
     '৪. কানে শোনার মতো করে লেখো: সব সংখ্যা কথায় লিখবে (৯০ হাজার কোটি → নব্বই হাজার কোটি, ১১ নভেম্বর → এগারো নভেম্বর, ৩৫% → পঁয়ত্রিশ শতাংশ, ২০২৬ সাল → দুই হাজার ছাব্বিশ সাল), সংক্ষেপ পুরো লিখবে (মো. → মোহাম্মদ, ডা. → ডাক্তার, কিমি → কিলোমিটার), ইংরেজি শব্দ ও সংক্ষেপ বাংলা উচ্চারণে বাংলা অক্ষরে লিখবে (BNP → বিএনপি, I.N.D.I.A → ইন্ডিয়া, police → পুলিশ)। শুদ্ধ চলিত বানান লিখবে, আঞ্চলিক বা অপ্রচলিত বানান নয়। কোনো বন্ধনী, উদ্ধৃতিচিহ্ন, ড্যাশ, ইমোজি, হ্যাশট্যাগ বা লিংক নয়। ছোট বাক্য, স্বাভাবিক বিরতির জন্য কমা।\n' +
     '৫. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা; সহিংস বা ভয় দেখানো বর্ণনা নয়।\n' +
-    '৬. শুরু: এক–দুই ছোট বাক্যের উষ্ণ সূচনা। এবারের ধরন: ' + voIntroHint() + ' শুরুতে পেজের নাম একদম বলবে না।\n' +
+    '৬. শুরু: এক–দুই ছোট বাক্যের উষ্ণ সূচনা। এবারের ধরন: ' + voIntroHint() + ' শুরুতে পেজের নাম একদম বলবে না। সালাম দিলে শুধু "আসসালামু আলাইকুম" — নমস্কার, নমস্তে, আদাব, প্রণাম বা অন্য কোনো ধর্মের সম্বোধন কখনোই নয়, সালামের সাথে মিলিয়েও নয়।\n' +
     '৭. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া একটি প্রশ্ন, আর নিয়মিত খবর পেতে "' + page + '" পেজটি ফলো করার অনুরোধ — পেজের নাম শুধু এখানেই একবার বলবে। এবারের ধরন: ' + voOutroHint() + '\n' +
     '৮. প্রতিটি খবর এক রকম শব্দ দিয়ে শুরু করবে না; খবরগুলোর মাঝে স্বাভাবিক যোগসূত্র রাখবে ("এদিকে", "অন্যদিকে", "এবার আসি", "আর শেষ খবরে")।\n\n' +
     'উত্তর শুধু এই ফরম্যাটে দেবে, অন্য কিছু লিখবে না:\nশুরু: …\n১: …\n২: …\n(প্রতিটি খবরের জন্য একটি করে, একই ক্রমে)\nশেষ: …\n\nখবরগুলো:\n' + voStories();
@@ -8651,9 +8685,9 @@ function voFallback(){
     outro: O[(seed >> 3) % O.length] };
 }
 const voSig = () => RL.items.map(x => x.link).join('|');
-function voScript(){ const tx = $('rlVoTxt') ? $('rlVoTxt').value : ''; const o = voParse(tx), fb = voFallback(), pg = pageName();
+function voScript(){ const tx = salamOnly($('rlVoTxt') ? $('rlVoTxt').value : ''); const o = voParse(tx), fb = voFallback(), pg = pageName();
   return { intro: o.intro && !(pg && o.intro.includes(pg)) ? o.intro : fb.intro, items: RL.items.map((_, i) => o.items[i] || fb.items[i]), outro: o.outro || fb.outro }; }
-function voSetScript(txt){ const o = voParse(txt); if(!o.items.filter(Boolean).length) return false; $('rlVoTxt').value = voFormat(o); RL.voSig = voSig(); $('rlVoBox').open = true; return true; }
+function voSetScript(txt){ const o = voParse(salamOnly(String(txt || ''))); if(!o.items.filter(Boolean).length) return false; $('rlVoTxt').value = voFormat(o); RL.voSig = voSig(); $('rlVoBox').open = true; return true; }
 async function voAiWrite(quiet){
   if(!(S.gkey || S.ckey)){ if(!quiet) voSay('অটো লেখার জন্য সেটিংসে Gemini/Claude কী লাগবে — না থাকলে "কপি করে জেমিনি খুলুন" ব্যবহার করুন।'); return false; }
   const b = $('rlVoAi'); b.disabled = true; voSay('AI ভয়েস-স্ক্রিপ্ট লিখছে…');

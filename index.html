@@ -8529,10 +8529,20 @@ async function voWav(text){
 const VO_OUTLETS = ['প্রথম আলো','প্রথম আলোর','বিডিনিউজ টোয়েন্টিফোর','বিডিনিউজ২৪','বিডিনিউজ ২৪','বিডি নিউজ টোয়েন্টিফোর','বিডি নিউজ ২৪','বিডিনিউজ','বিবিসি বাংলা','বিবিসি','এবিপি আনন্দ','এবিপি','টিএমসি নিউজ','আনন্দবাজার পত্রিকা','আনন্দবাজার','যুগান্তর','কালের কণ্ঠ','সমকাল','ইত্তেফাক','জনকণ্ঠ','নয়া দিগন্ত','মানবজমিন','দেশ রূপান্তর','আজকের পত্রিকা','বাংলাদেশ প্রতিদিন','ডেইলি স্টার','দ্য ডেইলি স্টার','ঢাকা ট্রিবিউন','বাংলা ট্রিবিউন','জাগো নিউজ','জাগোনিউজ','ঢাকা পোস্ট','বাংলানিউজ','বাংলানিউজ টোয়েন্টিফোর','সময় টিভি','সময় নিউজ','যমুনা টিভি','চ্যানেল টোয়েন্টিফোর','চ্যানেল ২৪','একাত্তর টিভি','এনটিভি','আরটিভি','ইন্ডিপেন্ডেন্ট টিভি','ডিবিসি নিউজ','ডিবিসি','বাসস','ডয়চে ভেলে','আল জাজিরা','রয়টার্স','এএফপি','সিএনএন','দ্য হিন্দু','হিন্দুস্তান টাইমস','টাইমস অব ইন্ডিয়া','ঢাকা টাইমস','বার্তা২৪','বার্তা টোয়েন্টিফোর','কালবেলা','খবরের কাগজ','ইনকিলাব','সংবাদ প্রতিদিন','পত্রিকাটি','সংবাদমাধ্যমটি','গণমাধ্যমটি',
   'Prothom Alo','bdnews24.com','bdnews24','BBC Bangla','BBC','ABP Ananda','ABP','TMC News','Anandabazar','Jugantor','Kaler Kantho','Samakal','Ittefaq','Daily Star','The Daily Star','Dhaka Tribune','Bangla Tribune','Jago News','Dhaka Post','Somoy TV','Jamuna TV','Channel 24','Ekattor','NTV','RTV','Kalbela','Reuters','AFP','CNN','Al Jazeera','DW'];
 const voEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/* bylines, "Published : 11 Nov 2026, 05:15 PM", "নিউজ সার্ভিস" and outlet names however they are spelled (বিডি নিউজ টোয়েন্টি ফোর ডট কম …) */
+function voJunk(text){
+  return String(text || '')
+    .replace(/(?:বিডি|bd)[\s\-.]*(?:নিউজ|news)[\s\-]*(?:২৪|24|টো?য়েন্টি[\s\-]*ফোর|টুয়েন্টি[\s\-]*ফোর)/gi, 'বিডিনিউজ২৪')
+    .replace(/ডট[\s\-]*কম/g, 'ডট কম').replace(/\.\s?কম(?![ঀ-৿])/g, ' ডট কম')
+    .replace(/(?:Published|Updated|Last\s+updated|Posted)\s*[:：]?\s*\d{1,2}\s+[A-Za-z]{3,9},?\s+\d{4},?\s*(?:\d{1,2}[:.]\d{2}\s*(?:[AP]\.?M\.?)?)?/gi, ' ')
+    .replace(/(?:প্রকাশ(?:িত)?|আপডেট|হালনাগাদ)\s*[:：]\s*[^।\n]{0,50}?[০-৯\d]{1,2}[:.][০-৯\d]{2}(?:\s*(?:এএম|পিএম|AM|PM))?/g, ' ')
+    .replace(/(?<![ঀ-৿])(?:নিউজ\s*সার্ভিস|অনলাইন\s*ডেস্ক|নিজস্ব\s*প্রতিবেদক|স্টাফ\s*রিপোর্টার|ডেস্ক\s*রিপোর্ট|অনলাইন\s*সংস্করণ)(?![ঀ-৿])\s*[:,।]?/g, ' ')
+    .replace(/[ \t]{2,}/g, ' ').trim();
+}
 function voNoSrc(text){
-  let s = String(text || ''); if(!s) return s;
+  let s = voJunk(text); if(!s) return s;
   const names = VO_OUTLETS.concat(RL.items.map(x => x.source || '').filter(x => x.length > 1)).map(x => x.trim()).filter(Boolean).sort((a, b) => b.length - a.length);
-  const N = '(?<![\\u0980-\\u09FFA-Za-z])(?:' + names.map(voEsc).join('|') + ')(?:\\s*(?:ডট কম|\\.com|অনলাইন|ডিজিটাল))?';
+  const N = '(?<![\\u0980-\\u09FFA-Za-z])(?:' + names.map(voEsc).join('|') + ')(?:\\s*(?:ডট কম|\\.com|অনলাইন|ডিজিটাল|নিউজ সার্ভিস))*';
   const SUF = '(?:-?এর|-?য়ের|-?র|-?কে|-?তে|-?এ|-?য়)?(?![\\u0980-\\u09FFA-Za-z])';
   const VERB = '(?:জানিয়েছে|জানায়|জানাচ্ছে|জানিয়েছেন|বলছে|বলেছে|বলেছেন|দিয়েছে|প্রকাশ করেছে|উল্লেখ করেছে|রিপোর্ট করেছে|খবর দিয়েছে)';
   s = s.replace(new RegExp('^\\s*[A-Za-z\\u0980-\\u09FF .]{2,30}?\\s*(?:News|NEWS|নিউজ)\\s*[:：]\\s*'), '');      // "TMC News: …"
@@ -8622,7 +8632,8 @@ function voFormat(o){
 }
 function voStories(){
   return RL.items.map((it, i) => { const o = it.o || {}, d = shorten(norm(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || '')), 400);
-    return (i + 1) + '. ' + voNoSrc(plain(o.title || it.text)) + (d ? '\n   সারাংশ: ' + d : '') + (o.text ? '\n   মূল লেখা: ' + shorten(norm(o.text), 1200) : ''); }).join('\n');
+    const tx = o.text ? voNoSrc(voCleanLine(norm(o.text))) : '';
+    return (i + 1) + '. ' + voNoSrc(plain(o.title || it.text)) + (d ? '\n   সারাংশ: ' + voNoSrc(voCleanLine(d)) : '') + (tx ? '\n   মূল লেখা: ' + shorten(tx, 1400) : ''); }).join('\n');
 }
 /* the opening changes every time — salam, greeting, welcome, a time-of-day line … — and never says the page name */
 function voDayPart(){ const h = new Date().getHours(); return h < 5 ? 'রাত' : h < 12 ? 'সকাল' : h < 16 ? 'দুপুর' : h < 18 ? 'বিকেল' : h < 20 ? 'সন্ধ্যা' : 'রাত'; }
@@ -8652,8 +8663,8 @@ function voPrompt(){
   const page = pageName();
   return 'তুমি একটি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর সংবাদ পাঠক। নিচের ' + RL.items.length + 'টি খবর দিয়ে একটি রিলের ভয়েসওভার স্ক্রিপ্ট লেখো, যা একটি AI কণ্ঠ (টেক্সট-টু-স্পিচ) পড়বে।\n\n' +
     'নিয়ম:\n' +
-    '১. প্রতিটি খবরের জন্য ২–৩টি বাক্য, মোট ৩৫–৫৫ শব্দ। স্ক্রিনে শুধু ছোট শিরোনাম থাকে, তাই কণ্ঠে বিস্তারিত বলবে: কী ঘটেছে, কার সাথে বা কোথায়, মূল সংখ্যা বা সিদ্ধান্ত, আর এর প্রভাব কী।\n' +
-    '২. শুধু দেওয়া তথ্য থেকে লিখবে — নতুন তথ্য, মতামত, অনুমান বা অতিরঞ্জন নয়। কোনো পত্রিকা, নিউজ পোর্টাল বা টিভি চ্যানেলের নাম কখনো বলবে না (যেমন "প্রথম আলো জানিয়েছে", "বিবিসির প্রতিবেদনে", "এবিপি আনন্দ বলছে", "টিএমসি নিউজ" — এসব একদম নয়)। "প্রতিবেদনে বলা হয়েছে", "সূত্র জানায়" ধরনের কথাও নয় — সরাসরি মূল খবরটা বলবে। শিরোনামের শুরুতে কোনো চ্যানেল বা পোর্টালের নাম থাকলে (যেমন "TMC News:") সেটা বাদ দেবে।\n' +
+    '১. প্রতিটি খবরের জন্য — শেষ খবরটিসহ, কোনোটি বাদ বা ছোট না করে — ২–৩টি বাক্য, মোট ৩৫–৫৫ শব্দ। শুধু শিরোনাম পড়ে ছেড়ে দেবে না। স্ক্রিনে শুধু ছোট শিরোনাম থাকে, তাই কণ্ঠে বিস্তারিত বলবে: কী ঘটেছে, কার সাথে বা কোথায়, মূল সংখ্যা বা সিদ্ধান্ত, আর এর প্রভাব কী।\n' +
+    '২. শুধু দেওয়া তথ্য থেকে লিখবে — নতুন তথ্য, মতামত, অনুমান বা অতিরঞ্জন নয়। কোনো পত্রিকা, নিউজ পোর্টাল বা টিভি চ্যানেলের নাম কখনো বলবে না (যেমন "প্রথম আলো জানিয়েছে", "বিবিসির প্রতিবেদনে", "এবিপি আনন্দ বলছে", "টিএমসি নিউজ" — এসব একদম নয়)। "প্রতিবেদনে বলা হয়েছে", "সূত্র জানায়" ধরনের কথাও নয় — সরাসরি মূল খবরটা বলবে। কোনো সংবাদ সংস্থার নাম অন্য বানানেও নয় ("বিডিনিউজ টোয়েন্টি ফোর ডট কম", "বিবিসি নিউজ বাংলা"), প্রতিবেদকের নাম, "নিউজ সার্ভিস", "অনলাইন ডেস্ক" বা প্রকাশের সময়ও বলবে না। শিরোনামের শুরুতে কোনো চ্যানেল বা পোর্টালের নাম থাকলে (যেমন "TMC News:") সেটা বাদ দেবে।\n' +
     '৩. শিরোনাম যদি অস্পষ্ট হয় ("যা বললেন…", "মুখ খুললেন…"), সারাংশ ও মূল লেখা থেকে আসল কথাটা বলবে।\n' +
     '৪. কানে শোনার মতো করে লেখো: সব সংখ্যা কথায় লিখবে (৯০ হাজার কোটি → নব্বই হাজার কোটি, ১১ নভেম্বর → এগারো নভেম্বর, ৩৫% → পঁয়ত্রিশ শতাংশ, ২০২৬ সাল → দুই হাজার ছাব্বিশ সাল), সংক্ষেপ পুরো লিখবে (মো. → মোহাম্মদ, ডা. → ডাক্তার, কিমি → কিলোমিটার), ইংরেজি শব্দ ও সংক্ষেপ বাংলা উচ্চারণে বাংলা অক্ষরে লিখবে (BNP → বিএনপি, I.N.D.I.A → ইন্ডিয়া, police → পুলিশ)। শুদ্ধ চলিত বানান লিখবে, আঞ্চলিক বা অপ্রচলিত বানান নয়। কোনো বন্ধনী, উদ্ধৃতিচিহ্ন, ড্যাশ, ইমোজি, হ্যাশট্যাগ বা লিংক নয়। ছোট বাক্য, স্বাভাবিক বিরতির জন্য কমা।\n' +
     '৫. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা; সহিংস বা ভয় দেখানো বর্ণনা নয়।\n' +
@@ -8675,18 +8686,19 @@ function voFallback(){
   const key = RL.items.map(x => x.link).join('|'), seed = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
   return { intro: L[seed % L.length],
     items: RL.items.map((it, i) => { const o = it.o || {};
-      const raw = typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || '');
+      const raw = voJunk(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || ''));
       const head = voCleanLine(voNoSrc(plain(o.title || it.text))).replace(/[।.]+$/, '');
-      const pool = (voCleanLine(plain(raw)) + ' ' + voCleanLine(shorten(norm(o.text || ''), 900))).split(/(?<=[।!?])\s+/)
+      const pool = (voCleanLine(plain(raw)) + ' ' + voCleanLine(voJunk(shorten(norm(o.text || ''), 1400)))).split(/(?<=[।!?])\s+/)
         .map(x => voNoSrc(x.trim())).filter(x => x && x.split(/\s+/).length >= 5 && x.split(/\s+/).length <= 40 && !x.includes(head.slice(0, 18)));
-      const seen = new Set(), body = []; for(const x of pool){ const k = x.slice(0, 25); if(seen.has(k)) continue; seen.add(k); body.push(x); if(body.length === 2 || body.join(' ').split(/\s+/).length > 38) break; }
+      const seen = new Set(), body = []; for(const x of pool){ const k = x.slice(0, 25); if(seen.has(k)) continue; seen.add(k); body.push(x); const n = body.join(' ').split(/\s+/).length; if(n > 38 || (body.length >= 2 && n >= 22) || body.length === 3) break; }
       const link = i === 0 ? 'প্রথম খবর, ' : i === RL.items.length - 1 && RL.items.length > 2 ? 'আর শেষ খবরে, ' : VO_LINKS[(seed + i) % VO_LINKS.length];
       return link + head + (/[?!]$/.test(head) ? ' ' : '। ') + body.join(' '); }),
     outro: O[(seed >> 3) % O.length] };
 }
 const voSig = () => RL.items.map(x => x.link).join('|');
 function voScript(){ const tx = salamOnly($('rlVoTxt') ? $('rlVoTxt').value : ''); const o = voParse(tx), fb = voFallback(), pg = pageName();
-  return { intro: o.intro && !(pg && o.intro.includes(pg)) ? o.intro : fb.intro, items: RL.items.map((_, i) => o.items[i] || fb.items[i]), outro: o.outro || fb.outro }; }
+  const wc = x => voNoSrc(x || '').split(/\s+/).filter(Boolean).length;
+  return { intro: o.intro && !(pg && o.intro.includes(pg)) ? o.intro : fb.intro, items: RL.items.map((_, i) => o.items[i] && (wc(o.items[i]) >= 14 || wc(o.items[i]) >= wc(fb.items[i])) ? o.items[i] : fb.items[i]), outro: o.outro || fb.outro }; }
 function voSetScript(txt){ const o = voParse(salamOnly(String(txt || ''))); if(!o.items.filter(Boolean).length) return false; $('rlVoTxt').value = voFormat(o); RL.voSig = voSig(); $('rlVoBox').open = true; return true; }
 async function voAiWrite(quiet){
   if(!(S.gkey || S.ckey)){ if(!quiet) voSay('অটো লেখার জন্য সেটিংসে Gemini/Claude কী লাগবে — না থাকলে "কপি করে জেমিনি খুলুন" ব্যবহার করুন।'); return false; }

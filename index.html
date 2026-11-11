@@ -3622,7 +3622,39 @@ async function natImg(url, ms){
 if(!store.get('wmMig2', 0)){ store.set('wmMig2', 1); store.set('wmHide', false); }   // blurring a paper's name/logo does not make its photo ours — off by default
 function wmOn(){ return store.get('wmHide', false) === true; }
 /* own-picture mode: newspaper photos are not used; each story gets an AI-made or app-drawn picture instead (safer for copyright and monetization) */
-function ownPicOn(){ return store.get('rlOwnPic', true) !== false; }
+function ownPicOn(){ return store.get('rlOwnPic', false) === true; }
+/* news frame: a paper's photo is shown inside the page's own design — smaller, framed, brand-toned, with a visible photo credit */
+function lookOn(){ return store.get('rlLook', true) !== false; }
+function rlNewsLook(src, source){
+  try{
+    const W = src.width, H = src.height; if(!W || !H) return src;
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+    const ac = (typeof C !== 'undefined' && C.accent) || '#d71920';
+    x.imageSmoothingQuality = 'high';
+    x.filter = 'blur(' + Math.max(8, Math.round(W / 45)) + 'px) brightness(.55) saturate(1.15)';
+    x.drawImage(src, -W * 0.06, -H * 0.06, W * 1.12, H * 1.12); x.filter = 'none';     // soft, dark backdrop
+    x.fillStyle = 'rgba(0,0,0,.30)'; x.fillRect(0, 0, W, H);
+    x.globalAlpha = 0.30; x.fillStyle = ac; x.fillRect(0, 0, W, H); x.globalAlpha = 1;   // page colour on the backdrop
+    const m = 0.075, iw = W * (1 - 2 * m), ih = H * (1 - 2 * m), ix = W * m, iy = H * m, r = Math.round(W * 0.022), bw = Math.max(3, Math.round(W / 260));
+    x.save(); x.shadowColor = 'rgba(0,0,0,.55)'; x.shadowBlur = W * 0.03; x.shadowOffsetY = H * 0.01;
+    x.fillStyle = '#fff'; rr(x, ix - bw, iy - bw, iw + 2 * bw, ih + 2 * bw, r + bw); x.fill(); x.restore();
+    x.save(); rr(x, ix, iy, iw, ih, r); x.clip();
+    x.filter = 'contrast(1.06) saturate(1.08)'; x.drawImage(src, ix, iy, iw, ih); x.filter = 'none';
+    x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.20; x.fillStyle = ac; x.fillRect(ix, iy, iw, ih);
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+    const vg = x.createRadialGradient(W / 2, H / 2, Math.min(iw, ih) * 0.35, W / 2, H / 2, Math.max(iw, ih) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.28)'); x.fillStyle = vg; x.fillRect(ix, iy, iw, ih);
+    x.restore();
+    if(source){                                                       // visible credit, top centre (survives every crop)
+      const txt = 'ছবি: ' + source, fs = Math.round(H * 0.042);
+      x.font = fontStr(fs, 700, BFAM); const pw = x.measureText(txt).width + fs * 1.3, ph = fs * 1.75, px = W / 2 - pw / 2, py = iy + H * 0.045;
+      x.fillStyle = 'rgba(0,0,0,.62)'; rr(x, px, py, pw, ph, ph / 2); x.fill();
+      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, W / 2, py + ph / 2 + 1);
+    }
+    c.naturalWidth = W; c.naturalHeight = H;
+    return c;
+  }catch(e){ return src; }
+}
 function wmClean(img){
   try{
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
@@ -7113,7 +7145,7 @@ Object.assign(T.bn, {
   rlIntro:'শুরুর শিরোনাম', rlTitleDef:'আজকের সেরা খবর', rlTicker:'নিচের চলমান লেখা',
   rlTickDef:'সর্বশেষ ও গুরুত্বপূর্ণ খবর সবার আগে পেতে {p} পেজটি ফলো করুন',
   rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'আমার মিউজিক', mmTitle:'আমার মিউজিক', mmSafe:'· ফোনে সেভ থাকে, ক্লিয়ার দিলেও মুছবে না', mmAdd:'মিউজিক যোগ করুন', mmDel:'মুছুন', mmDelAsk:'"{n}" মিউজিকটি ফোন থেকে মুছে ফেলবেন?', mmDeleted:'মিউজিক মুছে ফেলা হয়েছে', mmSaved:'মিউজিক ফোনে সেভ হয়েছে — পরেও থাকবে', mmNoSave:'এবার ব্যবহার করা যাবে, কিন্তু ফোনে সেভ করা গেল না (জায়গা কম?)', rlmNone:'ছাড়া', rlm_beat:'নিউজ বিট', rlm_breaking:'ব্রেকিং নিউজ', rlm_piano:'নরম পিয়ানো', rlm_emotional:'আবেগী', rlm_tension:'টানটান রহস্য', rlm_happy:'হাসিখুশি', rlm_lofi:'লো-ফাই চিল', rlm_headline:'টিভি হেডলাইন', rlm_war:'যুদ্ধের দামামা', rlm_alert:'জরুরি আপডেট', rlm_trailer:'এপিক ট্রেলার', rlm_countdown:'কাউন্টডাউন', rlm_march:'মার্চিং ড্রাম', rlPvPlay:'▶ শুনুন', rlPvStop:'■ থামান',
-  rlDesign:'কার্ড ডিজাইন', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlOwn:'নিজের ছবি মোড — পত্রিকার ছবি নয়, AI/নিজের আঁকা ছবি (কপিরাইট-নিরাপদ)', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
+  rlDesign:'কার্ড ডিজাইন', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlLook:'পত্রিকার ছবিতে নিউজ-ফ্রেম ডিজাইন ও ছবির ক্রেডিট (প্রস্তাবিত)', rlOwn:'শুধু AI/নিজের ছবি — পত্রিকার ছবি একদম নয়', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
   rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} সেকেন্ডের',
   rlMake:'ভিডিও তৈরি করুন', rlRemake:'আবার তৈরি করুন', rlCancel:'বাতিল', rlSave:'সেভ', rlShare:'শেয়ার', rlCap:'ক্যাপশন', rlCapCopy:'ক্যাপশন কপি',
   rlPrep:'ছবি ও কার্ড তৈরি হচ্ছে… {a}/{b}', rlRec:'ভিডিও তৈরি হচ্ছে… {a}/{b} সে. — স্ক্রিন খোলা রাখুন',
@@ -7139,7 +7171,7 @@ Object.assign(T.en, {
   rlIntro:'Opening title', rlTitleDef:'Top news today', rlTicker:'Scrolling text',
   rlTickDef:'Follow {p} for the latest and most important news first',
   rlSecs:'Each story', rlSec:'s', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My music', mmTitle:'My music', mmSafe:'· saved on this phone, Clear does not remove it', mmAdd:'Add music', mmDel:'Delete', mmDelAsk:'Delete "{n}" from this phone?', mmDeleted:'Music deleted', mmSaved:'Music saved on this phone — it will stay', mmNoSave:'Usable now, but could not be saved on the phone (low space?)', rlmNone:'None', rlm_beat:'News beat', rlm_breaking:'Breaking news', rlm_piano:'Soft piano', rlm_emotional:'Emotional', rlm_tension:'Suspense', rlm_happy:'Happy', rlm_lofi:'Lo-fi chill', rlm_headline:'TV headline', rlm_war:'War drums', rlm_alert:'Urgent update', rlm_trailer:'Epic trailer', rlm_countdown:'Countdown', rlm_march:'Military march', rlPvPlay:'▶ Listen', rlPvStop:'■ Stop',
-  rlDesign:'Card design', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlOwn:'Own-picture mode — no newspaper photos, AI/drawn pictures (copyright-safe)', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
+  rlDesign:'Card design', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlLook:'News-frame design and photo credit on newspaper photos (recommended)', rlOwn:'Only AI/own pictures — never newspaper photos', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
   rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} seconds',
   rlMake:'Create video', rlRemake:'Create again', rlCancel:'Cancel', rlSave:'Save', rlShare:'Share', rlCap:'Caption', rlCapCopy:'Copy caption',
   rlPrep:'Preparing photos and cards… {a}/{b}', rlRec:'Recording video… {a}/{b} s — keep the screen on',
@@ -7341,6 +7373,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div class="rlf"><div class="rlmh"><span id="rlMusicL"></span><button type="button" class="btn" id="rlPvBtn"></button></div><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>
       <div class="rlf"><span id="rlDesignL"></span><div class="rlopts" id="rlDesignO"></div>
         <label class="rlchk"><input type="checkbox" id="rlMixC"><span id="rlMixL"></span></label>
+        <label class="rlchk"><input type="checkbox" id="rlLookC"><span id="rlLookL"></span></label>
         <label class="rlchk"><input type="checkbox" id="rlOwnC"><span id="rlOwnL"></span></label>
         <label class="rlchk"><input type="checkbox" id="rlWmC"><span id="rlWmL"></span></label></div>
       <div class="rlf rlstyle"><span id="rlStyleT"></span><button type="button" class="btn" id="rlShuffle">${ic(IC_SHUF)}<span></span></button></div>
@@ -7369,7 +7402,7 @@ function rlTexts(){
   $('rlTitleL').textContent = t('rlIntro'); $('rlTitleIn').placeholder = t('rlTitleDef');
   $('rlPageL').textContent = t('rlPageL'); $('rlPageHint').textContent = t('rlPageHint'); $('rlPageIn').placeholder = t('fbPageDef');
   $('rlTickL').textContent = t('rlTicker'); $('rlTickIn').placeholder = rlTickDef();
-  $('rlSecsL').textContent = t('rlSecs'); $('rlMusicL').textContent = t('rlMusic'); $('rlDesignL').textContent = t('rlDesign'); $('rlMixL').textContent = t('rlColors'); $('rlWmL').textContent = t('rlWm'); $('rlOwnL').textContent = t('rlOwn');
+  $('rlSecsL').textContent = t('rlSecs'); $('rlMusicL').textContent = t('rlMusic'); $('rlDesignL').textContent = t('rlDesign'); $('rlMixL').textContent = t('rlColors'); $('rlWmL').textContent = t('rlWm'); $('rlOwnL').textContent = t('rlOwn'); $('rlLookL').textContent = t('rlLook');
   $('rlShuffle').querySelector('span').textContent = t('rlShuffle'); $('rlTip').textContent = t('rlTip'); $('rlCapT').textContent = t('rlCap');
   $('rlMake').querySelector('span').textContent = RL.blob ? t('rlRemake') : t('rlMake');
   opts('rlSecsO', [2, 3, 4, 5].map(n => [n, nwNum(n) + ' ' + t('rlSec')]), RL.secs, v => { RL.secs = v; store.set('rlSecs', v); rlMeta(); });
@@ -7381,7 +7414,7 @@ function rlTexts(){
   });
   rlPvUi(); mmRender();
   opts('rlDesignO', [['live', t('rldLive')], ['deck', t('rldDeck')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
-  $('rlMixC').checked = !!RL.mixColor; $('rlWmC').checked = wmOn(); $('rlOwnC').checked = ownPicOn();
+  $('rlMixC').checked = !!RL.mixColor; $('rlWmC').checked = wmOn(); $('rlOwnC').checked = ownPicOn(); $('rlLookC').checked = lookOn();
   rlMeta();
 }
 function rlTickDef(){ return tf('rlTickDef', { p: pageName() }); }
@@ -7403,7 +7436,15 @@ function rlOpen(){
   $('rlTitleIn').value = RL.title; $('rlTickIn').value = RL.ticker; $('rlPageIn').value = store.get('fbPageName', '') || '';
   rlTexts(); rlRenderList(); rlShowVideo(false); rlPreview();
   if(RL.items.length > 30) toast(t('rlLong'));
-  rlAutoFix();
+  let aiGo = false; const go = () => { if(aiGo) return; aiGo = true; rlAutoAi(); };
+  Promise.resolve(rlAutoFix()).catch(() => {}).then(go); setTimeout(go, 20000);
+}
+function rlAutoAi(){
+  if(!(S.gkey || S.ckey) || store.get('rlAutoAi', true) === false || capEdited || !RL.open || !RL.items.length || RL.busy) return;
+  if(RL.items.some(x => x.manual)) return;                          // a headline was edited by hand → leave it
+  const sig = RL.items.map(x => x.link).join('|'); if(RL.aiSig === sig) return;
+  const b = $('rlAi'); if(!b || b.disabled) return;
+  RL.aiSig = sig; b.click();
 }
 function rlClose(fromPop){
   if(!RL.open) return;
@@ -7502,6 +7543,7 @@ $('rlTitleIn').addEventListener('input', () => { rlSyncTexts(); rlCaptionAuto();
 $('rlPageIn').addEventListener('input', () => { store.set('fbPageName', $('rlPageIn').value.trim()); RL.cardFiles = null; try{ renderFbPost(); }catch(e){} rlPreview(); });
 $('rlTickIn').addEventListener('input', () => { rlSyncTexts(); rlPreview(); });
 $('rlWmC').addEventListener('change', () => { store.set('wmHide', $('rlWmC').checked); RL.imgs.clear(); rlPreview(); });
+$('rlLookC').addEventListener('change', () => { store.set('rlLook', $('rlLookC').checked); RL.imgs.clear(); RL.cardFiles = null; rlPreview(); });
 $('rlOwnC').addEventListener('change', () => { store.set('rlOwnPic', $('rlOwnC').checked); RL.imgs.clear(); RL.cardFiles = null; rlPreview(); toast(t($('rlOwnC').checked ? 'rlOwnOn' : 'rlOwnOff')); });
 $('rlMixC').addEventListener('change', () => { RL.mixColor = $('rlMixC').checked; store.set('rlMixColor', RL.mixColor); rlPreview(); });
 $('rlShuffle').addEventListener('click', () => { rlPvStop(); RL.vidStyle = null; RL.style = rlNewStyle(RL.style); rlMeta(); rlPreview(); toast(t('rlStyle') + ': ' + t('tr_' + RL.style.trans)); });
@@ -7726,7 +7768,10 @@ function rlImg(it){
         const sm = shrinkImg(got.img, 1400); if(!sm) continue;
         if(o.img !== got.url) o.img = got.url;
         it.phGen = (o.aiPic && got.url === o.aiPic) ? 'ai' : ''; it.genUrl = ''; rlRowShow(it);
-        return wmOn() && !/^(data|blob):/.test(got.url) ? wmClean(sm) : sm;
+        const paper = !/^(data|blob):/.test(got.url) && !(o.aiPic && got.url === o.aiPic);
+        let out = wmOn() && paper ? wmClean(sm) : sm;
+        if(paper && lookOn()) out = rlNewsLook(out, it.source);
+        return out;
       }
       return null;
     };
@@ -9406,7 +9451,12 @@ function rlCaptionAuto(force){
   const items = RL.items; if(!items.length){ $('rlCapIn').value = ''; return; }
   const bn = n => String(n).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);   // the page is Bangla, so the caption is always Bangla
   const title = RL.title || 'আজকের সেরা খবর';
-  const lines = items.map((it, i) => bn(i + 1) + '. ' + plain(it.text));
+  const core = it => {                                       // first sentence of the summary, when it adds something to the headline
+    const raw = String((it.o && it.o.desc) || ''), d = plain(/<[a-z]/i.test(raw) && typeof nwStrip === 'function' ? nwStrip(raw) : raw);
+    const s = (d.split(/(?<=[।!?])\s+/)[0] || '').trim(), head = plain(it.text);
+    return s.length > 25 && !head.includes(s.slice(0, 20)) && !s.includes(head.slice(0, 20)) ? ' — ' + shorten(s, 120) : '';
+  };
+  const lines = items.map((it, i) => bn(i + 1) + '. ' + plain(it.text) + core(it));
   const srcs = Array.from(new Set(items.map(it => it.source).filter(Boolean)));
   const hook = '📌 ' + plain(items[0].text);
   let cap = hook + '\n\n' + title + ' — ' + bn(items.length) + 'টি গুরুত্বপূর্ণ খবর এক নজরে 👇\n\n' + lines.join('\n') +
@@ -9423,7 +9473,7 @@ $('rlAi').addEventListener('click', async () => {
   const list = RL.items.map((it, i) => { const tz = sfTeaser(it.o.title || it.text) && it.o.text; return (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']' + (tz ? '\n   STORY TEXT: ' + shorten(norm(it.o.text), 900) : ''); }).join('\n');
   const prompt = 'These are ' + RL.items.length + ' Bangladeshi news stories for a vertical news-roundup video reel on a Facebook news page:\n' + list +
     '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. If a headline only teases a statement ("যা বললেন X", "মুখ খুললেন X") and does not say what was said, use the STORY TEXT and write it as  X: “the real main point”  instead, faithful to the text.' +
-    '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Then a numbered list with one honest, factual sentence per story, in your own words (never copy the paper\'s headline). Then ONE genuine open question that invites people to share their opinion about these stories (no engagement bait: never ask people to comment a word or number, tag friends, like or share). Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list.' +
+    '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then ONE genuine open question that invites people to share their opinion about these stories (no engagement bait: never ask people to comment a word or number, tag friends, like or share). Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list.' +
     '\nReturn ONLY JSON: {"cards":["headline 1","headline 2"],"caption":"..."} with exactly ' + RL.items.length + ' items in "cards".';
   try{
     const r = await writeAi({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, responseMimeType: 'application/json' } }, 90000);

@@ -3630,27 +3630,9 @@ function rlNewsLook(src, source){
     const W = src.width, H = src.height; if(!W || !H) return src;
     const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
     const ac = (typeof C !== 'undefined' && C.accent) || '#d71920';
-    x.imageSmoothingQuality = 'high';
-    x.filter = 'blur(' + Math.max(8, Math.round(W / 45)) + 'px) brightness(.55) saturate(1.15)';
-    x.drawImage(src, -W * 0.06, -H * 0.06, W * 1.12, H * 1.12); x.filter = 'none';     // soft, dark backdrop
-    x.fillStyle = 'rgba(0,0,0,.30)'; x.fillRect(0, 0, W, H);
-    x.globalAlpha = 0.30; x.fillStyle = ac; x.fillRect(0, 0, W, H); x.globalAlpha = 1;   // page colour on the backdrop
-    const m = 0.075, iw = W * (1 - 2 * m), ih = H * (1 - 2 * m), ix = W * m, iy = H * m, r = Math.round(W * 0.022), bw = Math.max(3, Math.round(W / 260));
-    x.save(); x.shadowColor = 'rgba(0,0,0,.55)'; x.shadowBlur = W * 0.03; x.shadowOffsetY = H * 0.01;
-    x.fillStyle = '#fff'; rr(x, ix - bw, iy - bw, iw + 2 * bw, ih + 2 * bw, r + bw); x.fill(); x.restore();
-    x.save(); rr(x, ix, iy, iw, ih, r); x.clip();
-    x.filter = 'contrast(1.06) saturate(1.08)'; x.drawImage(src, ix, iy, iw, ih); x.filter = 'none';
-    x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.20; x.fillStyle = ac; x.fillRect(ix, iy, iw, ih);
+    x.filter = 'contrast(1.06) saturate(1.1)'; x.drawImage(src, 0, 0, W, H); x.filter = 'none';
+    x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.16; x.fillStyle = ac; x.fillRect(0, 0, W, H);
     x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
-    const vg = x.createRadialGradient(W / 2, H / 2, Math.min(iw, ih) * 0.35, W / 2, H / 2, Math.max(iw, ih) * 0.75);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.28)'); x.fillStyle = vg; x.fillRect(ix, iy, iw, ih);
-    x.restore();
-    if(source){                                                       // visible credit, top centre (survives every crop)
-      const txt = 'ছবি: ' + source, fs = Math.round(H * 0.042);
-      x.font = fontStr(fs, 700, BFAM); const pw = x.measureText(txt).width + fs * 1.3, ph = fs * 1.75, px = W / 2 - pw / 2, py = iy + H * 0.045;
-      x.fillStyle = 'rgba(0,0,0,.62)'; rr(x, px, py, pw, ph, ph / 2); x.fill();
-      x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, W / 2, py + ph / 2 + 1);
-    }
     c.naturalWidth = W; c.naturalHeight = H;
     return c;
   }catch(e){ return src; }
@@ -7145,7 +7127,7 @@ Object.assign(T.bn, {
   rlIntro:'শুরুর শিরোনাম', rlTitleDef:'আজকের সেরা খবর', rlTicker:'নিচের চলমান লেখা',
   rlTickDef:'সর্বশেষ ও গুরুত্বপূর্ণ খবর সবার আগে পেতে {p} পেজটি ফলো করুন',
   rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'আমার মিউজিক', mmTitle:'আমার মিউজিক', mmSafe:'· ফোনে সেভ থাকে, ক্লিয়ার দিলেও মুছবে না', mmAdd:'মিউজিক যোগ করুন', mmDel:'মুছুন', mmDelAsk:'"{n}" মিউজিকটি ফোন থেকে মুছে ফেলবেন?', mmDeleted:'মিউজিক মুছে ফেলা হয়েছে', mmSaved:'মিউজিক ফোনে সেভ হয়েছে — পরেও থাকবে', mmNoSave:'এবার ব্যবহার করা যাবে, কিন্তু ফোনে সেভ করা গেল না (জায়গা কম?)', rlmNone:'ছাড়া', rlm_beat:'নিউজ বিট', rlm_breaking:'ব্রেকিং নিউজ', rlm_piano:'নরম পিয়ানো', rlm_emotional:'আবেগী', rlm_tension:'টানটান রহস্য', rlm_happy:'হাসিখুশি', rlm_lofi:'লো-ফাই চিল', rlm_headline:'টিভি হেডলাইন', rlm_war:'যুদ্ধের দামামা', rlm_alert:'জরুরি আপডেট', rlm_trailer:'এপিক ট্রেলার', rlm_countdown:'কাউন্টডাউন', rlm_march:'মার্চিং ড্রাম', rlPvPlay:'▶ শুনুন', rlPvStop:'■ থামান',
-  rlDesign:'কার্ড ডিজাইন', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlLook:'পত্রিকার ছবিতে নিউজ-ফ্রেম ডিজাইন ও ছবির ক্রেডিট (প্রস্তাবিত)', rlOwn:'শুধু AI/নিজের ছবি — পত্রিকার ছবি একদম নয়', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
+  rlDesign:'কার্ড ডিজাইন', rldQuote:'কোট কার্ড', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlLook:'পত্রিকার ছবিতে পেজের রঙের হালকা টোন', rlOwn:'শুধু AI/নিজের ছবি — পত্রিকার ছবি একদম নয়', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
   rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} সেকেন্ডের',
   rlMake:'ভিডিও তৈরি করুন', rlRemake:'আবার তৈরি করুন', rlCancel:'বাতিল', rlSave:'সেভ', rlThumb:'থাম্বনেইল', rlThumbNo:'আগে ভিডিও তৈরি করুন', rlThumbSaved:'থাম্বনেইল সেভ হয়েছে — Facebook অন্য ফ্রেম বাছলে "Edit cover" থেকে এটি দিন', rlShare:'শেয়ার', rlCap:'ক্যাপশন', rlCapCopy:'ক্যাপশন কপি',
   rlPrep:'ছবি ও কার্ড তৈরি হচ্ছে… {a}/{b}', rlRec:'ভিডিও তৈরি হচ্ছে… {a}/{b} সে. — স্ক্রিন খোলা রাখুন',
@@ -7171,7 +7153,7 @@ Object.assign(T.en, {
   rlIntro:'Opening title', rlTitleDef:'Top news today', rlTicker:'Scrolling text',
   rlTickDef:'Follow {p} for the latest and most important news first',
   rlSecs:'Each story', rlSec:'s', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My music', mmTitle:'My music', mmSafe:'· saved on this phone, Clear does not remove it', mmAdd:'Add music', mmDel:'Delete', mmDelAsk:'Delete "{n}" from this phone?', mmDeleted:'Music deleted', mmSaved:'Music saved on this phone — it will stay', mmNoSave:'Usable now, but could not be saved on the phone (low space?)', rlmNone:'None', rlm_beat:'News beat', rlm_breaking:'Breaking news', rlm_piano:'Soft piano', rlm_emotional:'Emotional', rlm_tension:'Suspense', rlm_happy:'Happy', rlm_lofi:'Lo-fi chill', rlm_headline:'TV headline', rlm_war:'War drums', rlm_alert:'Urgent update', rlm_trailer:'Epic trailer', rlm_countdown:'Countdown', rlm_march:'Military march', rlPvPlay:'▶ Listen', rlPvStop:'■ Stop',
-  rlDesign:'Card design', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlLook:'News-frame design and photo credit on newspaper photos (recommended)', rlOwn:'Only AI/own pictures — never newspaper photos', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
+  rlDesign:'Card design', rldQuote:'Quote card', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlLook:'Light page-colour tone on newspaper photos', rlOwn:'Only AI/own pictures — never newspaper photos', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
   rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} seconds',
   rlMake:'Create video', rlRemake:'Create again', rlCancel:'Cancel', rlSave:'Save', rlThumb:'Thumbnail', rlThumbNo:'Create the video first', rlThumbSaved:'Thumbnail saved — if Facebook picks another frame, set this one under "Edit cover"', rlShare:'Share', rlCap:'Caption', rlCapCopy:'Copy caption',
   rlPrep:'Preparing photos and cards… {a}/{b}', rlRec:'Recording video… {a}/{b} s — keep the screen on',
@@ -7195,7 +7177,8 @@ const IC_FILM = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v
 const RL_MAX = 100, RW = 720, RH = 1280, XT = 0.5, CARD_CY = 590;
 const RL = {
   on: false, open: false, sel: new Map(), items: [], imgs: new Map(), busy: false, cancel: false,
-  secs: store.get('rlSecs', 3), music: (m => ['beat','headline','war','alert','trailer','countdown','march','breaking','piano','emotional','tension','happy','lofi','file','none'].includes(m) ? m : 'beat')(store.get('rlMusic', 'beat')), tpl: (store.get('rlLiveMig', 0) ? store.get('rlTpl', 'live') : (store.set('rlLiveMig', 1), store.set('rlTpl', 'live'), 'live')), mixColor: store.get('rlMixColor', true),
+  secs: store.get('rlSecs', 3), music: (m => ['beat','headline','war','alert','trailer','countdown','march','breaking','piano','emotional','tension','happy','lofi','file','none'].includes(m) ? m : 'beat')(store.get('rlMusic', 'beat')), tpl: (store.get('rlLiveMig', 0) ? (store.get('rlQuoteMig', 0) ? store.get('rlTpl', 'live') : 'quote') : (store.set('rlLiveMig', 1), store.set('rlTpl', 'live'), 'quote')), mixColor: store.get('rlMixColor', true),
+  tpl2: (store.get('rlQuoteMig', 0) ? 0 : (store.set('rlQuoteMig', 1), store.set('rlTpl', 'quote'), 0)),
   title: store.get('rlTitle', ''), ticker: store.get('rlTicker', ''), musicAB: null, musicName: '', blob: null, url: '', caption: '', style: null
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -7414,7 +7397,7 @@ function rlTexts(){
     rlMeta(); rlPvUi(); mmRender();
   });
   rlPvUi(); mmRender();
-  opts('rlDesignO', [['live', t('rldLive')], ['deck', t('rldDeck')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
+  opts('rlDesignO', [['quote', t('rldQuote')], ['live', t('rldLive')], ['deck', t('rldDeck')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
   $('rlMixC').checked = !!RL.mixColor; $('rlWmC').checked = wmOn(); $('rlOwnC').checked = ownPicOn(); $('rlLookC').checked = lookOn();
   rlMeta();
 }
@@ -8057,6 +8040,127 @@ function rlBg(img, color){
   x.fillStyle = v; x.fillRect(0, 0, 180, 320);
   return c;
 }
+/* ---- "কোট কার্ড" design: the news itself is the hero — big headline with yellow-highlighted key words on a paper
+        background, a source tag, and the newspaper photo smaller in a rounded frame below ---- */
+const QT = { paper: '#ecebe6', ink: '#141414', mark: '#ffe23a', tag: '#0f2a44', tx: 44 };
+function qtPaper(ctx, ac, top){
+  ctx.fillStyle = QT.paper; ctx.fillRect(0, 0, RW, RH);
+  ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 1;                     // light grid, like a notebook page
+  for(let x = 0; x < RW; x += 36){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, top); ctx.stroke(); }
+  for(let y = 0; y < top; y += 36){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(RW, y + .5); ctx.stroke(); }
+  ctx.fillStyle = ac; ctx.fillRect(0, 0, RW, 8);
+}
+/* words of a headline; *starred* words are highlighted (no stars → the last line is highlighted) */
+function qtWrap(ctx, text, maxW, size, maxLines, min){
+  const raw = String(text || '').replace(/\s+/g, ' ').trim(), starred = /\*[^*]+\*/.test(raw);
+  const toks = []; let on = false;
+  raw.split(/(\*)/).forEach(part => { if(part === '*'){ on = !on; return; } part.split(' ').filter(Boolean).forEach(w => toks.push({ w, hl: on })); });
+  for(let s = size; ; s -= 3){
+    ctx.font = fontStr(s, 700, BFAM);
+    const sp = ctx.measureText(' ').width, lines = []; let cur = [], cw = 0;
+    toks.forEach(tk => { const ww = ctx.measureText(tk.w).width; if(cur.length && cw + sp + ww > maxW){ lines.push(cur); cur = []; cw = 0; } cur.push({ w: tk.w, hl: tk.hl, ww }); cw += (cur.length > 1 ? sp : 0) + ww; });
+    if(cur.length) lines.push(cur);
+    if(lines.length <= maxLines || s <= min){
+      if(!starred && lines.length > 1) lines[lines.length - 1].forEach(tk => tk.hl = true);
+      return { lines: lines.slice(0, Math.max(maxLines, lines.length)), size: s, sp };
+    }
+  }
+}
+/* draws the headline; `shown` = how many words are visible (for the word-by-word reveal) */
+function qtText(ctx, L, x, y, shown, color){
+  const lh = L.size * 1.42; let n = 0;
+  ctx.font = fontStr(L.size, 700, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  L.lines.forEach((ln, k) => {
+    let cx = x; const by = y + k * lh;
+    ln.forEach((tk, j) => {
+      if(n++ >= shown) return;
+      const pad = j < ln.length - 1 && ln[j + 1].hl && tk.hl ? L.sp : 0;
+      if(tk.hl){ ctx.fillStyle = QT.mark; ctx.fillRect(cx - 4, by - L.size * 0.98, tk.ww + 8 + pad, L.size * 1.3); }
+      ctx.fillStyle = color || QT.ink; ctx.fillText(tk.w, cx, by);
+      cx += tk.ww + L.sp;
+    });
+  });
+  return y + (L.lines.length - 1) * lh;
+}
+function qtQuoteMark(ctx, x, y, color){ ctx.fillStyle = color; ctx.font = fontStr(150, 800, 'Georgia,serif'); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('“', x - 6, y); }
+function qtTag(ctx, text, sub, x, y, ac){
+  ctx.font = fontStr(26, 700, BFAM); const w1 = ctx.measureText(text).width; ctx.font = fontStr(19, 600, BFAM); const w2 = sub ? ctx.measureText(sub).width : 0;
+  const w = Math.min(RW - 2 * x, Math.max(w1, w2) + 36), hgt = sub ? 74 : 50;
+  ctx.fillStyle = QT.tag; ctx.fillRect(x, y, w, hgt); ctx.fillStyle = ac; ctx.fillRect(x, y, 7, hgt);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = fontStr(26, 700, BFAM); ctx.fillText(text, x + 20, y + (sub ? 25 : hgt / 2 + 1), w - 28);
+  if(sub){ ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = fontStr(19, 600, BFAM); ctx.fillText(sub, x + 20, y + 55, w - 28); }
+  return y + hgt;
+}
+/* the photo, smaller, in a rounded white frame over an accent block; slow zoom inside */
+function qtPhoto(ctx, img, x, y, w, h, z, ac, lbl, a){
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = ac; rr(ctx, x + 26, y + 26, w, h, 30); ctx.fill();                    // accent block behind
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+  ctx.fillStyle = '#fff'; rr(ctx, x - 7, y - 7, w + 14, h + 14, 34); ctx.fill(); ctx.shadowColor = 'transparent';
+  ctx.save(); rr(ctx, x, y, w, h, 28); ctx.clip();
+  if(img) rlPhoto(ctx, img, x, y, w, h, z, 0); else rlPlainBg(ctx, ac, x, y, w, h);
+  ctx.restore();
+  if(img && lbl){ ctx.font = fontStr(18, 600, BFAM); const lw = ctx.measureText(lbl).width + 20;
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(ctx, x + 14, y + h - 44, lw, 30, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, x + 24, y + h - 28); }
+  ctx.restore();
+}
+function qtHead(ctx, R, i){                              // logo + page name + date, and the story counter
+  ctx.fillStyle = QT.ink; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  let x = QT.tx; if(C.logoImg){ rlLogoDisc(ctx, x + 26, 62, 26); x += 64; }
+  ctx.font = fontStr(26, 700, BFAM); ctx.fillText(R.page, x, 52, RW - x - 140);
+  ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillText(R.today, x, 80, RW - x - 140);
+  if(i != null){ ctx.textAlign = 'right'; ctx.fillStyle = QT.ink; ctx.font = fontStr(30, 800, BFAM); ctx.fillText(nwNum(i + 1) + '/' + nwNum(R.n), RW - QT.tx, 64); }
+}
+function qtScene(ctx, R, g, p){
+  const f = clamp(p / g.d, 0, 1), [ac] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {};
+  qtPaper(ctx, ac, 700);
+  qtHead(ctx, R, g.i);
+  qtQuoteMark(ctx, QT.tx, 250, ac);
+  const L = qtWrap(ctx, it.text || '', RW - 2 * QT.tx, 56, 5, 34);
+  const total = L.lines.reduce((a, l) => a + l.length, 0), tp = clamp((p - 0.15) / Math.min(1.3, g.d * 0.45), 0, 1);
+  const end = qtText(ctx, L, QT.tx, 250 + L.size * 0.6, Math.ceil(total * tp));
+  const ty = Math.min(end + 34, 590), tag = it.source ? t('rlSrcL') + it.source : R.page;
+  const tagEnd = qtTag(ctx, tag, it.date || R.today, QT.tx, ty, ac);
+  const img = cardOf(R, g.i), py = Math.max(tagEnd + 40, 640), ph = 1010 - py, inA = ease(p / 0.45);
+  const z = ((ed.zoom || 100) / 100) * (R.st.kb > 0 ? 1 + 0.08 * f : 1.08 - 0.08 * f);
+  ctx.save(); ctx.translate(0, (1 - inA) * 40);
+  qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, img ? rlPhLbl(it) : '', inA);
+  ctx.restore();
+}
+function qtCover(ctx, R, p, d){
+  const cv = R.cov, [ac, hl] = R.col(cv.i), z = 1 + 0.05 * clamp(p / d, 0, 1);
+  qtPaper(ctx, ac, 720);
+  qtHead(ctx, R, null);
+  const chip = cv.label || t('rlTitleDef'); ctx.font = fontStr(26, 800, BFAM); const cw = ctx.measureText(chip).width + 36;
+  ctx.fillStyle = '#e11d2a'; rr(ctx, QT.tx, 122, cw, 46, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(chip, QT.tx + 18, 146);
+  if(R.n > 1){ const s = nwNum(R.n) + 'টি খবর'; ctx.font = fontStr(26, 800, BFAM); const sw = ctx.measureText(s).width + 36;
+    ctx.fillStyle = QT.ink; rr(ctx, RW - QT.tx - sw, 122, sw, 46, 8); ctx.fill(); ctx.fillStyle = QT.mark; ctx.textAlign = 'center'; ctx.fillText(s, RW - QT.tx - sw / 2, 146); }
+  qtQuoteMark(ctx, QT.tx, 300, ac);
+  const L = qtWrap(ctx, cv.text, RW - 2 * QT.tx, 68, 4, 40);
+  const end = qtText(ctx, L, QT.tx, 300 + L.size * 0.55, 9999);
+  const it = R.items[cv.i] || {};
+  const tagEnd = qtTag(ctx, it.source ? t('rlSrcL') + it.source : R.page, '', QT.tx, Math.min(end + 34, 640), ac);
+  const py = Math.max(tagEnd + 36, 690), ph = 1040 - py;
+  qtPhoto(ctx, cv.img, 70, py, RW - 140, ph, z, ac, cv.img ? cv.lbl : '', 1);
+  const by = 1100, bh = 74; ctx.fillStyle = ac; ctx.fillRect(0, by, RW, bh); ctx.fillStyle = hl; ctx.fillRect(0, by, RW, 5);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(28, 700, BFAM); ctx.fillText('▶ ' + cv.cta, RW / 2, by + bh / 2 + 3, RW - 40);
+  ctx.fillStyle = '#05070f'; ctx.fillRect(0, by + bh, RW, RH - by - bh);
+}
+function qtOverlay(ctx, R, g, p, tm){
+  const [ac, hl] = R.col(g.i), ty = 1060, th = 58;
+  ctx.fillStyle = ac; ctx.fillRect(0, ty, RW, th); ctx.fillStyle = hl; ctx.fillRect(0, ty - 4, RW, 4);
+  const strip = R.tick, sw = strip.width, off = (tm * 95) % sw;                 // follow-the-page ticker
+  ctx.save(); ctx.beginPath(); ctx.rect(0, ty, RW, th); ctx.clip(); ctx.globalAlpha = 0.97;
+  for(let x = 14 - off; x < RW; x += sw) ctx.drawImage(strip, x, ty + (th - strip.height) / 2);
+  ctx.restore();
+  ctx.fillStyle = '#05070f'; ctx.fillRect(0, ty + th, RW, RH - ty - th);
+  const bw = 560, x0 = (RW - bw) / 2, y0 = ty + th + 34, gap = R.n > 20 ? 0 : 6, sw2 = (bw - gap * (R.n - 1)) / R.n;
+  for(let i = 0; i < R.n; i++){
+    const f = i < g.i ? 1 : i === g.i ? clamp(p / g.d, 0, 1) : 0, x = x0 + i * (sw2 + gap);
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x, y0, sw2, 6);
+    if(f > 0){ ctx.fillStyle = hl; ctx.fillRect(x, y0, sw2 * f, 6); }
+  }
+}
 function rlTimeline(n, secs){
   const I = 2.4, O = 2.4, segs = [{ k: 'intro', s: 0, d: I }]; let s = I;
   for(let i = 0; i < n; i++){ segs.push({ k: 'card', i, s, d: secs }); s += secs; }
@@ -8410,6 +8514,7 @@ function cdCover(ctx, R, p, d){
 }
 function rlScene(ctx, R, g, p){
   ctx.save();
+  if(g.k === 'card' && R.quote){ qtScene(ctx, R, g, p); ctx.restore(); return; }
   if(g.k === 'card' && R.live){ rlLiveScene(ctx, R, g, p); ctx.restore(); return; }
   if(g.k === 'card' && R.deck){ rlDeckScene(ctx, R, g, p, R.tm || 0); ctx.restore(); return; }
   if(g.k === 'intro') rlIntro(ctx, R, p, g.d);
@@ -8543,6 +8648,7 @@ function rlLogoDisc(ctx, cx, cy, r){
 function rlIntro(ctx, R, p, d){
   if(!R.cov) R.cov = rlCoverData(R, R.items, []);
   if(R.deck) return dkCover(ctx, R, p, d);
+  if(R.quote) return qtCover(ctx, R, p, d);
   if(R.live) return lvCover(ctx, R, p, d);
   if(!R.oldCover) return cdCover(ctx, R, p, d);
   const cv = R.cov, [ac, hl] = R.col(cv.i), img = cv.img, z = 1 + 0.06 * clamp(p / d, 0, 1);
@@ -8659,6 +8765,7 @@ function rlTrans(ctx, R, ga, gb, pb, e){
 function rlOverlay(ctx, R, g, p, tm){
   if(g.k === 'intro') return;                         // the cover stays clean
   if(R.deck && g.k === 'card'){ dkOverlay(ctx, R, g, p, tm); return; }
+  if(R.quote && g.k === 'card'){ qtOverlay(ctx, R, g, p, tm); return; }
   const [ac, hl] = R.col(0);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   // header (not on the opening title)
@@ -8713,7 +8820,7 @@ function rlFrame(ctx, R, t){
 }
 function rlMakeR(items, st){
   const page = pageName();
-  const R = { live: RL.tpl === 'live', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
+  const R = { live: RL.tpl === 'live' || RL.tpl === 'quote', quote: RL.tpl === 'quote', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
     title: RL.title || t('rlTitleDef'), page, today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
   R.tick = rlTickStrip(RL.ticker || rlTickDef(), R.col(0)[0]);
   return R;
@@ -9484,9 +9591,10 @@ $('rlAi').addEventListener('click', async () => {
   if(!S.gkey && !S.ckey){ needKey(); return; }
   rlSyncTexts();
   const btn = $('rlAi'), lbl = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> ' + esc(t('writing'));
-  const list = RL.items.map((it, i) => { const tz = sfTeaser(it.o.title || it.text) && it.o.text; return (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']' + (tz ? '\n   STORY TEXT: ' + shorten(norm(it.o.text), 900) : ''); }).join('\n');
+  const VAGUE = /যা বললেন|যা জানালেন|মুখ খুললেন|কী বললেন|কী আছে|কী হবে|কী ঘটেছে|জানুন|দেখুন|জেনে নিন|বিস্তারিত|কেন\s|\?\s*$/;
+  const list = RL.items.map((it, i) => { const tz = (sfTeaser(it.o.title || it.text) || VAGUE.test(plain(it.o.title || it.text))) && it.o.text; return (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']' + (tz ? '\n   STORY TEXT: ' + shorten(norm(it.o.text), 900) : ''); }).join('\n');
   const prompt = 'These are ' + RL.items.length + ' Bangladeshi news stories for a vertical news-roundup video reel on a Facebook news page:\n' + list +
-    '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. If a headline only teases a statement ("যা বললেন X", "মুখ খুললেন X") and does not say what was said, use the STORY TEXT and write it as  X: “the real main point”  instead, faithful to the text.' +
+    '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. Every card must tell the core of the news by itself — a reader who sees only the card must understand what happened. If the paper\'s headline is a teaser or vague ("যা বললেন X", "মুখ খুললেন X", "কী আছে…", "জেনে নিন", a question, or it hides the main fact), use the summary and the STORY TEXT and write the real main point instead — for a statement: X: “the real main point”; for an event: what happened, where, and the key number — faithful to the text.' +
     '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then ONE genuine open question that invites people to share their opinion about these stories (no engagement bait: never ask people to comment a word or number, tag friends, like or share). Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list.' +
     '\nTask 3: pick the ONE story most likely to make people stop scrolling and write the thumbnail text for the reel cover: at most 8 words in Bangladeshi Bengali, punchy and curiosity-raising but 100% true to that story (no lies, no exaggeration, no "শক"/"ভয়ংকর"-style shock words), the 1–2 key words wrapped in *asterisks*.' +
     '\nReturn ONLY JSON: {"cards":["headline 1","headline 2"],"caption":"...","cover":{"story":1,"text":"..."}} with exactly ' + RL.items.length + ' items in "cards".';

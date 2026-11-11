@@ -7364,6 +7364,17 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div class="rlf"><label for="rlTickIn" id="rlTickL"></label><input type="text" id="rlTickIn" maxlength="160" autocomplete="off"></div>
       <p class="rlmeta" id="rlTip"></p>
     </div>
+    <details class="rlsec rlcap" id="rlVoBox"><summary><b>🎙 ভয়েস (Cartesia — নিজের কণ্ঠ)</b></summary>
+      <label class="rlchk"><input type="checkbox" id="rlVoOn"><span>ভিডিওতে ভয়েস দিন</span></label>
+      <div class="rlf" style="margin-top:10px"><span>Cartesia API কী (শুধু এই ফোনে থাকে)</span><div style="display:flex;gap:6px"><input type="password" id="rlVoKey" autocomplete="off" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text)"><button type="button" class="btn" id="rlVoKeySave">সেভ</button></div></div>
+      <div class="rlf"><span>ভয়েস</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn" id="rlVoList">ভয়েস তালিকা আনুন</button><select id="rlVoSel" class="hidden" style="flex:1;min-width:150px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--text)"></select></div>
+        <input type="text" id="rlVoId" placeholder="অথবা ভয়েস ID পেস্ট করুন" autocomplete="off" style="margin-top:6px"></div>
+      <div class="rlf"><span>গতি</span><select id="rlVoSpeed" style="border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--text)"><option value="0.9">একটু ধীরে</option><option value="1">স্বাভাবিক</option><option value="1.1">একটু দ্রুত</option><option value="1.2">দ্রুত</option></select></div>
+      <div class="rlf"><span>ভয়েস-স্ক্রিপ্ট (স্ক্রিনে ছোট লেখা, কণ্ঠে বিস্তারিত)</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><button type="button" class="btn" id="rlVoAi">✨ AI দিয়ে লিখুন</button><button type="button" class="btn" id="rlVoCopy">📋 কপি করে জেমিনি খুলুন</button><button type="button" class="btn" id="rlVoPaste">📥 উত্তর পেস্ট</button><button type="button" class="btn" id="rlVoTry">▶ নমুনা</button></div>
+        <textarea id="rlVoTxt" spellcheck="false" placeholder="শুরু: …&#10;&#10;১: …&#10;&#10;২: …&#10;&#10;শেষ: …"></textarea></div>
+      <p class="rlmeta" id="rlVoSt">ভয়েস চালু থাকলে প্রতিটি খবর যতক্ষণ পড়া হয় ততক্ষণ স্ক্রিনে থাকবে, মিউজিক নিচু হয়ে বাজবে। সংখ্যা ও সংক্ষেপ নিজে থেকেই পড়ার মতো করে নেওয়া হয়।</p>
+    </details>
     <details class="rlsec rlcap" id="rlCapBox"><summary><b id="rlCapT"></b></summary><textarea id="rlCapIn" spellcheck="false"></textarea></details>
   </div>
   <div class="rlfoot"><button type="button" class="btn primary" id="rlMake">${ic(IC_FILM)}<span></span></button></div>
@@ -7420,6 +7431,7 @@ function rlOpen(){
   $('rlTitleIn').value = RL.title; $('rlTickIn').value = RL.ticker; $('rlPageIn').value = store.get('fbPageName', '') || '';
   rlTexts(); rlRenderList(); rlShowVideo(false); rlPreview();
   if(RL.items.length > 30) toast(t('rlLong'));
+  voInit();
   let aiGo = false; const go = () => { if(aiGo) return; aiGo = true; rlAutoAi(); };
   Promise.resolve(rlAutoFix()).catch(() => {}).then(go); setTimeout(go, 20000);
 }
@@ -8125,12 +8137,13 @@ function qtPhoto(ctx, img, x, y, w, h, z, ac, a){
   else rlPlainBg(ctx, ac, x, y, w, h);
   ctx.restore(); ctx.restore();
 }
-function qtHead(ctx, R, i, th){                             // logo + page name + date, and the story counter
+function qtHead(ctx, R, i, th){                             // page name + date on the left, the channel logo in the top-right corner
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  let x = QT.tx; if(C.logoImg){ rlLogoDisc(ctx, x + 26, 58, 26); x += 64; }
-  ctx.fillStyle = th.ink; ctx.font = fontStr(26, 700, BFAM); ctx.fillText(R.page, x, 48, RW - x - 140);
-  ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = th.sub; ctx.fillText(R.today, x, 76, RW - x - 140);
-  if(i != null){ ctx.textAlign = 'right'; ctx.fillStyle = th.ink; ctx.font = fontStr(30, 800, BFAM); ctx.fillText(nwNum(i + 1) + '/' + nwNum(R.n), RW - QT.tx, 60); }
+  const x = QT.tx, room = RW - x - (C.logoImg ? 120 : 40);
+  ctx.fillStyle = th.ink; ctx.font = fontStr(27, 700, BFAM); ctx.fillText(R.page, x, 46, room);
+  ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = th.sub; ctx.fillText(R.today, x, 76, room);
+  if(C.logoImg) rlLogoDisc(ctx, RW - 64, 54, 40);               // own corner, nothing else is drawn there
+  R.qtCount = i == null ? '' : nwNum(i + 1) + '/' + nwNum(R.n);
 }
 /* LIVE bar under the header: the reel's own headlines scroll by, like a news channel */
 function qtNewsStrip(R){
@@ -8156,6 +8169,8 @@ function qtLiveBar(ctx, R, tm, ac){
   const blink = 0.45 + 0.55 * Math.abs(Math.sin(tm * 3.2));
   ctx.beginPath(); ctx.arc(26, y + h / 2, 8, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,' + blink.toFixed(3) + ')'; ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = fontStr(24, 800, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('LIVE', 42, y + h / 2 + 1);
+  if(R.qtCount){ ctx.font = fontStr(24, 800, BFAM); const cw = ctx.measureText(R.qtCount).width + 30;
+    ctx.fillStyle = ac; ctx.fillRect(RW - cw, y, cw, h); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(R.qtCount, RW - cw / 2, y + h / 2 + 1); }
   ctx.fillStyle = ac; ctx.fillRect(0, y + h, RW, 3);
 }
 /* lays out headline + tag + photo for one story or for the cover */
@@ -8230,6 +8245,204 @@ function qtOverlay(ctx, R, g, p, tm){
     ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x, y0, sw2, 6);
     if(f > 0){ ctx.fillStyle = hl; ctx.fillRect(x, y0, sw2 * f, 6); }
   }
+}
+/* ===================== 🎙 voice-over (Cartesia — your own cloned voice) =====================
+   The reel can be read out by your Cartesia voice. A short card on screen gets a fuller spoken version (2–3 sentences),
+   numbers / dates / abbreviations are turned into spoken Bangla before the voice reads them, and every story stays on
+   screen exactly as long as its sentence. The API key stays only on this phone/browser. */
+const rlSpeak = (() => {
+  const toBn = s => String(s).replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d]);
+const BN_W=['শূন্য','এক','দুই','তিন','চার','পাঁচ','ছয়','সাত','আট','নয়','দশ','এগারো','বারো','তেরো','চৌদ্দ','পনেরো','ষোলো','সতেরো','আঠারো','উনিশ','বিশ','একুশ','বাইশ','তেইশ','চব্বিশ','পঁচিশ','ছাব্বিশ','সাতাশ','আটাশ','ঊনত্রিশ','ত্রিশ','একত্রিশ','বত্রিশ','তেত্রিশ','চৌত্রিশ','পঁয়ত্রিশ','ছত্রিশ','সাঁইত্রিশ','আটত্রিশ','ঊনচল্লিশ','চল্লিশ','একচল্লিশ','বিয়াল্লিশ','তেতাল্লিশ','চুয়াল্লিশ','পঁয়তাল্লিশ','ছেচল্লিশ','সাতচল্লিশ','আটচল্লিশ','ঊনপঞ্চাশ','পঞ্চাশ','একান্ন','বায়ান্ন','তিপ্পান্ন','চুয়ান্ন','পঞ্চান্ন','ছাপ্পান্ন','সাতান্ন','আটান্ন','ঊনষাট','ষাট','একষট্টি','বাষট্টি','তেষট্টি','চৌষট্টি','পঁয়ষট্টি','ছেষট্টি','সাতষট্টি','আটষট্টি','ঊনসত্তর','সত্তর','একাত্তর','বাহাত্তর','তিয়াত্তর','চুয়াত্তর','পঁচাত্তর','ছিয়াত্তর','সাতাত্তর','আটাত্তর','ঊনআশি','আশি','একাশি','বিরাশি','তিরাশি','চুরাশি','পঁচাশি','ছিয়াশি','সাতাশি','অষ্টাশি','ঊননব্বই','নব্বই','একানব্বই','বিরানব্বই','তিরানব্বই','চুরানব্বই','পঁচানব্বই','ছিয়ানব্বই','সাতানব্বই','আটানব্বই','নিরানব্বই'];
+function bnWords(n){n=Math.floor(Math.abs(n));if(n<100)return BN_W[n];const parts=[];
+  const cr=Math.floor(n/1e7);n%=1e7;if(cr)parts.push(bnWords(cr)+' কোটি');const lk=Math.floor(n/1e5);n%=1e5;if(lk)parts.push(BN_W[lk]+' লাখ');
+  const th=Math.floor(n/1e3);n%=1e3;if(th)parts.push(BN_W[th]+' হাজার');const hu=Math.floor(n/100);n%=100;if(hu)parts.push(BN_W[hu]+(n?'শো':'শো'));if(n)parts.push(BN_W[n]);return parts.join(' ');}
+function bnYear(y){if(y>=1100&&y<2000){const a=Math.floor(y/100),b=y%100;return BN_W[a]+'শো'+(b?' '+BN_W[b]:'');}return bnWords(y);}
+function bnNum(str){const s=String(str).replace(/[,،]/g,'');const neg=s.startsWith('-');const [a,b]=s.replace('-','').split('.');let w=bnWords(+a||0);if(b)w+=' দশমিক '+b.split('').map(d=>BN_W[+d]).join(' ');return(neg?'মাইনাস ':'')+w;}
+const ORD={'১ম':'প্রথম','২য়':'দ্বিতীয়','৩য়':'তৃতীয়','৪র্থ':'চতুর্থ','৫ম':'পঞ্চম','৬ষ্ঠ':'ষষ্ঠ','৭ম':'সপ্তম','৮ম':'অষ্টম','৯ম':'নবম','১০ম':'দশম','১১তম':'একাদশ','১২তম':'দ্বাদশ'};
+const ABBR=[[/\((?:সা|সাঃ|স)\.?\)|\(সা\.\)/g,' সাল্লাল্লাহু আলাইহি ওয়াসাল্লাম'],[/\(রা\.?\)|\(রাঃ\)/g,' রাদিয়াল্লাহু তাআলা আনহু'],[/\(আ\.?\)|\(আঃ\)/g,' আলাইহিস সালাম'],[/\(রহ\.?\)|\(রহঃ\)/g,' রহমাতুল্লাহি আলাইহি'],[/\(সুব\.?\)/g,' সুবহানাহু ওয়া তাআলা'],
+  [/(^|[\s(])মোছাঃ?\.?\s*/g,'$1মোছাম্মৎ '],[/(^|[\s(])মোসাঃ?\.?\s*/g,'$1মোসাম্মৎ '],[/(^|[\s(])মোঃ\s*/g,'$1মোহাম্মদ '],[/(^|[\s(])মো\.\s*/g,'$1মোহাম্মদ '],[/(^|[\s(])মুহা\.\s*/g,'$1মুহাম্মদ '],
+  [/(^|[\s(])ডা\.\s*/g,'$1ডাক্তার '],[/(^|[\s(])ড\.\s*/g,'$1ডক্টর '],[/(^|[\s(])মি\.\s*/g,'$1মিস্টার '],[/(^|[\s(])লে\.\s*/g,'$1লেফটেন্যান্ট '],[/(^|[\s(])অব\.\)?/g,'$1অবসরপ্রাপ্ত'],[/\(অব\.\)/g,'(অবসরপ্রাপ্ত)'],
+  [/(^|[\s(])প্রফে\.\s*/g,'$1প্রফেসর '],[/(^|[\s(])অধ্যা\.\s*/g,'$1অধ্যাপক '],[/কি\.?\s?মি\.?(?=[\s।,]|$)/g,'কিলোমিটার'],[/(\d|[০-৯])\s?কিমি/g,'$1 কিলোমিটার'],[/খ্রি\.|খ্রিঃ/g,'খ্রিস্টাব্দ'],[/বি\.দ্র\./g,'বিশেষ দ্রষ্টব্য'],
+  [/(^|\s)নং(?=[\s।,]|$)/g,'$1নম্বর'],[/লিঃ|লি\.(?=[\s।,]|$)/g,'লিমিটেড'],[/(^|\s)হযরত\s/g,'$1হযরত '],[/\bkm\b/gi,'কিলোমিটার'],[/\bkg\b/gi,'কেজি']];
+function tfSpeakText(s){s=String(s||'').normalize('NFC');
+  ABBR.forEach(([re,to])=>{s=s.replace(re,to);});
+  s=s.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));                      // digits → 0-9 for parsing
+  s=s.replace(/(\d{1,2})([\u0980-\u09FF]{1,3})/g,(m,a,b)=>{const k=(toBn(a)+b).normalize('NFC');for(const o in ORD){if(k.startsWith(o.normalize('NFC')))return ORD[o]+k.slice(o.normalize('NFC').length);}return m;});
+  s=s.replace(/(\d)\s?[-–]\s?(\d)/g,'$1 থেকে $2');
+  s=s.replace(/৳\s?(\d+(?:,\d+)*(?:\.\d+)?)/g,'$1 টাকা').replace(/\$\s?(\d+(?:,\d+)*(?:\.\d+)?)/g,'$1 ডলার');
+  s=s.replace(/(\d{1,2}):(\d{2})/g,(m,h,mm)=>bnWords(+h)+'টা'+(+mm?' '+bnWords(+mm)+' মিনিট':''));
+  s=s.replace(/(\d{4})\s*(সাল|খ্রিস্টাব্দ|সনে|সন)/g,(m,y,w)=>bnYear(+y)+' '+w);
+  s=s.replace(/(\d+(?:,\d+)*(?:\.\d+)?)\s?%/g,(m,n)=>bnNum(n)+' শতাংশ');
+  s=s.replace(/(\d+(?:,\d+)*(?:\.\d+)?)/g,(m)=>{const n=m.replace(/,/g,'');if(/^\d{4}$/.test(n)&&+n>=1900&&+n<=2099)return bnYear(+n);return bnNum(n);});
+  s=s.replace(/[-–—]/g,' ').replace(/\s+([।,?!])/g,'$1').replace(/[()"“”'‘’\[\]{}|/\\~^]/g,' ').replace(/\s{2,}/g,' ').trim();
+  return s;}
+
+  return tfSpeakText;
+})();
+const VO = Object.assign({ on: false, voice: '', voiceName: '', model: 'sonic-3.5', speed: 1 }, store.get('rlVo', {}));
+const voSave = () => store.set('rlVo', { on: VO.on, voice: VO.voice, voiceName: VO.voiceName, model: VO.model, speed: VO.speed });
+const voKey = () => { try{ return localStorage.getItem('tfx_cartkey') || ''; }catch(e){ return ''; } };
+const voCache = new Map();
+function voSay(m, ok){ const s = $('rlVoSt'); if(!s) return; s.textContent = m; s.style.color = ok ? 'var(--accent)' : ''; }
+async function voFetch(path, opt){
+  const key = voKey(); if(!key) throw new Error('NOKEY');
+  let r; try{ r = await fetch('https://api.cartesia.ai' + path, Object.assign({}, opt, { headers: Object.assign({ 'Authorization': 'Bearer ' + key, 'Cartesia-Version': '2026-03-01' }, (opt && opt.headers) || {}) })); }catch(e){ throw new Error('NET'); }
+  return r;
+}
+function voErr(e){
+  const m = String((e && e.message) || e);
+  if(m === 'NOKEY') return 'আগে Cartesia API কী দিন।';
+  if(m === 'BADKEY') return 'Cartesia কী ঠিক নেই বা মেয়াদ শেষ।';
+  if(m === 'NOVOICE') return 'আগে একটা ভয়েস বেছে নিন ("ভয়েস তালিকা আনুন") বা ভয়েস ID দিন।';
+  if(m === 'NET') return 'Cartesia-তে পৌঁছানো যায়নি — ইন্টারনেট দেখুন।';
+  return m;
+}
+/* one sentence → wav bytes (cached) */
+async function voWav(text){
+  if(!VO.voice) throw new Error('NOVOICE');
+  const k = [VO.voice, VO.model, VO.speed, text].join('§'); if(voCache.has(k)) return voCache.get(k);
+  let cfg = true;
+  for(let a = 0; a < 6; a++){
+    if(RL.cancel) throw new Error('cancel');
+    const b = { model_id: VO.model || 'sonic-3.5', transcript: text, voice: { mode: 'id', id: VO.voice }, output_format: { container: 'wav', encoding: 'pcm_s16le', sample_rate: 44100 }, language: 'bn' };
+    if(cfg && +VO.speed !== 1) b.generation_config = { speed: +VO.speed || 1 };
+    const r = await voFetch('/tts/bytes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+    if(r.status === 429 || r.status >= 500){ await sleep(6000); continue; }
+    if(!r.ok){ const tx = await r.text().catch(() => ''); if(r.status === 400 && cfg && /generation_config|speed/i.test(tx)){ cfg = false; continue; }
+      if(r.status === 401 || r.status === 403) throw new Error('BADKEY');
+      let m = tx; try{ const j = JSON.parse(tx); m = j.message || j.error || tx; }catch(e){} throw new Error('Cartesia: ' + String(m).slice(0, 160)); }
+    const ab = await r.arrayBuffer(); if(voCache.size > 200) voCache.clear(); voCache.set(k, ab); return ab;
+  }
+  throw new Error('Cartesia বারবার ব্যস্ত — একটু পরে চেষ্টা করুন।');
+}
+/* ---- the script: "শুরু:", "১:", "২:" …, "শেষ:" ---- */
+const VO_DIG = s => String(s).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
+function voParse(txt){
+  const o = { intro: '', items: [], outro: '' }; let cur = null;
+  String(txt || '').replace(/\r/g, '').split('\n').filter(l => !/^\s*```/.test(l)).forEach(line => {
+    const m = line.match(/^\s*(?:\*\*)?\s*(শুরু|শেষ|intro|outro|[০-৯\d]{1,2})\s*(?:\*\*)?\s*[:：.)]\s*(.*)$/i);
+    if(m){ const lb = m[1].toLowerCase(); cur = lb === 'শুরু' || lb === 'intro' ? 'intro' : lb === 'শেষ' || lb === 'outro' ? 'outro' : (+VO_DIG(lb) - 1); }
+    const body = (m ? m[2] : line).replace(/\*\*/g, '').trim(); if(cur == null || !body) return;
+    if(cur === 'intro' || cur === 'outro') o[cur] = (o[cur] + ' ' + body).trim();
+    else if(cur >= 0) o.items[cur] = ((o.items[cur] || '') + ' ' + body).trim();
+  });
+  return o;
+}
+function voFormat(o){
+  const L = ['শুরু: ' + (o.intro || '')];
+  RL.items.forEach((_, i) => L.push(nwNum(i + 1) + ': ' + (o.items[i] || '')));
+  L.push('শেষ: ' + (o.outro || ''));
+  return L.join('\n\n');
+}
+function voStories(){
+  return RL.items.map((it, i) => { const o = it.o || {}, d = shorten(norm(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || '')), 400);
+    return (i + 1) + '. ' + plain(o.title || it.text) + ' [সূত্র: ' + (it.source || '') + ']' + (d ? '\n   সারাংশ: ' + d : '') + (o.text ? '\n   মূল লেখা: ' + shorten(norm(o.text), 1200) : ''); }).join('\n');
+}
+function voPrompt(){
+  const page = pageName();
+  return 'তুমি একটি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর সংবাদ পাঠক। নিচের ' + RL.items.length + 'টি খবর দিয়ে একটি রিলের ভয়েসওভার স্ক্রিপ্ট লেখো, যা একটি AI কণ্ঠ (টেক্সট-টু-স্পিচ) পড়বে।\n\n' +
+    'নিয়ম:\n' +
+    '১. প্রতিটি খবরের জন্য ২–৩টি বাক্য, মোট ৩৫–৫৫ শব্দ। স্ক্রিনে শুধু ছোট শিরোনাম থাকে, তাই কণ্ঠে বিস্তারিত বলবে: কী ঘটেছে, কার সাথে বা কোথায়, মূল সংখ্যা বা সিদ্ধান্ত, আর এর প্রভাব কী।\n' +
+    '২. শুধু দেওয়া তথ্য থেকে লিখবে — নতুন তথ্য, মতামত, অনুমান বা অতিরঞ্জন নয়। প্রতিটি খবরে একবার স্বাভাবিকভাবে সূত্রের নাম বলবে (যেমন "প্রথম আলো জানিয়েছে")।\n' +
+    '৩. শিরোনাম যদি অস্পষ্ট হয় ("যা বললেন…", "মুখ খুললেন…"), সারাংশ ও মূল লেখা থেকে আসল কথাটা বলবে।\n' +
+    '৪. কানে শোনার মতো করে লেখো: সব সংখ্যা কথায় লিখবে (৯০ হাজার কোটি → নব্বই হাজার কোটি, ১১ নভেম্বর → এগারো নভেম্বর, ৩৫% → পঁয়ত্রিশ শতাংশ, ২০২৬ সাল → দুই হাজার ছাব্বিশ সাল), সংক্ষেপ পুরো লিখবে (মো. → মোহাম্মদ, ডা. → ডাক্তার, কিমি → কিলোমিটার), ইংরেজি শব্দ বাংলা উচ্চারণে বাংলা অক্ষরে লিখবে। কোনো বন্ধনী, উদ্ধৃতিচিহ্ন, ড্যাশ, ইমোজি, হ্যাশট্যাগ বা লিংক নয়। ছোট বাক্য, স্বাভাবিক বিরতির জন্য কমা।\n' +
+    '৫. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা; সহিংস বা ভয় দেখানো বর্ণনা নয়।\n' +
+    '৬. শুরু: এক বাক্যে সালাম ও স্বাগত, যেমন "আসসালামু আলাইকুম, ' + page + '-এ আপনাকে স্বাগতম, দেখে নিন আজকের গুরুত্বপূর্ণ খবরগুলো।"\n' +
+    '৭. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া একটি প্রশ্ন, আর নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করার অনুরোধ।\n\n' +
+    'উত্তর শুধু এই ফরম্যাটে দেবে, অন্য কিছু লিখবে না:\nশুরু: …\n১: …\n২: …\n(প্রতিটি খবরের জন্য একটি করে, একই ক্রমে)\nশেষ: …\n\nখবরগুলো:\n' + voStories();
+}
+/* when no AI script exists: headline + the first sentence of the summary, still made easy to speak */
+function voFallback(){
+  const page = pageName();
+  return { intro: 'আসসালামু আলাইকুম, ' + page + '-এ আপনাকে স্বাগতম। দেখে নিন আজকের গুরুত্বপূর্ণ খবরগুলো।',
+    items: RL.items.map(it => { const o = it.o || {}, d = plain(typeof nwStrip === 'function' && /<[a-z]/i.test(o.desc || '') ? nwStrip(o.desc) : (o.desc || ''));
+      const s = (d.split(/(?<=[।!?])\s+/).slice(0, 2).join(' ') || '').trim(); return plain(it.text) + '। ' + (s && !s.includes(plain(it.text).slice(0, 15)) ? s + ' ' : '') + (it.source ? it.source + ' এ খবর জানিয়েছে।' : ''); }),
+    outro: 'এই খবরগুলো নিয়ে আপনার মতামত কমেন্টে জানান। নিয়মিত খবর পেতে ' + page + ' পেজটি ফলো করুন।' };
+}
+const voSig = () => RL.items.map(x => x.link).join('|');
+function voScript(){ const tx = $('rlVoTxt') ? $('rlVoTxt').value : ''; const o = voParse(tx), fb = voFallback();
+  return { intro: o.intro || fb.intro, items: RL.items.map((_, i) => o.items[i] || fb.items[i]), outro: o.outro || fb.outro }; }
+function voSetScript(txt){ const o = voParse(txt); if(!o.items.filter(Boolean).length) return false; $('rlVoTxt').value = voFormat(o); RL.voSig = voSig(); $('rlVoBox').open = true; return true; }
+async function voAiWrite(quiet){
+  if(!(S.gkey || S.ckey)){ if(!quiet) voSay('অটো লেখার জন্য সেটিংসে Gemini/Claude কী লাগবে — না থাকলে "কপি করে জেমিনি খুলুন" ব্যবহার করুন।'); return false; }
+  const b = $('rlVoAi'); b.disabled = true; voSay('AI ভয়েস-স্ক্রিপ্ট লিখছে…');
+  try{ const r = await writeAi({ contents: [{ parts: [{ text: voPrompt() }] }], generationConfig: { temperature: 0.6 } }, 120000);
+    if(!voSetScript(r.text)) throw new Error('AI ঠিক ফরম্যাটে উত্তর দেয়নি — আবার চাপুন'); voSay('✔ ভয়েস-স্ক্রিপ্ট তৈরি। চাইলে নিচে বদলাতে পারেন।', true); return true; }
+  catch(e){ voSay('✖ ' + (typeof aiErrMsg === 'function' ? aiErrMsg(e) : e.message)); return false; }
+  finally{ b.disabled = false; }
+}
+async function voCopyGemini(){
+  const p = voPrompt();
+  try{ await navigator.clipboard.writeText(p); }catch(e){ const ta = document.createElement('textarea'); ta.value = p; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e2){} ta.remove(); }
+  voSay('✔ নির্দেশনা আর খবর কপি হয়েছে। জেমিনিতে পেস্ট করে পাঠান, উত্তর কপি করে এখানে "উত্তর পেস্ট" চাপুন।', true);
+  setTimeout(() => { try{ window.open('https://gemini.google.com/app', '_blank'); }catch(e){} }, 400);
+}
+async function voPaste(){
+  let tx = ''; try{ tx = await navigator.clipboard.readText(); }catch(e){}
+  if(!tx){ const ta = $('rlVoTxt'); ta.focus(); voSay('ফোন অনুমতি দেয়নি — বক্সে লম্বা চাপ দিয়ে Paste করুন।'); return; }
+  if(voSetScript(tx)) voSay('✔ জেমিনির লেখা বসানো হয়েছে।', true); else { $('rlVoTxt').value = tx; voSay('লেখাটা "শুরু: / ১: / ২: / শেষ:" ফরম্যাটে নেই — দেখে ঠিক করে নিন।'); }
+}
+async function voVoices(){
+  voSay('ভয়েস তালিকা আনা হচ্ছে…'); const sel = $('rlVoSel');
+  try{
+    const get = async q => { const r = await voFetch('/voices?limit=100' + q); if(r.status === 401 || r.status === 403) throw new Error('BADKEY'); if(!r.ok) throw new Error('Cartesia: ' + r.status); return (await r.json()).data || []; };
+    const mine = await get('&is_owner=true'); let pub = []; try{ pub = (await get('')).filter(v => !v.is_owner && v.language === 'bn'); }catch(e){}
+    sel.innerHTML = '';
+    const grp = (label, list) => { if(!list.length) return; const g = document.createElement('optgroup'); g.label = label; list.forEach(v => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.name; g.appendChild(o); }); sel.appendChild(g); };
+    grp('আমার ভয়েস', mine); grp('বাংলা ভয়েস', pub);
+    if(VO.voice && [...sel.options].some(o => o.value === VO.voice)) sel.value = VO.voice; else if(sel.options.length){ VO.voice = sel.value; VO.voiceName = sel.options[sel.selectedIndex].textContent; voSave(); }
+    sel.classList.remove('hidden'); voSay('✔ ' + nwNum(mine.length) + 'টি নিজের ভয়েস পাওয়া গেছে।', true);
+  }catch(e){ voSay('✖ ' + voErr(e)); }
+}
+async function voSample(){
+  const b = $('rlVoTry'); b.disabled = true; voSay('নমুনা তৈরি হচ্ছে…');
+  try{ const s = voScript(), t = rlSpeak(s.items[0] || s.intro).slice(0, 300); const ab = await voWav(t);
+    const a = new Audio(URL.createObjectURL(new Blob([ab], { type: 'audio/wav' }))); a.play().catch(() => {}); voSay('▶ নমুনা বাজছে।', true); }
+  catch(e){ voSay('✖ ' + voErr(e)); } finally{ b.disabled = false; }
+}
+/* used by rlMake: makes every part's audio, sets each story's time to its sentence, returns the parts */
+async function voBuild(ac, R, prog){
+  if(!VO.on) return null;
+  if(!voKey()) throw new Error(voErr('NOKEY')); if(!VO.voice) throw new Error(voErr('NOVOICE'));
+  if((S.gkey || S.ckey) && RL.voSig !== voSig()) await voAiWrite(true);   // fresh stories → write their script first
+  const s = voScript(), texts = [s.intro].concat(s.items, [s.outro]).map(x => rlSpeak(x || ''));
+  const bufs = [];
+  for(let i = 0; i < texts.length; i++){
+    if(RL.cancel) throw new Error('cancel');
+    prog('🎙 ভয়েস তৈরি হচ্ছে… ' + nwNum(i + 1) + '/' + nwNum(texts.length), i / texts.length);
+    bufs.push(texts[i] ? await ac.decodeAudioData((await voWav(texts[i])).slice(0)) : null);
+  }
+  const len = b => b ? b.duration : 0;
+  const intro = Math.max(2.4, len(bufs[0]) + 0.4), cards = RL.items.map((_, i) => Math.max(RL.secs, len(bufs[i + 1]) + 0.6)), outro = Math.max(2.4, len(bufs[bufs.length - 1]) + 0.5);
+  const segs = [{ k: 'intro', s: 0, d: intro }]; let t = intro;
+  cards.forEach((d, i) => { segs.push({ k: 'card', i, s: t, d }); t += d; });
+  segs.push({ k: 'outro', s: t, d: outro });
+  R.tl = { segs, total: t + outro };
+  R.vo = segs.map((g, k) => ({ at: g.s + (k ? 0.35 : 0.25), buf: bufs[k] })).filter(x => x.buf);
+  return R.vo;
+}
+function voPlay(ac, dest, R, T0){
+  if(!R.vo) return;
+  const g = ac.createGain(); g.gain.value = 1; const c = ac.createDynamicsCompressor(); c.threshold.value = -18; c.ratio.value = 3;
+  g.connect(c); c.connect(dest);
+  R.vo.forEach(v => { const s = ac.createBufferSource(); s.buffer = v.buf; s.connect(g); s.start(T0 + v.at); });
+}
+function voInit(){
+  if(voInit.done) return; voInit.done = true;
+  const kin = $('rlVoKey'); kin.placeholder = voKey() ? '•••••• (সেভ করা আছে)' : 'sk_car_…';
+  $('rlVoOn').checked = VO.on; $('rlVoSpeed').value = String(VO.speed || 1); $('rlVoId').value = VO.voice || '';
+  if(VO.voiceName) voSay('ভয়েস: ' + VO.voiceName, true);
+  $('rlVoOn').addEventListener('change', () => { VO.on = $('rlVoOn').checked; voSave(); if(VO.on && !voKey()) voSay('Cartesia কী দিন, তারপর ভয়েস বেছে নিন।'); });
+  $('rlVoKeySave').addEventListener('click', () => { const v = kin.value.trim(); if(!v) return; try{ localStorage.setItem('tfx_cartkey', v); }catch(e){} kin.value = ''; kin.placeholder = '•••••• (সেভ করা আছে)'; voVoices(); });
+  $('rlVoList').addEventListener('click', voVoices);
+  $('rlVoSel').addEventListener('change', e => { VO.voice = e.target.value; VO.voiceName = e.target.options[e.target.selectedIndex].textContent; $('rlVoId').value = VO.voice; voSave(); });
+  $('rlVoId').addEventListener('change', e => { VO.voice = e.target.value.trim(); VO.voiceName = ''; voSave(); });
+  $('rlVoSpeed').addEventListener('change', e => { VO.speed = +e.target.value || 1; voSave(); });
+  $('rlVoAi').addEventListener('click', () => voAiWrite(false));
+  $('rlVoCopy').addEventListener('click', voCopyGemini);
+  $('rlVoPaste').addEventListener('click', voPaste);
+  $('rlVoTry').addEventListener('click', voSample);
+  $('rlVoTxt').addEventListener('input', () => { RL.voSig = voSig(); });
 }
 function rlTimeline(n, secs){
   const I = 2.4, O = 2.4, segs = [{ k: 'intro', s: 0, d: I }]; let s = I;
@@ -9194,7 +9407,7 @@ const RL_GEN = {
 const RL_TRACKS = ['beat', 'headline', 'war', 'alert', 'trailer', 'countdown', 'march', 'breaking', 'piano', 'emotional', 'tension', 'happy', 'lofi'];
 function rlMusicOpts(){ return RL_TRACKS.map(k => [k, t('rlm_' + k)]).concat([['file', t('rlmFile')], ['none', t('rlmNone')]]); }
 function rlAudio(ac, dest, R, T0){
-  const total = R.tl.total, master = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = 0.85;
+  const total = R.tl.total, master = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = R.vo ? 0.2 : 0.85;
   comp.threshold.value = -14; comp.ratio.value = 4; master.connect(comp); comp.connect(dest);
   master.gain.setValueAtTime(0, T0); master.gain.linearRampToValueAtTime(vol, T0 + 0.35);
   master.gain.setValueAtTime(vol, T0 + Math.max(0.4, total - 1.8)); master.gain.linearRampToValueAtTime(0, T0 + total);
@@ -9401,14 +9614,14 @@ function rlBusy(on){
 async function rlMake(){
   if(RL.busy || !RL.items.length) return;
   rlPvStop();
-  const mime = rlMime(RL.music !== 'none');
+  const mime = rlMime(RL.music !== 'none' || VO.on);
   if(mime === null || !$('rlCanvas').captureStream){ toast(t('rlNoRec')); return; }
   rlSyncTexts(); RL.cancel = false; rlBusy(true);
   const v = $('rlVideo'); try{ v.pause(); }catch(e){}
   rlShowVideo(false);
   let ac = null, lock = null, stopAudio = null, stream = null;
   const AC = window.AudioContext || window.webkitAudioContext;
-  if(RL.music !== 'none' && AC){ try{ ac = new AC(); ac.resume(); }catch(e){ ac = null; } }     // started inside the tap
+  if((RL.music !== 'none' || VO.on) && AC){ try{ ac = new AC(); ac.resume(); }catch(e){ ac = null; } }     // started inside the tap
   const bmps = [];
   try{
     await ensureFonts();
@@ -9449,6 +9662,7 @@ async function rlMake(){
     const keepNear = ci => { if(!many) return; for(const [i, bm] of R.bmp){ if(i < ci - 1 || i > ci + 2){ R.bmp.delete(i); if(bm && bm.close) try{ bm.close(); }catch(e){} } } [ci, ci + 1, ci + 2].forEach(want); };
     if(many){ await Promise.all([0, 1, 2].map(want)); }
     if(RL.cancel) throw new Error('cancel');
+    if(VO.on){ if(!ac) throw new Error('audio'); await voBuild(ac, R, prog); }   // voice parts + story times follow the sentences
     // c) record in real time
     const cv = $('rlCanvas'), ctx = cv.getContext('2d');
     rlFrame(ctx, R, 0);
@@ -9459,7 +9673,7 @@ async function rlMake(){
     if(ac){
       try{ await ac.resume(); }catch(e){}
       const dest = ac.createMediaStreamDestination(); T0 = ac.currentTime + 0.15;
-      stopAudio = rlAudio(ac, dest, R, T0); dest.stream.getAudioTracks().forEach(tk => tracks.push(tk));
+      stopAudio = RL.music !== 'none' ? rlAudio(ac, dest, R, T0) : null; voPlay(ac, dest, R, T0); dest.stream.getAudioTracks().forEach(tk => tracks.push(tk));
     }
     const ms = new MediaStream(tracks), o = { videoBitsPerSecond: 5000000 };
     if(mime) o.mimeType = mime; if(ac) o.audioBitsPerSecond = 128000;

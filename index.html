@@ -8918,15 +8918,21 @@ function rlLiveScene(ctx, R, g, p){
   const f = clamp(p / g.d, 0, 1), [ac, hl] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {};
   drawBg(ctx, R.bgs[g.i], f);
   ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 0, RW, RH);
-  const py = LV.py, ph = LV.ph, img = cardOf(R, g.i), inA = ease(p / 0.4);
-  // photo — slides down a little and slowly zooms (Ken Burns)
-  ctx.save(); ctx.globalAlpha = inA; ctx.translate(0, (1 - inA) * -36);
-  if(img){ ctx.restore(); ctx.save(); rlPicFx(ctx, img, 0, py, RW, ph, Object.assign(rlPicPick(R, g.i), { f, p, ac, hl, bd: true, clip: true, z: (ed.zoom || 100) / 100 })); }
+  // ব্রেকিং নিউজ: the photo always fills the whole top half edge to edge (no small card, circle, frame or
+  // slide-in) — only a slow, steady zoom; the header and date sit on a dark fade over the photo
+  const py = 0, ph = LV.py + LV.ph, img = cardOf(R, g.i);
+  ctx.save();
+  if(img){
+    const src = rlPicSrc(img, RW, ph, (ed.zoom || 100) / 100, 'in', f, 'lv');
+    ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, py);
+  }
   else rlPlainBg(ctx, ac, 0, py, RW, ph);
-  const vg = ctx.createLinearGradient(0, py + ph - 120, 0, py + ph); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
-  ctx.fillStyle = vg; ctx.fillRect(0, py + ph - 120, RW, 120);
+  const tg = ctx.createLinearGradient(0, 0, 0, 230); tg.addColorStop(0, 'rgba(0,0,0,.78)'); tg.addColorStop(.6, 'rgba(0,0,0,.4)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = tg; ctx.fillRect(0, 0, RW, 230);
+  const vg = ctx.createLinearGradient(0, py + ph - 140, 0, py + ph); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.6)');
+  ctx.fillStyle = vg; ctx.fillRect(0, py + ph - 140, RW, 140);
   if(img && rlPhLbl(it)){ ctx.font = fontStr(19, 600, BFAM); const lb = rlPhLbl(it), w = ctx.measureText(lb).width + 22;
-    ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, 18, py + 16, w, 32, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lb, 29, py + 33); }
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(ctx, 18, py + ph - 52, w, 32, 6); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lb, 29, py + ph - 35); }
   ctx.restore();
   // channel strip
   const sy = py + ph;
@@ -8943,23 +8949,13 @@ function rlLiveScene(ctx, R, g, p){
   const hy = sy + LV.sh, hh = LV.hh;
   const pg = ctx.createLinearGradient(0, hy, 0, hy + hh); pg.addColorStop(0, shade(ac, -0.72)); pg.addColorStop(1, 'rgba(6,10,24,.94)');
   ctx.fillStyle = pg; ctx.fillRect(0, hy, RW, hh);
-  const text = String(it.text || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim();
-  const Lw = rlWrap(ctx, text, RW - 80, 54, 700, 3, 34);
-  const words = Lw.lines.map(l => l.split(' ')), total = words.reduce((a, w) => a + w.length, 0);
+  const M = lvMarks(it.text);
+  const Lw = rlWrap(ctx, M.text, RW - 90, 54, 700, 3, 34);
+  const total = M.flags.length;
   const typeDur = Math.min(1.6, g.d * 0.5), tp = clamp((p - 0.3) / typeDur, 0, 1), shown = Math.ceil(total * tp);
-  const lh = Lw.size * 1.32, blockH = lh * Lw.lines.length, y0 = hy + (hh - 46 - blockH) / 2 + Lw.size * 0.98;
-  ctx.font = fontStr(Lw.size, 700, BFAM); ctx.textBaseline = 'alphabetic';
-  let cnt = 0, curX = 0, curY = 0;
-  words.forEach((ws, k) => {
-    const part = ws.slice(0, Math.max(0, Math.min(ws.length, shown - cnt))); cnt += ws.length;
-    const full = Lw.lines[k], fw = ctx.measureText(full).width, lx = (RW - fw) / 2, y = y0 + k * lh;
-    if(!part.length) return;
-    const str = part.join(' ');
-    ctx.textAlign = 'left'; ctx.fillStyle = (Lw.lines.length > 1 && k === Lw.lines.length - 1) ? hl : '#fff';
-    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8; ctx.fillText(str, lx, y); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
-    curX = lx + ctx.measureText(str).width; curY = y;
-  });
-  if(tp < 1 && shown > 0 && Math.sin(p * 18) > -0.2){ ctx.fillStyle = hl; ctx.fillRect(curX + 6, curY - Lw.size * 0.82, 5, Lw.size * 0.95); }
+  const lh = Lw.size * 1.36, blockH = lh * Lw.lines.length, y0 = hy + (hh - 46 - blockH) / 2 + Lw.size * 0.98;
+  const cur = lvHead(ctx, Lw.lines, M.flags, Lw.size, lh, y0, hl, shown, M.any);
+  if(tp < 1 && shown > 0 && Math.sin(p * 18) > -0.2){ ctx.fillStyle = hl; ctx.fillRect(cur.x + 6, cur.y - Lw.size * 0.82, 5, Lw.size * 0.95); }
   // date & source
   ctx.globalAlpha = ease((p - 0.3 - typeDur) / 0.4);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(21, 500, BFAM); ctx.fillStyle = 'rgba(255,255,255,.7)';
@@ -9181,6 +9177,45 @@ function dkCover(ctx, R, p, d){
   dkTop(ctx, R, 0, true);
   rlCta(ctx, R.cov.cta, 1222, '#8c0a12', '#ffd200', p);
 }
+/* ব্রেকিং নিউজ headline: words written between *stars* get a highlight box (like the sample posts);
+   with no stars the last line is coloured as before. shown = how many words are typed so far (null = all). */
+function lvMarks(raw){
+  const words = [], flags = []; let inS = false, cur = '', fl = false;
+  const push = () => { if(cur){ words.push(cur); flags.push(fl); } cur = ''; fl = inS; };
+  for(const ch of String(raw || '').replace(/\s+/g, ' ').trim()){
+    if(ch === '*'){ inS = !inS; if(inS) fl = true; continue; }
+    if(ch === ' '){ push(); continue; }
+    if(!cur) fl = inS; cur += ch; if(inS) fl = true;
+  }
+  push();
+  return { text: words.join(' '), flags, any: flags.some(Boolean) };
+}
+function lvHead(ctx, lines, flags, size, lh, yBase, hl, shown, anyMark){
+  ctx.font = fontStr(size, 700, BFAM); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const sp = ctx.measureText(' ').width; let idx = 0, curX = 0, curY = 0;
+  lines.forEach((line, k) => {
+    const ws = line.split(' '), fw = ctx.measureText(line).width, y = yBase + k * lh;
+    const lastLine = !anyMark && lines.length > 1 && k === lines.length - 1;
+    let x = (RW - fw) / 2;
+    const W = ws.map(w => { const o = { w, x, wd: ctx.measureText(w).width, f: !!flags[idx], on: shown == null || idx < shown }; idx++; x += o.wd + sp; return o; });
+    // highlight boxes behind each run of marked (and already typed) words
+    for(let j = 0; j < W.length; j++){
+      if(!(W[j].f && W[j].on)) continue;
+      let e = j; while(e + 1 < W.length && W[e + 1].f && W[e + 1].on) e++;
+      const bx = W[j].x - 12, bw = W[e].x + W[e].wd + 12 - bx;
+      ctx.fillStyle = hl; rr(ctx, bx, y - size * 0.98, bw, size * 1.3, 9); ctx.fill();
+      j = e;
+    }
+    W.forEach(o => {
+      if(!o.on) return;
+      if(o.f) ctx.fillStyle = '#111';
+      else { ctx.fillStyle = lastLine ? hl : '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 8; }
+      ctx.fillText(o.w, o.x, y); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+      curX = o.x + o.wd; curY = y;
+    });
+  });
+  return { x: curX, y: curY };
+}
 function lvCover(ctx, R, p, d){
   const cv = R.cov, [ac, hl] = R.col(cv.i), z = 1 + 0.05 * clamp(p / d, 0, 1), ph = 640;
   ctx.fillStyle = '#070a14'; ctx.fillRect(0, 0, RW, RH);
@@ -9198,9 +9233,8 @@ function lvCover(ctx, R, p, d){
   // headline — complete from the first frame
   const hy = ph + 63, hh = 1088 - hy;
   const pg = ctx.createLinearGradient(0, hy, 0, hy + hh); pg.addColorStop(0, shade(ac, -0.72)); pg.addColorStop(1, '#060a18'); ctx.fillStyle = pg; ctx.fillRect(0, hy, RW, hh);
-  const L = rlWrap(ctx, cv.text, RW - 70, 62, 700, 4, 34), lh = L.size * 1.3, y0 = hy + hh / 2 - (L.lines.length - 1) * lh / 2;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = fontStr(L.size, 700, BFAM);
-  L.lines.forEach((s, k) => { ctx.fillStyle = (L.lines.length > 1 && k === L.lines.length - 1) ? hl : '#fff'; ctx.fillText(s, RW / 2, y0 + k * lh); });
+  const M = lvMarks(cv.text), L = rlWrap(ctx, M.text, RW - 90, 62, 700, 4, 34), lh = L.size * 1.36, y0 = hy + hh / 2 - (L.lines.length - 1) * lh / 2;
+  lvHead(ctx, L.lines, M.flags, L.size, lh, y0 + L.size * 0.36, hl, null, M.any);
   // red BREAKING bar with the call-to-action
   const by = 1088, bh = 72, lw = 230;
   const rg = ctx.createLinearGradient(0, by, 0, by + bh); rg.addColorStop(0, '#ef2b2b'); rg.addColorStop(1, '#b3080f'); ctx.fillStyle = rg; ctx.fillRect(0, by, RW, bh);
@@ -9463,7 +9497,7 @@ function rlOutro(ctx, R, p, d){
 }
 const TRANS_ALL = ['cube', 'slide', 'page', 'zoom', 'blinds', 'flipcard', 'wipe', 'zoomout', 'circle', 'push', 'fade', 'flash'];
 function rlTrans(ctx, R, ga, gb, pb, e){
-  const E = easeIO(e), k0 = Math.max(0, TRANS_ALL.indexOf(R.st.trans)), idx = R.tl.segs.indexOf(gb), tr = TRANS_ALL[(k0 + Math.max(0, idx) * 5) % TRANS_ALL.length];
+  const E = easeIO(e), k0 = Math.max(0, TRANS_ALL.indexOf(R.st.trans)), idx = R.tl.segs.indexOf(gb), tr = (R.live && !R.quote) ? (idx % 2 ? 'fade' : 'flash') : TRANS_ALL[(k0 + Math.max(0, idx) * 5) % TRANS_ALL.length];   // ব্রেকিং নিউজ: no sliding/zooming between stories
   const dark = a => { if(a > 0.005){ ctx.fillStyle = 'rgba(0,0,0,' + a.toFixed(3) + ')'; ctx.fillRect(0, 0, RW, RH); } };
   if(tr === 'cube'){                                   // the screen turns like the side of a cube
     ctx.save(); ctx.scale(Math.max(0.001, 1 - E), 1); rlScene(ctx, R, ga, ga.d); dark(E * 0.55); ctx.restore();

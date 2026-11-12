@@ -7497,7 +7497,7 @@ function rlOpen(){
 }
 function rlAutoAi(){
   if(!(S.gkey || S.ckey) || store.get('rlAutoAi', true) === false || capEdited || !RL.open || !RL.items.length || RL.busy) return;
-  if(RL.items.some(x => x.manual)) return;                          // a headline was edited by hand → leave it
+  if(RL.items.some(x => x.manual || (x.o && x.o.vid))) return;                          // a headline was edited by hand → leave it
   const sig = RL.items.map(x => x.link).join('|'); if(RL.aiSig === sig) return;
   const b = $('rlAi'); if(!b || b.disabled) return;
   RL.aiSig = sig; b.click();
@@ -7881,6 +7881,7 @@ async function rlAutoFix(){
   const one = async it => {
     if(tok !== RL.fixTok) return;
     const o = it.o;
+    if(o.vid){ rlRowShow(it); return; }                     // 🎬 from a video: text and photos are already final
     if(sfNeeds(o, sibs) || (!it.manual && sfTeaser(it.text) && String(o.text || '').length < 200)){
       it.fixing = true; rlRowShow(it);
       let ch = null; try{ ch = await sfEnrich(o, { siblings: sibs }); }catch(e){}
@@ -8909,6 +8910,30 @@ function cardOf(R, i){ return R.bmp.get(i) || null; }
 
 /* ---- "লাইভ ব্রেকিং" design: photo on top, the headline types itself in word by word like a live news desk,
         a red BREAKING NEWS bar that zooms in at every story, a light sweep and a scrolling ticker ---- */
+/* 🎬 video clips (from "ভিডিও থেকে নিউজ"): frames are kept as small JPEGs and opened just before they show,
+   so only a few dozen are in memory at a time */
+const VC = { bm: new Map(), items: null };
+function vcDecode(b){
+  if(!b || VC.bm.has(b) || !('createImageBitmap' in window)) return;
+  VC.bm.set(b, null);
+  createImageBitmap(b).then(x => { if(VC.bm.has(b)) VC.bm.set(b, x); else try{ x.close(); }catch(e){} }).catch(() => VC.bm.delete(b));
+}
+function vcTrim(keep){
+  if(VC.bm.size <= 36) return;
+  for(const [b, x] of VC.bm){ if(VC.bm.size <= 28) break; if(keep.has(b)) continue; VC.bm.delete(b); if(x && x.close) try{ x.close(); }catch(e){} }
+}
+function vcWarm(i){
+  const it = RL.items[i], vc = it && it.o && it.o.vclip; if(!vc || !vc.frames) return;
+  vc.frames.slice(0, 10).forEach(vcDecode);
+}
+function vcFrame(i, vc, p){
+  const fr = vc.frames, k = Math.min(fr.length - 1, Math.max(0, Math.floor(p * vc.fps))), keep = new Set();
+  for(let j = Math.max(0, k - 1); j < Math.min(fr.length, k + 10); j++){ keep.add(fr[j]); vcDecode(fr[j]); }
+  vcTrim(keep);
+  for(let j = k; j >= 0; j--){ const x = VC.bm.get(fr[j]); if(x) return x; }
+  return null;
+}
+function vcClear(){ for(const x of VC.bm.values()){ if(x && x.close) try{ x.close(); }catch(e){} } VC.bm.clear(); }
 const LV = { py: 212, ph: 432, sh: 58, hh: 290 };
 function rlLivePhoto(img){
   if(!img) return null;
@@ -8920,13 +8945,28 @@ function rlLiveScene(ctx, R, g, p){
   ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(0, 0, RW, RH);
   // ব্রেকিং নিউজ: the photo always fills the whole top half edge to edge (no small card, circle, frame or
   // slide-in) — only a slow, steady zoom; the header and date sit on a dark fade over the photo
-  const py = 0, ph = LV.py + LV.ph, img = cardOf(R, g.i);
+  const py = 0, ph = LV.py + LV.ph, img = cardOf(R, g.i), vc = it.o && it.o.vclip;
+  // 🎬 from a video: a short part of the video plays first, then it freezes into the screenshot (camera flash)
+  const vcd = vc && vc.frames && vc.frames.length ? vc.frames.length / vc.fps : 0, inClip = vcd > 0 && p < vcd;
+  if(vcd && p > g.d - 1.6) vcWarm(g.i + 1);
   ctx.save();
-  if(img){
-    const src = rlPicSrc(img, RW, ph, (ed.zoom || 100) / 100, 'in', f, 'lv');
+  let drew = false;
+  if(inClip){ const bm = vcFrame(g.i, vc, p); if(bm){ ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bm, 0, py, RW, ph); drew = true; } }
+  if(drew){}
+  else if(img){
+    const fz = vcd ? clamp((p - vcd) / Math.max(0.5, g.d - vcd), 0, 1) : f;
+    const src = rlPicSrc(img, RW, ph, (ed.zoom || 100) / 100, 'in', fz, 'lv');
     ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, py);
   }
   else rlPlainBg(ctx, ac, 0, py, RW, ph);
+  if(vcd){
+    if(inClip){                                                  // ● VIDEO badge while the clip plays
+      const bl = 0.55 + 0.45 * Math.sin(p * 8); ctx.font = fontStr(19, 800, BFAM); const w = ctx.measureText('VIDEO').width + 44;
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, RW - w - 18, ph - 52, w, 32, 6); ctx.fill();
+      ctx.beginPath(); ctx.arc(RW - w - 18 + 17, ph - 36, 6, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,40,40,' + bl.toFixed(3) + ')'; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('VIDEO', RW - w - 18 + 30, ph - 35);
+    } else if(p - vcd < 0.3){ ctx.fillStyle = 'rgba(255,255,255,' + (0.75 * (1 - (p - vcd) / 0.3)).toFixed(3) + ')'; ctx.fillRect(0, py, RW, ph); }
+  }
   const tg = ctx.createLinearGradient(0, 0, 0, 230); tg.addColorStop(0, 'rgba(0,0,0,.78)'); tg.addColorStop(.6, 'rgba(0,0,0,.4)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = tg; ctx.fillRect(0, 0, RW, 230);
   const vg = ctx.createLinearGradient(0, py + ph - 140, 0, py + ph); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.6)');
@@ -9217,6 +9257,7 @@ function lvHead(ctx, lines, flags, size, lh, yBase, hl, shown, anyMark){
   return { x: curX, y: curY };
 }
 function lvCover(ctx, R, p, d){
+  vcWarm(0);
   const cv = R.cov, [ac, hl] = R.col(cv.i), z = 1 + 0.05 * clamp(p / d, 0, 1), ph = 640;
   ctx.fillStyle = '#070a14'; ctx.fillRect(0, 0, RW, RH);
   if(cv.img) rlPhoto(ctx, cv.img, 0, 0, RW, ph, z, 0); else rlPlainBg(ctx, ac, 0, 0, RW, ph);
@@ -10592,6 +10633,465 @@ rlTexts = function(){ rlTextsEd(); try{ rlLogoUi(); if(ED.open) edTexts(); }catc
 const rlOpenEd = rlOpen;
 rlOpen = function(){ rlOpenEd(); try{ if(!C.logoUrl) setTimeout(() => toast(t('tRlNoLogo')), 600); }catch(e){} };
 /* other parts of the app (e.g. the newspapers sheet) can open the reel studio with their own list of stories */
+/* =====================================================================
+   🎬 ভিডিও থেকে নিউজ রিল — give a video (upload) or a link (YouTube / Facebook / any), say in a few words what
+   the news is, and the app takes screenshots by itself, keeps 1–3 seconds of real video before each screenshot,
+   writes the headlines and the voice script (Gemini can listen to the video itself) and opens the reel maker
+   in the Breaking News frame.
+   ===================================================================== */
+(function videoNews(){
+const VN = { open: false, busy: false, file: null, url: '', link: '', yt: '', vid: null, dur: 0, meta: null,
+  shots: store.get('vnShots', 4), clip: store.get('vnClip', 2), listen: store.get('vnListen', true) !== false,
+  stills: null, sig: '', ytImgs: null, title: '', author: '' };
+const VN_FPS = 12, VN_PH = 644;
+const vnCss = document.createElement('style');
+vnCss.textContent = `
+.vnbox{max-width:620px}
+.vnbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 14px 18px}
+.vnbody textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text);font:14.5px/1.55 var(--sans,inherit);resize:vertical;outline:none}
+.vnbody #vnOut{min-height:190px;font-size:14px}
+.vnbody input[type=url],.vnbody input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text);font-size:14.5px;outline:none;min-width:0}
+.vnrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.vnrow input{flex:1}
+.vnrow .btn{flex:none;min-height:40px;white-space:nowrap}
+.vnor{text-align:center;color:var(--muted);font-size:12.5px;margin:8px 0}
+.vnpv{display:flex;gap:10px;align-items:center;margin-top:10px}
+.vnpv video,.vnpv img{width:120px;height:68px;object-fit:cover;border-radius:8px;background:#000;flex:none}
+.vnpv .vninfo{flex:1;min-width:0;font-size:13px;line-height:1.45}
+.vnpv .vninfo b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vnshots{display:flex;gap:6px;overflow-x:auto;margin-top:10px}
+.vnshots img{width:86px;height:77px;object-fit:cover;border-radius:6px;flex:none;background:var(--surface-2)}
+.vnst{font-size:13px;margin-top:6px;color:var(--muted)}
+.vnst.ok{color:var(--accent)} .vnst.bad{color:var(--danger,#d93025)}
+.vnbtns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.vnbtns .btn{min-height:40px}
+.qtile.rlwide.vntile .qi{background:#fde8e8;color:#d93025}
+html[data-theme="dark"] .qtile.rlwide.vntile .qi{background:var(--surface-2);color:#ff6b6b}
+`;
+document.head.appendChild(vnCss);
+const IC_VID = '<rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3v10l-6-3z"/>';
+const vsheet = mk('div', 'nsheet hidden no-print'); vsheet.id = 'vnSheet'; vsheet.setAttribute('role', 'dialog'); vsheet.setAttribute('aria-modal', 'true');
+vsheet.innerHTML = `<div class="nsbox vnbox">
+  <div class="nshead"><b>🎬 ভিডিও থেকে নিউজ রিল</b><span style="flex:1"></span><button type="button" class="x" id="vnClose" aria-label="close">×</button></div>
+  <div class="vnbody">
+    <div class="rlsec">
+      <div class="rlf"><span>১. ভিডিও দিন</span>
+        <button type="button" class="btn primary" id="vnFileBtn" style="width:100%;min-height:46px">${ic(IC_VID)}<span>ফোন / কম্পিউটার থেকে ভিডিও দিন</span></button>
+        <input type="file" id="vnFile" accept="video/*" class="hidden">
+        <div class="vnor">— অথবা লিংক পেস্ট করুন —</div>
+        <div class="vnrow"><input type="url" id="vnLink" inputmode="url" autocomplete="off" spellcheck="false" placeholder="YouTube / Facebook / TikTok / যেকোনো ভিডিওর লিংক"><button type="button" class="btn" id="vnLinkPaste" aria-label="paste">📋</button><button type="button" class="btn" id="vnLinkGo">বসান</button></div>
+        <div class="vnpv hidden" id="vnPv"></div>
+        <div class="vnst" id="vnSrcSt">ভিডিও আপলোড করলে সবচেয়ে ভালো হয় — তখন ভিডিওর ১–৩ সেকেন্ড করে অংশ চলবে, তারপর স্ক্রিনশট। YouTube লিংকে শুধু তার ছবিগুলো আসে; Facebook-সহ অন্য লিংক থেকে ভিডিও নামানো যায় না — নিজে ডাউনলোড করে আপলোড করুন।</div>
+      </div>
+    </div>
+    <div class="rlsec">
+      <div class="rlf"><span>২. খবরটা কী নিয়ে — কী বলতে হবে লিখুন</span>
+        <textarea id="vnDesc" placeholder="যেমন: আজ দুপুরে ঢাকার শাহবাগে শিক্ষার্থীদের বিক্ষোভ, পুলিশের সাথে ধাওয়া-পাল্টা ধাওয়া। মূল দাবি… কে কী বলেছেন…"></textarea></div>
+      <div class="rlf"><span>সূত্র / চ্যানেলের নাম (ছবির কোণে দেখাবে — না দিলেও চলে)</span><input type="text" id="vnSrc" maxlength="40" autocomplete="off" placeholder="যেমন: সময় টিভি"></div>
+    </div>
+    <div class="rlsec">
+      <div class="rlf"><span>৩. কয়টা স্ক্রিনশট (প্রতিটা একটা করে শিরোনাম)</span><div class="rlopts" id="vnShotsO"></div></div>
+      <div class="rlf"><span>স্ক্রিনশটের আগে কতক্ষণ ভিডিও চলবে</span><div class="rlopts" id="vnClipO"></div></div>
+      <label class="rlchk"><input type="checkbox" id="vnListen"><span>🎧 ভিডিওর কথা শুনে / দেখে AI নিজেই বুঝে নিক (Gemini কী লাগবে)</span></label>
+      <div class="vnshots" id="vnShots"></div>
+    </div>
+    <div class="rlsec">
+      <div class="rlf"><span>৪. শিরোনাম ও ভয়েস-স্ক্রিপ্ট</span>
+        <div class="vnbtns"><button type="button" class="btn primary" id="vnAi">✨ AI দিয়ে লিখুন</button><button type="button" class="btn" id="vnCopy">📋 কপি করে জেমিনি খুলুন</button><button type="button" class="btn" id="vnPaste">📥 উত্তর পেস্ট</button></div>
+        <textarea id="vnOut" spellcheck="false" placeholder="বিষয়: …&#10;শিরোনাম ১: … *হাইলাইট শব্দ* …&#10;শিরোনাম ২: …&#10;শুরু: …&#10;ভয়েস ১: …&#10;ভয়েস ২: …&#10;শেষ: …"></textarea>
+        <div class="vnst" id="vnAiSt">শিরোনামে *তারকা* চিহ্নের ভেতরের শব্দ হলুদ বক্সে হাইলাইট হবে। চাইলে নিজেও লিখে বা বদলে নিতে পারেন।</div></div>
+    </div>
+  </div>
+  <div class="rlfoot"><button type="button" class="btn primary" id="vnGo">${ic(IC_FILM)}<span>নিউজ রিল তৈরি করুন</span></button></div>
+</div>`;
+document.body.appendChild(vsheet);
+
+const vSay = (id, m, k) => { const el = $(id); if(!el) return; el.textContent = m; el.classList.toggle('ok', k === 'ok'); el.classList.toggle('bad', k === 'bad'); };
+function vnOpts(){
+  opts('vnShotsO', [2, 3, 4, 5].map(n => [n, nwNum(n) + 'টি']), VN.shots, v => { VN.shots = v; store.set('vnShots', v); VN.stills = null; if(VN.vid || VN.ytImgs) vnShots(); });
+  opts('vnClipO', [[0, 'শুধু ছবি'], [1, '১ সে.'], [2, '২ সে.'], [3, '৩ সে.']], VN.clip, v => { VN.clip = v; store.set('vnClip', v); VN.stills = null; if(VN.vid) vnShots(); });
+  $('vnListen').checked = VN.listen;
+}
+function vnOpen(){
+  if(VN.open) return;
+  VN.open = true; vsheet.classList.remove('hidden'); document.body.classList.add('nwlock');
+  try{ if(!(history.state && history.state.vn)) history.pushState({ vn: 1 }, ''); }catch(e){}
+  vnOpts();
+}
+function vnClose(fromPop){
+  if(!VN.open) return;
+  VN.open = false; vsheet.classList.add('hidden');
+  if(!RL.open) document.body.classList.remove('nwlock');
+  if(fromPop !== true){ try{ if(history.state && history.state.vn) history.back(); }catch(e){} }
+}
+$('vnClose').addEventListener('click', () => vnClose());
+vsheet.addEventListener('click', e => { if(e.target === vsheet) vnClose(); });
+window.addEventListener('popstate', () => { if(VN.open && !(history.state && history.state.vn)) vnClose(true); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && VN.open && !VN.busy) vnClose(); });
+$('vnListen').addEventListener('change', e => { VN.listen = e.target.checked; store.set('vnListen', VN.listen); });
+
+/* ---------- the video ---------- */
+function vnReset(){
+  if(VN.url){ try{ URL.revokeObjectURL(VN.url); }catch(e){} }
+  if(VN.vid){ try{ VN.vid.removeAttribute('src'); VN.vid.load(); }catch(e){} }
+  VN.file = null; VN.url = ''; VN.link = ''; VN.yt = ''; VN.vid = null; VN.dur = 0; VN.stills = null; VN.ytImgs = null; VN.title = ''; VN.author = '';
+  $('vnPv').classList.add('hidden'); $('vnPv').innerHTML = ''; $('vnShots').innerHTML = '';
+}
+function vnLoadVideo(url){
+  return new Promise((ok, bad) => {
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.crossOrigin = 'anonymous';
+    const to = setTimeout(() => bad(new Error('ভিডিও খোলা গেল না (সময় শেষ)')), 30000);
+    v.onloadeddata = () => { clearTimeout(to); ok(v); };
+    v.onerror = () => { clearTimeout(to); bad(new Error('এই ভিডিও ফরম্যাট ফোনে খোলা যায় না — MP4 দিন')); };
+    v.src = url;
+  });
+}
+async function vnUseFile(file){
+  if(!file) return;
+  if(!/^video\//.test(file.type || '') && !/\.(mp4|m4v|mov|webm|3gp|mkv)$/i.test(file.name || '')){ toast('এটা ভিডিও ফাইল নয়'); return; }
+  vnReset(); VN.file = file; VN.url = URL.createObjectURL(file);
+  vSay('vnSrcSt', 'ভিডিও খোলা হচ্ছে…');
+  try{
+    const v = await vnLoadVideo(VN.url); VN.vid = v; VN.dur = isFinite(v.duration) ? v.duration : 0;
+    try{ await v.play(); v.pause(); }catch(e){}
+    if(!VN.dur || VN.dur < 1.5) throw new Error('ভিডিওটা খুব ছোট বা পড়া যাচ্ছে না');
+    const pv = $('vnPv'); pv.classList.remove('hidden');
+    pv.innerHTML = '<video muted playsinline preload="metadata"></video><div class="vninfo"><b></b><span></span></div>';
+    pv.querySelector('video').src = VN.url + '#t=' + Math.min(2, VN.dur / 3).toFixed(1);
+    pv.querySelector('b').textContent = file.name || 'ভিডিও';
+    pv.querySelector('span').textContent = vnTime(VN.dur) + ' · ' + nwNum((file.size / 1048576).toFixed(1)) + ' MB · ' + v.videoWidth + '×' + v.videoHeight;
+    vSay('vnSrcSt', '✔ ভিডিও নেওয়া হয়েছে। এবার খবরটা কী নিয়ে লিখুন, তারপর "AI দিয়ে লিখুন" বা সরাসরি "নিউজ রিল তৈরি করুন"।', 'ok');
+    vnShots();
+  }catch(e){ vnReset(); vSay('vnSrcSt', '✖ ' + (e.message || e), 'bad'); }
+}
+const vnTime = s => { s = Math.round(s); return nwNum(Math.floor(s / 60)) + ':' + nwNum(String(s % 60).padStart(2, '0')); };
+$('vnFileBtn').addEventListener('click', () => { if(!VN.busy) $('vnFile').click(); });
+$('vnFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; vnUseFile(f); });
+$('vnLinkPaste').addEventListener('click', async () => { try{ const x = await navigator.clipboard.readText(); if(x){ $('vnLink').value = x.trim(); vnUseLink(); } }catch(e){ $('vnLink').focus(); toast('লিংকটি ঘরে চেপে ধরে পেস্ট করুন'); } });
+$('vnLinkGo').addEventListener('click', () => vnUseLink());
+$('vnLink').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); vnUseLink(); } });
+
+function vnYtId(u){
+  try{ const x = new URL(u), h = x.hostname.replace(/^(www|m|music)\./, '');
+    if(h === 'youtu.be') return x.pathname.slice(1).split('/')[0];
+    if(/(^|\.)youtube(-nocookie)?\.com$/.test(h)){ if(x.searchParams.get('v')) return x.searchParams.get('v'); const m = x.pathname.match(/\/(shorts|live|embed|v)\/([\w-]{6,})/); if(m) return m[2]; }
+  }catch(e){}
+  return '';
+}
+async function vnUseLink(){
+  const raw = String($('vnLink').value || '').trim(); if(!raw) { toast('আগে লিংক দিন'); return; }
+  const url = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+  if(VN.busy) return; VN.busy = true; const b = $('vnLinkGo'); b.disabled = true;
+  vnReset(); VN.link = url;
+  try{
+    // a direct video file link → treat it like an upload
+    if(/\.(mp4|m4v|webm|mov)(\?|#|$)/i.test(url)){
+      vSay('vnSrcSt', 'ভিডিও নামানো হচ্ছে…');
+      try{ const r = await fetch(url); if(!r.ok) throw new Error(); const bl = await r.blob(); VN.busy = false; await vnUseFile(new File([bl], url.split('/').pop().split('?')[0] || 'video.mp4', { type: bl.type || 'video/mp4' })); VN.link = url; return; }
+      catch(e){ vSay('vnSrcSt', 'এই লিংক থেকে ভিডিও নামানো গেল না — ফোনে ডাউনলোড করে আপলোড করুন।', 'bad'); }
+    }
+    const id = vnYtId(url);
+    if(id){
+      VN.yt = id; vSay('vnSrcSt', 'YouTube থেকে ছবি ও তথ্য আনা হচ্ছে…');
+      try{ const j = JSON.parse(natHttp() ? await natText('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id), 10000) : await getText('https://noembed.com/embed?url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id), 10000));
+        VN.title = j.title || ''; VN.author = j.author_name || ''; }catch(e){}
+      const base = 'https://i.ytimg.com/vi/' + id + '/';
+      const tryOne = async u => { try{ const r = await Promise.race([loadExportable(u), sleep(15000).then(() => null)]); const im = r && !r.tainted && r.img; return im && (im.naturalWidth || im.width) > 200 ? im : null; }catch(e){ return null; } };
+      const [cov, h1, h2, h3] = await Promise.all([tryOne(base + 'maxresdefault.jpg').then(x => x || tryOne(base + 'hqdefault.jpg')), tryOne(base + 'hq1.jpg'), tryOne(base + 'hq2.jpg'), tryOne(base + 'hq3.jpg')]);
+      VN.ytImgs = [cov, h1, h2, h3].filter(Boolean).map(im => vnCropBars(im));
+      if(!VN.ytImgs.length) throw new Error('YouTube-এর ছবি আনা গেল না — ভিডিও ডাউনলোড করে আপলোড করুন');
+      if(VN.author && !$('vnSrc').value) $('vnSrc').value = VN.author.slice(0, 40);
+      vnLinkPv(VN.ytImgs[0], VN.title || 'YouTube ভিডিও', VN.author);
+      vSay('vnSrcSt', '✔ YouTube লিংক নেওয়া হয়েছে (' + nwNum(VN.ytImgs.length) + 'টি ছবি)। Gemini কী থাকলে AI ভিডিওটা নিজে দেখে বুঝে নেবে। ভিডিওর অংশ চালাতে চাইলে ভিডিওটা ডাউনলোড করে আপলোড করুন।', 'ok');
+      vnShots();
+    } else {
+      vSay('vnSrcSt', 'লিংক থেকে শিরোনাম ও ছবি খোঁজা হচ্ছে…');
+      let title = '', img = '';
+      try{ const a = await Promise.race([fetchArticle(url), sleep(20000).then(() => null)]); if(a){ title = a.title || ''; img = a.image || ''; } }catch(e){}
+      if(!img){ try{ img = await Promise.race([nwFindImg(url), sleep(12000).then(() => '')]) || ''; }catch(e){} }
+      let im = null; if(img){ try{ const r = await loadExportable(img); if(r && !r.tainted) im = r.img; }catch(e){} }
+      VN.title = title;
+      if(!im && !title) throw new Error('এই লিংক থেকে কিছু আনা গেল না। Facebook/TikTok ভিডিও ফোনে ডাউনলোড করে (যেমন snapsave, fdown দিয়ে) এখানে আপলোড করুন।');
+      VN.ytImgs = im ? [vnCropBars(im)] : [];
+      vnLinkPv(im, title || hostOf(url), hostOf(url));
+      vSay('vnSrcSt', im ? '⚠ এই লিংক থেকে শুধু কভার ছবি পাওয়া গেছে — সব স্ক্রিনশট একই ছবি থেকে হবে। ভালো ফলের জন্য ভিডিও ডাউনলোড করে আপলোড করুন।' : '⚠ ছবি পাওয়া যায়নি — রঙিন ব্যাকগ্রাউন্ডে আসবে। ভিডিও আপলোড করলে ভালো হয়।', 'bad');
+      vnShots();
+    }
+  }catch(e){ vSay('vnSrcSt', '✖ ' + (e.message || e), 'bad'); }
+  finally{ VN.busy = false; b.disabled = false; }
+}
+function vnLinkPv(im, title, sub){
+  const pv = $('vnPv'); pv.classList.remove('hidden'); pv.innerHTML = '<img alt=""><div class="vninfo"><b></b><span></span></div>';
+  if(im){ const c = document.createElement('canvas'); c.width = 240; c.height = 136; c.getContext('2d').drawImage(im, 0, 0, 240, 136); pv.querySelector('img').src = c.toDataURL('image/jpeg', .8); } else pv.querySelector('img').remove();
+  pv.querySelector('b').textContent = title || ''; pv.querySelector('span').textContent = sub || '';
+}
+/* YouTube thumbnails of Shorts / 4:3 come with black bars — cut them off */
+function vnCropBars(im){
+  const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height, c = document.createElement('canvas'), x = c.getContext('2d', { willReadFrequently: true });
+  c.width = w; c.height = h; x.drawImage(im, 0, 0);
+  const dark = (row, col) => { const d = row != null ? x.getImageData(0, row, w, 1).data : x.getImageData(col, 0, 1, h).data; let s = 0; for(let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2]; return s / (d.length / 4) / 3 < 22; };
+  let t = 0, b = h - 1, l = 0, r = w - 1;
+  while(t < h * 0.3 && dark(t, null)) t++; while(b > h * 0.7 && dark(b, null)) b--;
+  while(l < w * 0.35 && dark(null, l)) l++; while(r > w * 0.65 && dark(null, r)) r--;
+  if(t < 3 && l < 3 && b > h - 4 && r > w - 4) return c;
+  const o = document.createElement('canvas'); o.width = r - l + 1; o.height = b - t + 1; o.getContext('2d').drawImage(c, l, t, o.width, o.height, 0, 0, o.width, o.height); return o;
+}
+
+/* ---------- screenshots (+ the seconds of video before each) ---------- */
+function vnSeek(v, t){
+  return new Promise(ok => { let done = false; const f = () => { if(done) return; done = true; v.removeEventListener('seeked', f); ok(); };
+    v.addEventListener('seeked', f); try{ v.currentTime = Math.max(0, Math.min(t, (v.duration || t) - 0.05)); }catch(e){ f(); } setTimeout(f, 4000); });
+}
+const vnSmall = document.createElement('canvas'); vnSmall.width = 64; vnSmall.height = 36;
+function vnScore(v){                                            // sharp, not dark, not blank → good screenshot
+  const x = vnSmall.getContext('2d', { willReadFrequently: true }); x.drawImage(v, 0, 0, 64, 36);
+  const d = x.getImageData(0, 0, 64, 36).data; let s = 0, s2 = 0, e = 0; const n = d.length / 4;
+  for(let i = 0; i < d.length; i += 4){ const l = (d[i] * 3 + d[i + 1] * 6 + d[i + 2]) / 10; s += l; s2 += l * l; if(i % 256 && i >= 4){ const p = (d[i - 4] * 3 + d[i - 3] * 6 + d[i - 2]) / 10; e += Math.abs(l - p); } }
+  const m = s / n, sd = Math.sqrt(Math.max(0, s2 / n - m * m));
+  return (m < 28 || m > 238 ? -50 : 0) + sd + e / n * 2;
+}
+function vnCover(v, W, H){                                      // a frame cut to fill W×H (the photo area of the breaking frame)
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  const vw = v.videoWidth, vh = v.videoHeight, s = Math.max(W / vw, H / vh), dw = vw * s, dh = vh * s;
+  x.imageSmoothingQuality = 'medium'; x.drawImage(v, (W - dw) / 2, (H - dh) * 0.4, dw, dh); return c;
+}
+function vnFull(v, max){
+  const vw = v.videoWidth, vh = v.videoHeight, s = Math.min(1, max / Math.max(vw, vh)), c = document.createElement('canvas');
+  c.width = Math.round(vw * s); c.height = Math.round(vh * s); const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(v, 0, 0, c.width, c.height); return c;
+}
+const toBlob = (c, q) => new Promise(r => c.toBlob(r, 'image/jpeg', q || 0.88));
+function vnExtract(progress){ const p = (VN.exP || Promise.resolve()).catch(() => {}).then(() => vnExtract1(progress)); VN.exP = p; return p; }
+async function vnExtract1(progress){
+  const sig = [VN.file ? VN.file.name + VN.file.size : VN.link, VN.shots, VN.clip].join('|');
+  if(VN.stills && VN.sig === sig) return VN.stills;
+  const N = VN.shots, out = [];
+  if(!VN.vid){                                                   // link: the pictures we have, in turn
+    const L = VN.ytImgs || [];
+    for(let i = 0; i < N; i++){ const im = L.length ? L[(i + (L.length > N ? 1 : 0)) % L.length] : null;
+      out.push({ url: im ? URL.createObjectURL(await toBlob(im.width ? im : vnFull(im, 1400), 0.92)) : '', clip: null, t: 0, small: im }); }
+    VN.stills = out; VN.sig = sig; return out;
+  }
+  const v = VN.vid, D = VN.dur, cl = Math.min(VN.clip, Math.max(0, D / N - 0.3));
+  try{ v.pause(); }catch(e){}
+  for(let i = 0; i < N; i++){
+    if(!VN.open) throw new Error('cancel');
+    const tgt = D * (0.06 + 0.88 * (i + 0.5) / N), span = D / N * 0.3;
+    let best = tgt, bs = -1e9;
+    for(const dt of [-span, 0, span]){                           // three tries around the spot — keep the clearest
+      const t = Math.max(cl + 0.1, Math.min(D - 0.15, tgt + dt)); await vnSeek(v, t);
+      const sc = vnScore(v); if(sc > bs){ bs = sc; best = t; }
+    }
+    progress && progress('স্ক্রিনশট ' + nwNum(i + 1) + '/' + nwNum(N) + ' নেওয়া হচ্ছে…', i / N);
+    let clip = null;
+    if(cl > 0){
+      const n = Math.max(2, Math.round(cl * VN_FPS)), frames = [];
+      for(let k = 0; k < n; k++){
+        if(!VN.open) throw new Error('cancel');
+        await vnSeek(v, best - cl + k / VN_FPS);
+        frames.push(await toBlob(vnCover(v, RW, VN_PH), 0.8));
+        if(k % 4 === 3) progress && progress('ভিডিওর অংশ ' + nwNum(i + 1) + '/' + nwNum(N) + ' কাটা হচ্ছে…', (i + k / n) / N);
+      }
+      clip = { frames, fps: VN_FPS };
+    }
+    await vnSeek(v, best);
+    const full = vnFull(v, 1400), bl = await toBlob(full, 0.92);
+    out.push({ url: URL.createObjectURL(bl), clip, t: best, small: vnFull(v, 512) });
+  }
+  if(VN.stills) VN.stills.forEach(x => { try{ URL.revokeObjectURL(x.url); }catch(e){} });
+  VN.stills = out; VN.sig = sig; vnShowShots(); return out;
+}
+function vnShots(){ VN.stills = null; vnExtract(m => vSay('vnSrcSt', m)).then(() => { vnShowShots(); vSay('vnSrcSt', '✔ ' + nwNum(VN.shots) + 'টি স্ক্রিনশট তৈরি' + (VN.vid && VN.clip ? ', প্রতিটির আগে ' + nwNum(VN.clip) + ' সেকেন্ড ভিডিও' : '') + '। এবার লেখা ঠিক করুন।', 'ok'); }).catch(e => { if(e.message !== 'cancel') vSay('vnSrcSt', '✖ ' + e.message, 'bad'); }); }
+function vnShowShots(){
+  const box = $('vnShots'); box.innerHTML = '';
+  (VN.stills || []).forEach(s => { if(!s.url) return; const im = document.createElement('img'); im.alt = ''; im.src = s.url; box.appendChild(im); });
+}
+
+/* ---------- the writing (headlines + voice) ---------- */
+function vnPrompt(withMedia){
+  const page = pageName(), N = VN.shots, desc = String($('vnDesc').value || '').trim();
+  const L = ['তুমি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর সংবাদকর্মী। একটি ভিডিও থেকে ' + N + 'টি স্ক্রিনশট নিয়ে টিভির "ব্রেকিং নিউজ" ধরনের একটি রিল হবে: প্রতিটি স্ক্রিনশটের নিচে একটি করে শিরোনাম টাইপ হয়ে আসবে, আর পুরো রিলে একটি ভয়েসওভার চলবে।',
+    ''];
+  if(desc) L.push('ব্যবহারকারী যা বলতে বলেছেন (এটাই মূল খবর, সবচেয়ে গুরুত্বপূর্ণ):\n' + desc, '');
+  if(VN.title || VN.author) L.push('ভিডিওর শিরোনাম: ' + (VN.title || '—') + (VN.author ? ' · চ্যানেল: ' + VN.author : ''), '');
+  if(VN.link && !VN.file) L.push('ভিডিওর লিংক: ' + VN.link, '');
+  if(withMedia === 'audio') L.push('সাথে ভিডিওর অডিও আর স্ক্রিনশটগুলো দেওয়া আছে — মন দিয়ে শুনে ও দেখে বুঝে নাও কী ঘটেছে, কে কী বলেছেন।', '');
+  else if(withMedia === 'yt') L.push('সাথে ভিডিওটি দেওয়া আছে — দেখে ও শুনে বুঝে নাও কী ঘটেছে, কে কী বলেছেন।', '');
+  else if(withMedia === 'img') L.push('সাথে ভিডিওর স্ক্রিনশটগুলো দেওয়া আছে — দেখে বুঝে নাও।', '');
+  else if(withMedia === 'copy') L.push(VN.file ? '(এই বার্তার সাথে ভিডিওটি সংযুক্ত করছি — দেখে ও শুনে বুঝে নাও।)' : '(লিংকের ভিডিওটি দেখে ও শুনে বুঝে নাও।)', '');
+  L.push('নিয়ম:',
+    '১. শুধু দেওয়া তথ্য (ব্যবহারকারীর লেখা, ভিডিওর কথা ও ছবি) থেকে লিখবে — বানিয়ে কোনো নাম, সংখ্যা বা ঘটনা নয়। ব্যবহারকারীর লেখার সাথে ভিডিও না মিললে ব্যবহারকারীর লেখাই মানবে।',
+    '২. শিরোনাম ১ থেকে ' + N + ': প্রতিটি ৬–১২ শব্দ, ছোট ও ধারালো খবরের ভাষায় (প্রমিত বাংলাদেশি বাংলা)। প্রথমটি মূল খবর; বাকিগুলো একই খবরের পরের ধাপ — বিস্তারিত, কে কী বললেন, প্রতিক্রিয়া, সর্বশেষ অবস্থা; কোনোটার সাথে কোনোটার পুনরাবৃত্তি নয়। প্রতিটি শিরোনামের সবচেয়ে গুরুত্বপূর্ণ ২–৩টি শব্দ *তারকা* চিহ্নের মধ্যে দেবে (যেমন: ঢাকায় *শিক্ষার্থীদের বিক্ষোভ*, আটক ২০)।',
+    '৩. শুরু: এক বাক্যের আকর্ষণীয় সূচনা — পেজের নাম বলবে না।',
+    '৪. ভয়েস ১ থেকে ' + N + ': প্রতিটি স্ক্রিনশট দেখানোর সময় যা বলা হবে — ২–৩ বাক্য, ২৫–৪৫ শব্দ, কানে শোনার মতো সহজ বাক্যে; সব সংখ্যা কথায় লিখবে; কোনো পত্রিকা বা চ্যানেলের নাম বলবে না; প্রতিটি একই শব্দ দিয়ে শুরু করবে না।',
+    '৫. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া, আর নিয়মিত খবর পেতে "' + page + '" পেজটি ফলো করার অনুরোধ।',
+    '৬. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা।',
+    '',
+    'উত্তর শুধু এই ফরম্যাটে দেবে, আর কিছু নয়:',
+    'বিষয়: (ভিডিওটা আসলে কী নিয়ে — ১–২ বাক্যে)');
+  for(let i = 1; i <= N; i++) L.push('শিরোনাম ' + nwNum(i) + ': …');
+  L.push('শুরু: …');
+  for(let i = 1; i <= N; i++) L.push('ভয়েস ' + nwNum(i) + ': …');
+  L.push('শেষ: …');
+  return L.join('\n');
+}
+function vnParse(txt){
+  const o = { topic: '', heads: [], voice: [], intro: '', outro: '' }; let cur = null;
+  String(txt || '').replace(/\r/g, '').split('\n').filter(l => !/^\s*```/.test(l)).forEach(line => {
+    const m = line.replace(/^\s*[-*•]\s+/, '').match(/^\s*(?:\*\*)?\s*(বিষয়|বিষয়|শিরোনাম|শিরোনাম|হেডলাইন|ভয়েস|ভয়েস|শুরু|শেষ|topic|headline|voice|intro|outro)\s*([০-৯\d]{0,2})\s*(?:\*\*)?\s*[:：.)-]\s*(.*)$/i);
+    if(m){ const k = m[1].normalize('NFC').toLowerCase(), n = m[2] ? +VO_DIG(m[2]) - 1 : -1;
+      cur = /^(বিষয়|topic)/.test(k) ? ['topic'] : /^(শিরোনাম|হেডলাইন|headline)/.test(k) ? ['heads', Math.max(0, n)] : /^(ভয়েস|voice)/.test(k) ? ['voice', Math.max(0, n)] : /^(শুরু|intro)/.test(k) ? ['intro'] : ['outro']; }
+    const body = (m ? m[3] : line).replace(/\*\*/g, '').trim(); if(!cur || !body) return;
+    if(cur.length === 1) o[cur[0]] = (o[cur[0]] + ' ' + body).trim();
+    else o[cur[0]][cur[1]] = ((o[cur[0]][cur[1]] || '') + ' ' + body).trim();
+  });
+  o.heads = o.heads.map(x => String(x || '').replace(/^["“]|["”]$/g, '').trim());
+  return o;
+}
+async function b64Of(blob){ return new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = bad; r.readAsDataURL(blob); }); }
+/* the video's sound, as a small 16 kHz WAV (first 6 minutes) — Gemini listens to it */
+async function vnAudio(){
+  if(!VN.file || VN.file.size > 260 * 1048576) return null;
+  const AC = window.AudioContext || window.webkitAudioContext, OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if(!AC || !OAC) return null;
+  let buf = null; const ac = new AC();
+  try{ buf = await ac.decodeAudioData(await VN.file.arrayBuffer()); }catch(e){ return null; } finally{ try{ ac.close(); }catch(e){} }
+  const len = Math.min(buf.duration, 360), sr = 16000, off = new OAC(1, Math.max(1, Math.ceil(len * sr)), sr);
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start(0, 0, len);
+  const r = await off.startRendering(), d = r.getChannelData(0); let pk = 0; for(let i = 0; i < d.length; i += 50) pk = Math.max(pk, Math.abs(d[i]));
+  if(pk < 0.004) return null;                                    // silent video
+  const ab = new ArrayBuffer(44 + d.length * 2), dv = new DataView(ab), w = (o, s) => { for(let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); dv.setUint32(4, 36 + d.length * 2, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, d.length * 2, true);
+  for(let i = 0; i < d.length; i++) dv.setInt16(44 + i * 2, Math.max(-1, Math.min(1, d[i])) * 32767, true);
+  return b64Of(new Blob([ab], { type: 'audio/wav' }));
+}
+async function vnImgs(){
+  const st = await vnExtract(m => vSay('vnAiSt', m)).catch(() => []), out = [];
+  for(const s of st){ if(!s.small) continue; const c = s.small.width > 512 ? (() => { const k = 512 / s.small.width, c2 = document.createElement('canvas'); c2.width = 512; c2.height = Math.round(s.small.height * k); c2.getContext('2d').drawImage(s.small, 0, 0, c2.width, c2.height); return c2; })() : s.small;
+    out.push(await b64Of(await toBlob(c, 0.8))); }
+  return out;
+}
+async function vnAiWrite(){
+  if(!(S.gkey || S.ckey)){ vSay('vnAiSt', 'অটো লেখার জন্য সেটিংসে Gemini বা Claude কী লাগবে — না থাকলে "কপি করে জেমিনি খুলুন" ব্যবহার করুন।', 'bad'); return false; }
+  if(!VN.file && !VN.link && !String($('vnDesc').value || '').trim()){ vSay('vnAiSt', 'আগে ভিডিও/লিংক দিন বা খবরটা কী নিয়ে লিখুন।', 'bad'); return false; }
+  const b = $('vnAi'); b.disabled = true; VN.aiBusy = true;
+  try{
+    const imgs = await vnImgs();
+    let r = null, err = null;
+    if(S.gkey && (VN.listen || !S.ckey)){
+      try{
+        let mode = 'img', parts = [];
+        if(VN.listen && VN.yt){ mode = 'yt'; parts.push({ fileData: { fileUri: 'https://www.youtube.com/watch?v=' + VN.yt } }); vSay('vnAiSt', 'Gemini ভিডিওটা দেখছে ও শুনছে…'); }
+        else if(VN.listen && VN.file){ vSay('vnAiSt', 'ভিডিওর অডিও আলাদা করা হচ্ছে…'); const au = await vnAudio().catch(() => null); if(au){ mode = 'audio'; parts.push({ inlineData: { mimeType: 'audio/wav', data: au } }); } vSay('vnAiSt', au ? 'Gemini ভিডিওর কথা শুনছে ও লিখছে…' : 'ভিডিওতে কথা পাওয়া যায়নি — ছবি দেখে লিখছে…'); }
+        else vSay('vnAiSt', 'Gemini লিখছে…');
+        imgs.forEach(d => parts.push({ inlineData: { mimeType: 'image/jpeg', data: d } }));
+        parts.push({ text: vnPrompt(imgs.length || mode !== 'img' ? mode : '') });
+        r = await gemini({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.6 } }, 240000);
+        if(!vnParse(r.text).heads.filter(Boolean).length) throw new Error('Gemini ঠিক ফরম্যাটে উত্তর দেয়নি');
+      }catch(e){ err = e; r = null; if(!S.ckey) throw e; toast('Gemini: ' + aiErrMsg(e) + ' — Claude লিখছে'); }
+    }
+    if(!r){
+      vSay('vnAiSt', 'Claude ছবি দেখে লিখছে…');
+      const content = imgs.map(d => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } }));
+      content.push({ type: 'text', text: vnPrompt(imgs.length ? 'img' : '') });
+      r = await claude('You write short, accurate Bangladeshi Bengali breaking-news headlines and voice-over scripts for a Facebook news page. Follow the requested output format exactly.', content, 180000, 4000);
+    }
+    const o = vnParse(salamOnly(r.text));
+    if(!o.heads.filter(Boolean).length) throw err || new Error('AI ঠিক ফরম্যাটে উত্তর দেয়নি — আবার চাপুন');
+    $('vnOut').value = vnFormat(o);
+    vSay('vnAiSt', '✔ লেখা তৈরি। চাইলে বদলে নিন, তারপর "নিউজ রিল তৈরি করুন"।', 'ok');
+    return true;
+  }catch(e){ vSay('vnAiSt', '✖ ' + (typeof aiErrMsg === 'function' ? aiErrMsg(e) : e.message), 'bad'); return false; }
+  finally{ b.disabled = false; VN.aiBusy = false; }
+}
+function vnFormat(o){
+  const L = []; if(o.topic) L.push('বিষয়: ' + o.topic, '');
+  for(let i = 0; i < VN.shots; i++) L.push('শিরোনাম ' + nwNum(i + 1) + ': ' + (o.heads[i] || ''));
+  L.push('', 'শুরু: ' + (o.intro || ''));
+  for(let i = 0; i < VN.shots; i++) L.push('ভয়েস ' + nwNum(i + 1) + ': ' + (o.voice[i] || ''));
+  L.push('শেষ: ' + (o.outro || ''));
+  return L.join('\n');
+}
+$('vnAi').addEventListener('click', () => { if(!VN.aiBusy) vnAiWrite(); });
+$('vnCopy').addEventListener('click', async () => {
+  const p = vnPrompt('copy');
+  try{ await navigator.clipboard.writeText(p); }catch(e){ const ta = document.createElement('textarea'); ta.value = p; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e2){} ta.remove(); }
+  vSay('vnAiSt', VN.file ? '✔ কপি হয়েছে। জেমিনিতে ভিডিওটা সংযুক্ত করে (＋ চেপে) পেস্ট করে পাঠান, উত্তর কপি করে এখানে "উত্তর পেস্ট" চাপুন।' : '✔ কপি হয়েছে। জেমিনিতে পেস্ট করে পাঠান, উত্তর কপি করে এখানে "উত্তর পেস্ট" চাপুন।', 'ok');
+  setTimeout(() => { try{ window.open('https://gemini.google.com/app', '_blank'); }catch(e){} }, 400);
+});
+$('vnPaste').addEventListener('click', async () => {
+  let x = ''; try{ x = await navigator.clipboard.readText(); }catch(e){}
+  if(!x){ $('vnOut').focus(); vSay('vnAiSt', 'উত্তরটি নিচের ঘরে চেপে ধরে পেস্ট করুন।'); return; }
+  const o = vnParse(salamOnly(x));
+  if(!o.heads.filter(Boolean).length){ $('vnOut').value = x; vSay('vnAiSt', '⚠ ফরম্যাট মেলেনি — "শিরোনাম ১: …" এভাবে আছে কিনা দেখুন।', 'bad'); return; }
+  $('vnOut').value = vnFormat(o); vSay('vnAiSt', '✔ উত্তর বসানো হয়েছে।', 'ok');
+});
+
+/* no AI → the description itself, split into short lines */
+function vnFallback(){
+  const desc = String($('vnDesc').value || VN.title || '').replace(/\s+/g, ' ').trim();
+  const sents = desc.split(/(?<=[।!?.])\s+/).map(x => x.replace(/[।.]+$/, '').trim()).filter(Boolean);
+  const heads = [], voice = [];
+  for(let i = 0; i < VN.shots; i++){
+    const s = sents.length ? sents[i % sents.length] : '';
+    const w = s.split(' '); heads.push(w.length > 12 ? w.slice(0, 11).join(' ') + '…' : s); voice.push(s ? s + '।' : '');
+  }
+  return { topic: desc, heads, voice, intro: '', outro: '' };
+}
+
+/* ---------- make: screenshots + texts → the reel maker, in the Breaking News frame ---------- */
+$('vnGo').addEventListener('click', async () => {
+  if(VN.busy) return;
+  if(!VN.vid && !(VN.ytImgs && VN.ytImgs.length) && !String($('vnDesc').value || '').trim()){ toast('আগে ভিডিও বা লিংক দিন'); return; }
+  VN.busy = true; const b = $('vnGo'); b.disabled = true;
+  try{
+    let o = vnParse($('vnOut').value);
+    if(!o.heads.filter(Boolean).length){
+      if((S.gkey || S.ckey) && await vnAiWrite()) o = vnParse($('vnOut').value);
+      else { o = vnFallback(); if(!o.heads.filter(Boolean).length){ vSay('vnAiSt', 'খবরটা কী নিয়ে তা ২ নম্বর ঘরে লিখুন, বা AI দিয়ে লেখান।', 'bad'); return; } $('vnOut').value = vnFormat(o); }
+    }
+    const st = await vnExtract(m => vSay('vnSrcSt', m));
+    const src = String($('vnSrc').value || '').trim() || (VN.yt ? (VN.author || 'YouTube') : VN.link ? hostOf(VN.link) : 'ভিডিও');
+    const stamp = Date.now().toString(36), list = [];
+    for(let i = 0; i < VN.shots; i++){
+      const head = o.heads[i] || o.heads[0] || ''; if(!head) continue;
+      const s = st[i] || st[st.length - 1] || {};
+      list.push({ title: head, link: 'tfvideo://' + stamp + '/' + i, img: s.url || '', imgs: s.url ? [s.url] : [], picked: true, vid: true, noImg: !s.url,
+        vclip: s.clip || null, desc: o.voice[i] || '', text: [o.topic, o.voice[i]].filter(Boolean).join(' '),
+        src: { id: 'video', bn: src, en: src }, date: '' });
+    }
+    if(!list.length) throw new Error('কোনো শিরোনাম পাওয়া যায়নি');
+    vcClear();
+    RL.tpl = 'live'; store.set('rlTpl', 'live');                  // the Breaking News frame
+    if(VN.vid && VN.clip) RL.secs = Math.max(RL.secs, Math.min(6, VN.clip + 3));
+    if(!RL.title) RL.title = 'ব্রেকিং নিউজ';
+    const script = ['শুরু: ' + (o.intro || '')].concat(list.map((_, i) => nwNum(i + 1) + ': ' + (o.voice[i] || ''))).concat(['শেষ: ' + (o.outro || '')]).join('\n\n');
+    vnClose(true);
+    try{ history.replaceState({ rl: 1 }, ''); }catch(e){}
+    if(!window.TFReel.open(list)) return;
+    if(o.voice.filter(Boolean).length){ try{ voSetScript(script); }catch(e){} }
+    if(voKey() && VO.voice && o.voice.filter(Boolean).length && !VO.on){ VO.on = true; voSave(); voUi(); }
+    toast(VO.on ? '🎙 শিরোনাম, ছবি ও ভয়েস-স্ক্রিপ্ট বসানো হয়েছে — নিচের বোতাম চেপে রিল তৈরি করুন' : 'শিরোনাম ও ছবি বসানো হয়েছে — নিচের বোতাম চেপে রিল তৈরি করুন');
+  }catch(e){ if(e.message !== 'cancel') vSay('vnAiSt', '✖ ' + (e.message || e), 'bad'); }
+  finally{ VN.busy = false; b.disabled = false; }
+});
+
+/* home tile, right below "multi-news reel" */
+(function addVnTile(tries){
+  const q = document.querySelector('.v6quick');
+  if(!q || (!q.querySelector('.rlwide') && (tries || 0) < 20)){ if((tries || 0) < 60) setTimeout(() => addVnTile((tries || 0) + 1), 250); return; }
+  if(q.querySelector('.vntile')) return;
+  const b = mk('button', 'qtile rlwide vntile', '<span class="qi">' + ic(IC_VID) + '</span><span class="qt"><b>ভিডিও থেকে নিউজ</b><small>ভিডিও বা লিংক দিন — স্ক্রিনশট, ভিডিওর অংশ, শিরোনাম ও ভয়েস দিয়ে ব্রেকিং নিউজ রিল</small></span>'); b.type = 'button';
+  b.addEventListener('click', vnOpen);
+  const rl = q.querySelector('.rlwide:not(.vntile)');
+  if(rl) rl.after(b); else q.prepend(b);
+})();
+window.TFVideoNews = { open: vnOpen };
+(window.TFClearHooks = window.TFClearHooks || []).push({
+  has: () => !!(VN.file || VN.link || VN.open || String($('vnDesc').value || '').trim()),
+  clear: () => { if(VN.open) vnClose(true); vnReset(); $('vnDesc').value = ''; $('vnOut').value = ''; $('vnLink').value = ''; $('vnSrc').value = ''; vcClear(); }
+});
+})();
+
 window.TFReel = {
   open(list){
     RL.sel = new Map();

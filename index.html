@@ -774,6 +774,7 @@ html[data-theme="dark"] .v6mz.warn .mzscore{background:#3d2e12;color:#ffc46b}
 .v6writer button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:4px 12px;font:inherit;cursor:pointer}
 .v6writer button.on{background:#d97757;border-color:#d97757;color:#fff;font-weight:700}
 .claudebox h4{margin-top:0}
+.nwitem em.nwv{background:#ff6a00;color:#fff;font-style:normal;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px}
 .nwitem em.nwq{background:#fff200;color:#111;font-style:normal;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px}
 </style>
 <style id="v7css">
@@ -4984,18 +4985,18 @@ function nwRefresh(force, auto){
 
 /* ---------- smart search: keyword + category + near-match ---------- */
 const NW_CATS = [
+  { id:'bd', bn:'দেশ', en:'Bangladesh', al:['দেশ','দেশি','দেশের','জাতীয়','national','bangladesh'], path:/national|bangladesh|country|desh|politic|rajniti/i, gq:'রাজনীতি',
+    kw:/(?!)/, bd:true },
+  { id:'intl', bn:'আন্তর্জাতিক', en:'International', al:['আন্তর্জাতিক','বিশ্ব','বিদেশ','বিদেশি','international','world'], path:/world|international|antorjatik|bishwo|global/i,
+    kw:/যুক্তরাষ্ট্র|আমেরিকা|ট্রাম্প|ভারত|পাকিস্তান|চীন|রাশিয়া|ইউক্রেন|ইসরায়েল|গাজা|ফিলিস্তিন|ইরান|জাতিসংঘ|ইউরোপ|ব্রিটেন|জাপান|আন্তর্জাতিক|বিশ্ব|নেপাল|মিয়ানমার|রোহিঙ্গা|তালেবান|আফগানিস্তান|সৌদি/, intl:true },
   { id:'politics', bn:'রাজনীতি', en:'Politics', al:['রাজনীতি','রাজনৈতিক','politics','political'], path:/politic|rajniti/i,
     kw:/বিএনপি|জামায়াত|আওয়ামী|নির্বাচন|সংসদ|মন্ত্রী|প্রধানমন্ত্রী|সরকার|ভোট|এমপি|প্রার্থী|এনসিপি|জাতীয় পার্টি|উপদেষ্টা|সংবিধান|রাজনীতি|রাজনৈতিক|সমাবেশ|হরতাল|আন্দোলন|দলীয়|মহাসচিব|স্পিকার|শপথ|জুলাই সনদ|গণভোট/ },
   { id:'economy', bn:'অর্থনীতি', en:'Economy', al:['অর্থনীতি','অর্থনৈতিক','ব্যবসা','বাণিজ্য','অর্থ','economy','business'], path:/econom|business|bank|trade|finance/i,
     kw:/টাকা|ডলার|দাম|বাজার|ব্যাংক|ঋণ|রপ্তানি|আমদানি|বিনিয়োগ|শেয়ার|পুঁজিবাজার|মূল্যস্ফীতি|জিডিপি|বাজেট|রাজস্ব|এনবিআর|শুল্ক|সোনা|বেতন|ব্যবসা|অর্থনীতি|বাণিজ্য|রিজার্ভ|কর\b|আইএমএফ|বিশ্বব্যাংক/ },
-  { id:'intl', bn:'আন্তর্জাতিক', en:'International', al:['আন্তর্জাতিক','বিশ্ব','বিদেশ','বিদেশি','international','world'], path:/world|international|antorjatik|bishwo|global/i,
-    kw:/যুক্তরাষ্ট্র|আমেরিকা|ট্রাম্প|ভারত|পাকিস্তান|চীন|রাশিয়া|ইউক্রেন|ইসরায়েল|গাজা|ফিলিস্তিন|ইরান|জাতিসংঘ|ইউরোপ|ব্রিটেন|জাপান|আন্তর্জাতিক|বিশ্ব|নেপাল|মিয়ানমার|রোহিঙ্গা|তালেবান|আফগানিস্তান|সৌদি/, intl:true },
-  { id:'sports', bn:'খেলাধুলা', en:'Sports', al:['খেলাধুলা','খেলা','ক্রীড়া','ক্রিকেট','ফুটবল','sports','sport','cricket','football'], path:/sport|khela|cricket|football/i,
-    kw:/ক্রিকেট|ফুটবল|ম্যাচ|টেস্ট|ওয়ানডে|টি-টোয়েন্টি|বিশ্বকাপ|লিগ|গোল|কোচ|খেলোয়াড়|টাইগার|মেসি|রোনালদো|বিপিএল|সাকিব|তামিম|মুশফিক|আইপিএল|এশিয়া কাপ|টুর্নামেন্ট|ক্রীড়া|খেলা|ব্যাটার|বোলার|উইকেট|সিরিজ|অলিম্পিক/ },
-  { id:'entertain', bn:'বিনোদন', en:'Entertainment', al:['বিনোদন','সিনেমা','চলচ্চিত্র','নাটক','গান','entertainment','movie','film'], path:/entertain|binodon|showbiz|cinema|lifestyle-entertain/i,
-    kw:/সিনেমা|চলচ্চিত্র|নায়ক|নায়িকা|অভিনেতা|অভিনেত্রী|গান|শিল্পী|নাটক|বলিউড|হলিউড|ঢালিউড|কনসার্ট|সংগীত|তারকা|ওটিটি|ওয়েব সিরিজ|পরিচালক|মুক্তি/ },
   { id:'crime', bn:'অপরাধ', en:'Crime', al:['অপরাধ','আইন','আদালত','পুলিশ','খুন','crime','court','police'], path:/crime|court|law-|police/i,
     kw:/হত্যা|খুন|ধর্ষণ|গ্রেপ্তার|গ্রেফতার|পুলিশ|মামলা|আদালত|ডাকাতি|চুরি|লাশ|নিহত|আটক|র্যাব|দুর্নীতি|প্রতারণা|মাদক|ইয়াবা|আসামি|রিমান্ড|কারাগার|জামিন|রায়|অভিযুক্ত/ },
+  { id:'accident', bn:'দুর্ঘটনা', en:'Accident', al:['দুর্ঘটনা','আগুন','সড়ক','accident','fire'], path:/accident|road/i,
+    kw:/দুর্ঘটনা|আগুন|অগ্নিকাণ্ড|সড়ক|নৌকাডুবি|ট্রেন|বাস|ট্রাক|সংঘর্ষ|ডুবে|বিস্ফোরণ|ধসে|পড়ে মৃত্যু|নিহত/ },
   { id:'edu', bn:'শিক্ষা', en:'Education', al:['শিক্ষা','পরীক্ষা','স্কুল','কলেজ','ভর্তি','education','exam','school'], path:/educat|shikkha|campus|admission/i,
     kw:/স্কুল|কলেজ|বিশ্ববিদ্যালয়|ভর্তি|পরীক্ষা|এসএসসি|এইচএসসি|শিক্ষার্থী|শিক্ষক|ফলাফল|ঢাবি|বুয়েট|শিক্ষা|ক্লাস|ছাত্র|ক্যাম্পাস|শিক্ষামন্ত্রী|জবি|জাবি|চবি|রাবি/ },
   { id:'tech', bn:'প্রযুক্তি', en:'Tech', al:['প্রযুক্তি','টেক','মোবাইল','ইন্টারনেট','technology','tech','ai'], path:/tech|science|gadget|digital/i,
@@ -5006,8 +5007,10 @@ const NW_CATS = [
     kw:/ইসলাম|মসজিদ|হজ|রমজান|ঈদ|নামাজ|ধর্ম|মাদ্রাসা|আলেম|মুসলিম|হিন্দু|পূজা|মন্দির|ওয়াজ|মাহফিল|উমরাহ|কোরআন|হাদিস/ },
   { id:'weather', bn:'আবহাওয়া', en:'Weather', al:['আবহাওয়া','বৃষ্টি','ঝড়','বন্যা','weather','rain','storm'], path:/weather|abohawa/i,
     kw:/আবহাওয়া|বৃষ্টি|বন্যা|ঝড়|সাইক্লোন|ঘূর্ণিঝড়|ভূমিকম্প|তাপপ্রবাহ|নিম্নচাপ|শৈত্যপ্রবাহ|কুয়াশা|তাপমাত্রা|বজ্রপাত|জলোচ্ছ্বাস/ },
-  { id:'accident', bn:'দুর্ঘটনা', en:'Accident', al:['দুর্ঘটনা','আগুন','সড়ক','accident','fire'], path:/accident|road/i,
-    kw:/দুর্ঘটনা|আগুন|অগ্নিকাণ্ড|সড়ক|নৌকাডুবি|ট্রেন|বাস|ট্রাক|সংঘর্ষ|ডুবে|বিস্ফোরণ|ধসে|পড়ে মৃত্যু|নিহত/ }
+  { id:'entertain', bn:'বিনোদন', en:'Entertainment', al:['বিনোদন','সিনেমা','চলচ্চিত্র','নাটক','গান','entertainment','movie','film'], path:/entertain|binodon|showbiz|cinema|lifestyle-entertain/i,
+    kw:/সিনেমা|চলচ্চিত্র|নায়ক|নায়িকা|অভিনেতা|অভিনেত্রী|গান|শিল্পী|নাটক|বলিউড|হলিউড|ঢালিউড|কনসার্ট|সংগীত|তারকা|ওটিটি|ওয়েব সিরিজ|পরিচালক|মুক্তি/ },
+  { id:'sports', bn:'খেলাধুলা', en:'Sports', al:['খেলাধুলা','খেলা','ক্রীড়া','ক্রিকেট','ফুটবল','sports','sport','cricket','football'], path:/sport|khela|cricket|football/i,
+    kw:/ক্রিকেট|ফুটবল|ম্যাচ|টেস্ট(?! কিট| পরীক্ষা)|ওয়ানডে|টি-টোয়েন্টি|বিশ্বকাপ|লিগ|গোল(?![াি]|টেবিল)|কোচ|খেলোয়াড়|টাইগার|মেসি|রোনালদো|বিপিএল|সাকিব|তামিম|মুশফিক|আইপিএল|এশিয়া কাপ|টুর্নামেন্ট|ক্রীড়া|খেলা|ব্যাটার|বোলার|উইকেট|সিরিজ|অলিম্পিক/ }
 ];
 NW.cat = '';
 function nwQN(s){
@@ -5040,6 +5043,7 @@ function nwInCat(o, c){
   if(o._c[c.id] != null) return o._c[c.id];
   const h = nwPrep(o);
   let v = 0;
+  if(c.bd) return (o._c[c.id] = nwIsForeign(o) ? 0 : c.path.test(h.path) ? 3 : 2);
   if(c.path.test(h.path)) v = 3;
   else if(c.kw.test(h.title)) v = 2;
   else if(c.kw.test(nwQN((o.desc || '').slice(0, 300)))) v = 1;
@@ -5122,7 +5126,7 @@ function nwCatChips(){
 async function nwGoogleSearch(){
   const q = ($('nwSearch').value || '').trim(), cat = NW_CATS.find(c => c.id === NW.cat);
   const gq = q && window.TFTopic ? TFTopic.googleQuery(TFTopic.analyze(q), q) : q;
-  const query = [gq, cat && !q ? cat.bn : ''].filter(Boolean).join(' ') + ' when:3d';
+  const query = [gq, cat && !q ? (cat.gq || cat.bn) : ''].filter(Boolean).join(' ') + ' when:3d';
   if(nwGoogleSearch.last === query) return; nwGoogleSearch.last = query;
   if(!q && !cat) return;
   const btn = $('nwGsBtn'); if(btn){ btn.disabled = true; btn.textContent = '⏳ ' + t('nwLoading'); }
@@ -5159,10 +5163,17 @@ function nwRender(){
   if(NW.src === 'quotes') all = all.filter(o => nwHot(o) >= 2);
   // stories with a photo always come first (a photo found earlier on this phone counts too); stories without one go to the end
   const nwHasImg = o => { if(!o.img){ try{ const m = nwImgMem[o.link]; if(m) o.img = m; }catch(e){} } return o.img ? 1 : 0; };
-  // within each group: Bangladesh political statements ("কে কী বললেন") first, then statements, then political news; foreign news is pushed back
-  const nwKey = o => (o.date ? o.date.getTime() : 0) - (nwIsForeign(o) ? 12 * 3600000 : 0) + [0, 3, 8, 14][nwHot(o)] * 3600000;
-  if(!smart) all.sort((a, b) => nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
-  else {   // best match first; equally good matches: with photo, then newest
+  // order of the list: (1) the most important stories of the chosen view, (2) the rest, (3) sports always at the very end.
+  //   সব বিষয়  → stories carried by many papers at once ("ভাইরাল") lead
+  //   আন্তর্জাতিক → ইরান, চীন, যুক্তরাষ্ট্র, রাশিয়া → ইসরায়েল, ফিলিস্তিন, সৌদি, মধ্যপ্রাচ্য → ভারত, পাকিস্তান
+  //   দেশ / রাজনীতি → সংঘর্ষ-সহিংসতা → তীব্র রাজনৈতিক বক্তব্য → আন্দোলন-বিক্ষোভ
+  // inside each group: with photo first, then a "hotness" score expressed as hours added to the publish time
+  nwViral(all);
+  const mode = NW.cat === 'intl' ? 'intl' : (NW.cat === 'bd' || NW.cat === 'politics') ? 'bd' : NW.cat ? 'cat' : '';
+  const nwKey = o => (o.date ? o.date.getTime() : 0) + nwBonus(o, mode) * 3600000;
+  const nwGrp = o => (NW.cat !== 'sports' && nwIsSport(o)) ? 0 : nwTop(o, mode, now) ? 2 : 1;
+  if(!smart || !smart.scored) all.sort((a, b) => nwGrp(b) - nwGrp(a) || nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
+  else {   // keyword search: best match first; equally good matches: with photo, then hottest/newest
     const rank = new Map(all.map((o, i) => [o, i]));
     const grp = smart.tier ? (o => -smart.tier.get(o)) : (o => Math.floor(rank.get(o) / 6));
     all.sort((a, b) => grp(a) - grp(b) || nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
@@ -5196,7 +5207,7 @@ function nwRender(){
     const fresh = o.date && now - o.date.getTime() < 30 * 60000;
     const host = o.src && o.src.d && !o.src.gn ? o.src.d.split('/')[0] : '';
     b.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : (host ? '<img class="fav" alt="" src="' + esc(proxImg('www.google.com/s2/favicons?domain=' + host + '&sz=64')) + '">' : '📰')) + '</span>' +
-      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + (nwHot(o) >= 2 ? '<em class="nwq">' + esc(t('nwQ')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
+      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + (o._vir >= 2 ? '<em class="nwv">🔥 ' + esc(S.lang === 'bn' ? 'ভাইরাল' : 'Viral') + '</em>' : '') + (nwHot(o) >= 2 ? '<em class="nwq">' + esc(t('nwQ')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
     const fav = b.querySelector('img.fav'); if(fav) fav.onerror = () => { fav.parentNode.textContent = '📰'; };
     if(o.img){
       const im = b.querySelector('img'); im.dataset.f = '0';
@@ -5218,6 +5229,87 @@ function nwIsForeign(o){
   const tt = String(o.title || '');
   o._intl = !NW_BD_WORD.test(tt) && (NW_INTL_PATH.test(path) || NW_INTL_WORD.test(tt) || (o.src && o.src.id === 'bbcbangla' && !NW_BD_WORD.test(o.desc || '')));
   return o._intl;
+}
+/* ---------- priority ranking ---------- */
+const NW_BB = '(?<![\\u0980-\\u09FF])';     // Bangla "start of word" (so চীন does not match প্রাচীন)
+const NW_SPORT = new RegExp('ক্রিকেট|ফুটবল|ব্যাট|সিরিজ জিত|সিরিজ হার|সিরিজে|রানে জয়|রানের জয়|উইকেটে জয়|টি-টোয়েন্টি|টি টোয়েন্টি|টি২০|ওয়ানডে|বিপিএল|আইপিএল|বিশ্বকাপ|এশিয়া কাপ|অলিম্পিক|মেসি|রোনালদো|নেইমার|এমবাপ্পে|সাকিব|তামিম|মুশফিক|মিরাজ|লিটন|তাসকিন|মুস্তাফিজ|ব্যাটার|ব্যাটিং|বোলার|বোলিং|উইকেট|সেঞ্চুরি|ফিফটি|হ্যাটট্রিক|ইনিংস|গোলরক্ষক|স্ট্রাইকার|ম্যাচ|টেস্ট ম্যাচ|টেস্টে|লা লিগা|প্রিমিয়ার লিগ|চ্যাম্পিয়নস লিগ|বার্সেলোনা|রিয়াল মাদ্রিদ|ক্রীড়া|খেলোয়াড়|হকি|টেনিস|দাবা|কাবাডি|বিসিবি|বাফুফে|ফিফা|আইসিসি|টাইগারদের|টাইগাররা|সাফ চ্যাম্পিয়নশিপ|cricket|football|soccer', 'i');
+const NW_SPORT_PATH = /\/(sports?|khela|khelardhula|cricket|football|games)(\/|$|-)/i;
+function nwIsSport(o){
+  if(o._sp != null) return o._sp;
+  let path = ''; try{ path = new URL(o.link).pathname; }catch(e){}
+  return (o._sp = NW_SPORT_PATH.test(path) || NW_SPORT.test(String(o.title || '')));
+}
+const NW_INTL_T = [
+  null,
+  new RegExp(NW_BB + 'ভারত|' + NW_BB + 'মোদি|দিল্লি|পাকিস্তান|ইসলামাবাদ|শাহবাজ|India|Modi|Pakistan', 'i'),
+  new RegExp('ইসরায়েল|ইসরাইল|নেতানিয়াহু|ফিলিস্তিন|গাজা|হামাস|পশ্চিম তীর|সৌদি|মধ্যপ্রাচ্য|লেবানন|হিজবুল্লাহ|সিরিয়া|ইয়েমেন|হুতি|কাতার|ইরাক|তুরস্ক|এরদোয়ান|আরব|Israel|Gaza|Palestin|Hamas|Saudi|Middle East', 'i'),
+  new RegExp('ইরান|তেহরান|খামেনি|' + NW_BB + 'চীন|বেইজিং|জিনপিং|যুক্তরাষ্ট্র|মার্কিন|আমেরিকা|ট্রাম্প|হোয়াইট হাউস|ওয়াশিংটন|পেন্টাগন|রাশিয়া|' + NW_BB + 'রুশ|পুতিন|মস্কো|ক্রেমলিন|Iran|China|Chinese|Beijing|America|Trump|Washington|Russia|Putin|Kremlin', 'i')
+];
+/* 3 = ইরান/চীন/যুক্তরাষ্ট্র/রাশিয়া, 2 = ইসরায়েল/ফিলিস্তিন/সৌদি/মধ্যপ্রাচ্য, 1 = ভারত/পাকিস্তান, 0 = other */
+function nwIntlTier(o){
+  if(o._it != null) return o._it;
+  const tt = String(o.title || ''), dd = String(o.desc || '').slice(0, 160);
+  let v = 0;
+  for(let k = 3; k >= 1; k--){ if(NW_INTL_T[k].test(tt)){ v = k; break; } }
+  if(!v) for(let k = 3; k >= 1; k--){ if(NW_INTL_T[k].test(dd)){ v = k - 0.5; break; } }
+  return (o._it = v);
+}
+const NW_RIOT = /সংঘর্ষ|হামলা|দাঙ্গা|হাঙ্গামা|ধাওয়া|পাল্টাপাল্টি|অগ্নিসংযোগ|আগুন দেয়|আগুন দিল|ভাঙচুর|ককটেল|গোলাগুলি|গুলিবর্ষণ|গুলি ছোড়|সহিংস|উত্তপ্ত|উত্তেজনা|রণক্ষেত্র|সংঘাত|মারামারি|হাতাহাতি|কারফিউ|১৪৪ ধারা|টিয়ারশেল|টিয়ার শেল|সাউন্ড গ্রেনেড|লাঠিচার্জ|রক্তাক্ত|অবরুদ্ধ|তাণ্ডব|বিশৃঙ্খলা|(?<![\u0980-\u09FF])মব(?:ের)?(?![\u0980-\u09FF])/;
+const NW_ACCIDENT = /(?<![\u0980-\u09FF])বাস(?:ে|ের|-|\s|$)|ট্রাক|ট্রেন|সড়ক|দুর্ঘটনা|মোটরসাইকেল|অটোরিকশা|পিকআপ|লঞ্চ|নৌকা|কুকুর|হাতি(?!য়)|মৌমাছি|বজ্রপাত/;
+const NW_FIERY = /হুঁশিয়ারি|হুশিয়ারি|তোপ|কটাক্ষ|ক্ষোভ|হুমকি|আলটিমেটাম|চ্যালেঞ্জ|কঠোর|তীব্র|নিন্দা|প্রতিহত|রুখে|দাঁতভাঙা|খবর আছে|ষড়যন্ত্র|বিদায় কর|পালাবে|ছাড় দেওয়া হবে না|পাল্টা|অভিযোগ|জবাব|সমালোচনা/;
+const NW_MOVE = /আন্দোলন|বিক্ষোভ|মানববন্ধন|অবস্থান কর্মসূচি|অবস্থান ধর্মঘট|ঘেরাও|মিছিল|সমাবেশ|কর্মসূচি|অনশন|ধর্মঘট|অবরোধ|হরতাল|ব্লকেড|শাটডাউন|লংমার্চ|কর্মবিরতি|স্মারকলিপি|প্রতিবাদ|দাবিতে|রাজপথ|গণঅভ্যুত্থান/;
+/* দেশের খবর: 3 = সংঘর্ষ/সহিংসতা, 2 = তীব্র রাজনৈতিক বক্তব্য, 1 = আন্দোলন/বিক্ষোভ, 0.5 = অন্য রাজনীতি */
+function nwBdTier(o){
+  if(o._bt != null) return o._bt;
+  if(nwIsForeign(o) || nwIsSport(o)) return (o._bt = 0);
+  const tt = String(o.title || ''), pol = NW_POL.test(tt) || NW_MOVE.test(tt);
+  let v = 0;
+  if(NW_RIOT.test(tt) && (!NW_ACCIDENT.test(tt) || pol)) v = 3;
+  else if(nwHot(o) >= 3 || (pol && NW_FIERY.test(tt))) v = 2;
+  else if(NW_MOVE.test(tt)) v = 1;
+  else if(NW_POL.test(tt)) v = 0.5;
+  return (o._bt = v);
+}
+/* "ভাইরাল" = the same story carried by several papers at the same time.
+   o._vir = how many OTHER papers have a headline sharing most of its key words. */
+const NW_STOP = new Set('নিয়ে করে করা করতে করেছে করেছেন হবে হয়েছে হয়েছেন হচ্ছে থেকে জন্য সঙ্গে সাথে বলেছেন বললেন বলেন দিয়ে দিলেন দিল আরও এবার কেন কী কি যে এই সেই তার তাদের আমাদের একটি একজন দুই প্রথম নতুন শুরু শেষ বিরুদ্ধে পর আগে মধ্যে বিষয়ে ব্যাপারে নেই না নয় হলো হল ভিডিও ছবি লাইভ আজ আজকের খবর সংবাদ'.split(' '));
+function nwViral(all){
+  const sig = all.length + '|' + (all[0] && all[0].link) + '|' + (all[all.length - 1] && all[all.length - 1].link);
+  if(nwViral.sig === sig) return; nwViral.sig = sig;
+  const sk = o => (o.gsrc || (o.src && o.src.id) || '?');
+  const toks = all.map(o => [...new Set(nwQN(o.title).split(' ').filter(w => w.length >= 3 && !NW_STOP.has(w)).map(nwStem).filter(w => w.length >= 2))]);
+  const df = new Map(); toks.forEach(ws => ws.forEach(w => df.set(w, (df.get(w) || 0) + 1)));
+  const maxDf = Math.max(6, all.length * 0.04);
+  const idx = new Map();
+  toks.forEach((ws, i) => { toks[i] = ws.filter(w => df.get(w) <= maxDf); toks[i].forEach(w => { let a = idx.get(w); if(!a) idx.set(w, a = []); a.push(i); }); });
+  all.forEach((o, i) => {
+    const ws = toks[i]; o._vir = 0; if(ws.length < 2) return;
+    const hit = new Map();
+    ws.forEach(w => (idx.get(w) || []).forEach(j => { if(j !== i) hit.set(j, (hit.get(j) || 0) + 1); }));
+    const papers = new Set(), mine = sk(o), t0 = o.date ? o.date.getTime() : 0;
+    hit.forEach((n, j) => {
+      const p = all[j], need = Math.min(ws.length, toks[j].length) >= 5 ? 3 : 2;
+      if(n < need || n / Math.min(ws.length, toks[j].length) < 0.4) return;
+      if(t0 && p.date && Math.abs(t0 - p.date.getTime()) > 36 * 3600000) return;
+      const k = sk(p); if(k !== mine) papers.add(k);
+    });
+    o._vir = papers.size;
+  });
+}
+/* hours added to the publish time when sorting */
+function nwBonus(o, mode){
+  const v = Math.min(o._vir || 0, 6) * 3, hot = [0, 3, 8, 14][nwHot(o)] || 0;
+  if(mode === 'intl') return v + nwIntlTier(o) * 6;
+  if(mode === 'bd') return v + nwBdTier(o) * 8 + (NW_FIERY.test(o.title || '') ? 2 : 0);
+  const foreign = nwIsForeign(o), it = foreign ? nwIntlTier(o) : 0;
+  return v + hot + (foreign ? (it >= 1 ? it * 2 - 4 : -12) : nwBdTier(o) * 2);
+}
+/* stories that always sit at the top of the chosen view (only fresh ones — within 36 hours) */
+function nwTop(o, mode, now){
+  if(o.date && now - o.date.getTime() > 36 * 3600000) return false;
+  if(mode === 'intl') return nwIntlTier(o) >= 1;
+  if(mode === 'bd') return nwBdTier(o) >= 1;
+  return (o._vir || 0) >= 2;
 }
 /* how "hot" is a headline for a quote card? 0 = normal, 1 = political, 2 = statement, 3 = political statement */
 const NW_SAID = /বললেন|বলেছেন|বলেন\b|মন্তব্য|বক্তব্য|দাবি|অভিযোগ|নিন্দা|হুঁশিয়ারি|হুশিয়ারি|সমালোচনা|প্রশ্ন তুল|জবাব|পাল্টা|মুখ খুল|ক্ষোভ|কটাক্ষ|তোপ|ইঙ্গিত দিল|আহ্বান|সতর্ক কর|চ্যালেঞ্জ/;

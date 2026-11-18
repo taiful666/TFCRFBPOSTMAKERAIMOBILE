@@ -10769,6 +10769,19 @@ const vsheet = mk('div', 'nsheet hidden no-print'); vsheet.id = 'vnSheet'; vshee
 vsheet.innerHTML = `<div class="nsbox vnbox">
   <div class="nshead"><b>🎬 ভিডিও থেকে নিউজ রিল</b><span style="flex:1"></span><button type="button" class="x" id="vnClose" aria-label="close">×</button></div>
   <div class="vnbody">
+    <div class="rlsec" id="vfSec">
+      <div class="rlf"><span>⚡ সর্বশেষ আপডেট — সেভ করা চ্যানেল / পেজ থেকে এক ট্যাপে নিন</span>
+        <div class="vfchips" id="vfChips"></div>
+        <div class="vfbar"><button type="button" class="btn" id="vfRef">🔄 নতুন আপডেট আনুন</button><span class="vnst" id="vfSt" style="margin:0"></span></div>
+        <div class="vffb hidden" id="vfFb"></div>
+        <div class="vflist" id="vfFeed"></div>
+        <details class="vfmg"><summary>⚙ চ্যানেল / পেজ যোগ বা বাদ দিন</summary>
+          <div class="vnrow"><input type="text" id="vfAdd" autocomplete="off" spellcheck="false" placeholder="YouTube চ্যানেলের লিংক / @হ্যান্ডেল / নাম — বা Facebook পেজের লিংক"><button type="button" class="btn" id="vfAddGo">যোগ</button></div>
+          <div id="vfMg"></div>
+          <button type="button" class="btn" id="vfReset" style="margin-top:8px">ডিফল্ট তালিকা ফেরান</button>
+        </details>
+      </div>
+    </div>
     <div class="rlsec">
       <div class="rlf"><span>১. ভিডিও দিন</span>
         <button type="button" class="btn primary" id="vnFileBtn" style="width:100%;min-height:46px">${ic(IC_VID)}<span>ফোন / কম্পিউটার থেকে ভিডিও দিন</span></button>
@@ -10821,6 +10834,7 @@ function vnOpen(){
   VN.open = true; vsheet.classList.remove('hidden'); document.body.classList.add('nwlock');
   try{ if(!(history.state && history.state.vn)) history.pushState({ vn: 1 }, ''); }catch(e){}
   vnOpts();
+  try{ if(window.__vfOpen) window.__vfOpen(); }catch(e){}
 }
 function vnClose(fromPop){
   if(!VN.open) return;
@@ -11342,6 +11356,173 @@ $('vnGo').addEventListener('click', async () => {
   }catch(e){ if(e.message !== 'cancel') vSay('vnAiSt', '✖ ' + (e.message || e), 'bad'); }
   finally{ VN.busy = false; b.disabled = false; }
 });
+
+/* ---------- ⚡ saved YouTube channels / Facebook pages: latest videos, one tap ----------
+   YouTube: every channel has a public RSS feed (latest videos) → listed here, tap = link goes in by itself.
+   Facebook: pages cannot be read without a login, so a page is kept as a shortcut: it opens the page's video tab,
+   you copy a video's link there, come back — the link is picked up from the clipboard automatically. */
+const VF_PRESET = [
+  { k: 'yt', n: 'সময় টিভি', q: 'Somoy TV' }, { k: 'yt', n: 'যমুনা টিভি', q: 'Jamuna TV' }, { k: 'yt', n: 'একাত্তর টিভি', q: 'Ekattor TV' },
+  { k: 'yt', n: 'ডিবিসি নিউজ', q: 'DBC News' }, { k: 'yt', n: 'চ্যানেল ২৪', q: 'Channel 24' }, { k: 'yt', n: 'ইন্ডিপেন্ডেন্ট টিভি', q: 'Independent Television' },
+  { k: 'yt', n: 'এনটিভি', q: 'NTV Bangladesh' }, { k: 'yt', n: 'আরটিভি', q: 'RTV Bangladesh' }, { k: 'yt', n: 'বাংলাভিশন', q: 'Banglavision News' },
+  { k: 'yt', n: 'নিউজ২৪', q: 'News24 Bangladesh' }, { k: 'yt', n: 'প্রথম আলো', q: 'Prothom Alo' }, { k: 'yt', n: 'বিবিসি বাংলা', q: 'BBC News Bangla' },
+  { k: 'fb', n: 'প্রথম আলো (ফেসবুক)', u: 'https://www.facebook.com/DailyProthomAlo' }, { k: 'fb', n: 'বিবিসি বাংলা (ফেসবুক)', u: 'https://www.facebook.com/bbcbangla' }
+];
+const VF = { list: null, items: store.get('vfItems', []), t: store.get('vfT', 0), sel: 'all', busy: false, fbOpen: 0 };
+VF.list = store.get('vfList', null);
+if(!Array.isArray(VF.list) || !VF.list.length) VF.list = VF_PRESET.map(s => Object.assign({}, s));
+const vfSid = s => s.k + ':' + (s.k === 'fb' ? s.u : (s.c || s.q));
+const vfSave = () => { store.set('vfList', VF.list.map(s => ({ k: s.k, n: s.n, q: s.q, u: s.u, c: s.c }))); };
+const vfCss = document.createElement('style');
+vfCss.textContent = `
+.vfchips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch}
+.vfchips button{flex:none;border:1px solid var(--line);background:var(--surface-2,var(--bg));color:var(--text);border-radius:999px;padding:6px 12px;font-size:13px;white-space:nowrap}
+.vfchips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.vfbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.vfbar .btn{min-height:36px;font-size:13px;padding:5px 12px}
+.vflist{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.vfcard{display:flex;gap:10px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:10px;padding:6px;cursor:pointer}
+.vfcard img{width:96px;height:54px;object-fit:cover;border-radius:6px;background:#000;flex:none}
+.vfcard .vft{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.vfcard .vft b{font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:600}
+.vfcard .vft small{color:var(--muted);font-size:12px}
+.vfmg{margin-top:8px;font-size:13px}
+.vfmg summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.vfmg .vnrow{margin:6px 0}
+.vfrow{display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)}
+.vfrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vfrow button{flex:none;border:0;background:none;color:var(--danger,#d93025);font-size:16px;padding:4px 8px}
+.vffb{border:1px dashed var(--line);border-radius:10px;padding:10px;margin-bottom:6px;font-size:13px;line-height:1.5}
+.vffb .btn{margin-top:6px;width:100%;min-height:42px}
+`;
+document.head.appendChild(vfCss);
+
+/* find the channel id: a UC… id, a channel page / @handle, or (for a plain name) the first verified channel in YouTube search */
+async function vfResolve(s){
+  if(s.c) return s.c;
+  const raw = String(s.q || '').trim(); let cid = (raw.match(/UC[\w-]{22}/) || [])[0] || '';
+  if(!cid && (/^@/.test(raw) || /youtube\.com\//i.test(raw))){
+    const u = /^@/.test(raw) ? 'https://www.youtube.com/' + raw : (/^https?:/i.test(raw) ? raw : 'https://' + raw);
+    const html = await vnGet(u, 20000);
+    cid = (html.match(/"(?:externalId|channelId)":"(UC[\w-]{22})"/) || html.match(/channel\/(UC[\w-]{22})/) || [])[1] || '';
+  }
+  if(!cid){
+    const html = await vnGet('https://www.youtube.com/results?search_query=' + encodeURIComponent(raw) + '&sp=EgIQAg%3D%3D', 22000);
+    const parts = html.split('"channelRenderer":{').slice(1, 6); let best = '';
+    for(const p of parts){
+      const id = (p.match(/"channelId":"(UC[\w-]{22})"/) || [])[1]; if(!id) continue;
+      if(/BADGE_STYLE_TYPE_VERIFIED|CHECK_CIRCLE_THICK/.test(p.slice(0, 4000))){ best = id; break; }
+      if(!best) best = id;
+    }
+    cid = best;
+  }
+  if(!cid) throw new Error('channel');
+  s.c = cid; return cid;
+}
+function vfParse(xml, s){
+  const d = new DOMParser().parseFromString(xml, 'text/xml');
+  if(d.getElementsByTagName('parsererror').length) throw new Error('xml');
+  const au = d.getElementsByTagName('author')[0], name = au && au.getElementsByTagName('name')[0] ? au.getElementsByTagName('name')[0].textContent : '';
+  const out = [], tx = (e, tag) => { const x = e.getElementsByTagName(tag)[0]; return x ? x.textContent : ''; };
+  Array.prototype.forEach.call(d.getElementsByTagName('entry'), e => {
+    const id = tx(e, 'yt:videoId'); if(!id) return;
+    out.push({ id, t: tx(e, 'title').trim(), p: Date.parse(tx(e, 'published')) || 0, a: '', sid: vfSid(s) });
+  });
+  if(!s.n && name) s.n = name;
+  out.forEach(o => { o.a = s.n || name; });
+  return out;
+}
+async function vfRefresh(){
+  if(VF.busy) return; VF.busy = true;
+  const yts = VF.list.filter(s => s.k === 'yt'), st = $('vfSt'), btn = $('vfRef'); btn.disabled = true;
+  let done = 0, fail = 0; const got = [], bad = new Set();
+  const work = async s => {
+    try{ const cid = await vfResolve(s); got.push(...vfParse(await vnGet('https://www.youtube.com/feeds/videos.xml?channel_id=' + cid, 15000), s)); }
+    catch(e){ fail++; bad.add(s.c ? 'yt:' + s.c : 'yt:' + s.q); }
+    done++; vSay('vfSt', nwNum(done) + '/' + nwNum(yts.length) + ' চ্যানেল দেখা হয়েছে…');
+  };
+  const q = yts.slice(); vSay('vfSt', 'আপডেট আনা হচ্ছে…');
+  await Promise.all(Array.from({ length: 4 }, async () => { while(q.length) await work(q.shift()); }));
+  vfSave();
+  const keep = VF.items.filter(o => bad.has(o.sid));                        // a channel that failed keeps its older list
+  const seen = new Set(), all = got.concat(keep).filter(o => !seen.has(o.id) && seen.add(o.id)).sort((a, b) => b.p - a.p).slice(0, 80);
+  VF.items = all; VF.t = Date.now(); store.set('vfItems', all); store.set('vfT', VF.t);
+  VF.busy = false; btn.disabled = false; vfRender();
+  if(!all.length) vSay('vfSt', '✖ কোনো আপডেট আনা গেল না — ইন্টারনেট দেখে আবার চাপুন, অথবা নিচে লিংক পেস্ট করুন।', 'bad');
+  else vSay('vfSt', '✔ ' + nwNum(all.length) + 'টি ভিডিও' + (fail ? ' · ' + nwNum(fail) + 'টি চ্যানেল আনা যায়নি' : ''), fail ? '' : 'ok');
+}
+function vfRender(){
+  const chips = $('vfChips'); chips.innerHTML = '';
+  const add = (id, label) => { const b = mk('button'); b.type = 'button'; b.textContent = label; if(VF.sel === id) b.className = 'on'; b.addEventListener('click', () => { VF.sel = id; vfRender(); }); chips.appendChild(b); };
+  add('all', 'সব');
+  VF.list.forEach(s => add(vfSid(s), (s.k === 'fb' ? '📘 ' : '▶ ') + (s.n || s.q || s.u)));
+  const cur = VF.list.find(s => vfSid(s) === VF.sel);
+  if(!cur) VF.sel = 'all';
+  const fb = $('vfFb'), feed = $('vfFeed'); feed.innerHTML = ''; fb.innerHTML = '';
+  if(cur && cur.k === 'fb'){
+    fb.classList.remove('hidden'); feed.classList.add('hidden');
+    const t = mk('div'); t.textContent = 'Facebook পেজের ভিডিও অ্যাপের ভেতরে পড়া যায় না। নিচের বোতামে পেজটি খুলুন → যে ভিডিও চান তার "শেয়ার → লিংক কপি" চাপুন → এখানে ফিরে আসুন, লিংক নিজে বসে যাবে (না বসলে ওপরের ঘরে 📋 চাপুন)।';
+    const b = mk('button', 'btn primary'); b.type = 'button'; b.textContent = '📘 ' + (cur.n || 'পেজ') + ' — ভিডিও খুলুন';
+    b.addEventListener('click', () => vfOpenFb(cur)); fb.append(t, b); return;
+  }
+  fb.classList.add('hidden'); feed.classList.remove('hidden');
+  const list = VF.items.filter(o => VF.sel === 'all' || o.sid === VF.sel).slice(0, VF.sel === 'all' ? 40 : 15);
+  if(!list.length){ const e = mk('div', 'vnst'); e.textContent = VF.busy ? '' : 'এখনো কোনো আপডেট আনা হয়নি — "নতুন আপডেট আনুন" চাপুন।'; feed.appendChild(e); return; }
+  list.forEach(o => {
+    const c = mk('button', 'vfcard'); c.type = 'button';
+    const im = document.createElement('img'); im.loading = 'lazy'; im.alt = ''; im.src = 'https://i.ytimg.com/vi/' + o.id + '/mqdefault.jpg';
+    const w = mk('span', 'vft'), b = document.createElement('b'), s = document.createElement('small');
+    b.textContent = o.t; s.textContent = (o.a || '') + (o.p ? ' · ' + nwAgo(new Date(o.p)) : ''); w.append(b, s); c.append(im, w);
+    c.addEventListener('click', () => vfPick(o)); feed.appendChild(c);
+  });
+}
+function vfPick(o){
+  if(VN.busy){ toast('একটু অপেক্ষা করুন — আগের কাজ চলছে'); return; }
+  vnReset(); $('vnLink').value = 'https://www.youtube.com/watch?v=' + o.id;
+  if(!$('vnDesc').value.trim()) $('vnDesc').value = o.t;
+  if(o.a && !$('vnSrc').value.trim()) $('vnSrc').value = String(o.a).slice(0, 40);
+  try{ $('vnLink').scrollIntoView({ block: 'center', behavior: 'smooth' }); }catch(e){}
+  vnUseLink();
+}
+function vfOpenFb(s){
+  let u = String(s.u || '').replace(/[?#].*$/, '').replace(/\/+$/, ''); if(!/\/(videos|reels)$/.test(u)) u += '/videos';
+  VF.fbOpen = Date.now(); toast('ভিডিওর "লিংক কপি" করে এখানে ফিরে আসুন');
+  setTimeout(() => { try{ window.open(u, '_blank'); }catch(e){ location.href = u; } }, 300);
+}
+/* back from Facebook → if the clipboard holds a Facebook video link, take it */
+document.addEventListener('visibilitychange', async () => {
+  if(document.visibilityState !== 'visible' || !VN.open || !VF.fbOpen || Date.now() - VF.fbOpen > 30 * 60000 || VN.busy) return;
+  try{
+    const x = String(await navigator.clipboard.readText() || '').trim();
+    if(/^https?:\/\/(www\.|m\.|web\.)?(facebook\.com|fb\.com|fb\.watch)\//i.test(x) && /video|reel|watch|share\/[vr]|fb\.watch/i.test(x)){
+      VF.fbOpen = 0; vnReset(); $('vnLink').value = x; vnUseLink();
+    }
+  }catch(e){}
+});
+function vfAddSrc(){
+  const raw = String($('vfAdd').value || '').trim(); if(!raw){ toast('চ্যানেল বা পেজের লিংক / নাম লিখুন'); return; }
+  let s;
+  if(/(facebook\.com|fb\.com)\//i.test(raw)){
+    const u = /^https?:/i.test(raw) ? raw : 'https://' + raw, slug = (u.replace(/[?#].*$/, '').split('/').filter(Boolean)[2] || 'পেজ');
+    s = { k: 'fb', n: decodeURIComponent(slug) + ' (ফেসবুক)', u };
+  } else s = { k: 'yt', n: '', q: raw };
+  if(VF.list.some(x => vfSid(x) === vfSid(s))){ toast('এটি আগেই যোগ করা আছে'); return; }
+  VF.list.push(s); vfSave(); $('vfAdd').value = ''; vfMg(); vfRender();
+  if(s.k === 'yt') vfRefresh(); else toast('পেজ যোগ হয়েছে');
+}
+function vfMg(){
+  const box = $('vfMg'); box.innerHTML = '';
+  VF.list.forEach((s, i) => {
+    const r = mk('div', 'vfrow'), t = document.createElement('span'), x = mk('button'); t.textContent = (s.k === 'fb' ? '📘 ' : '▶ ') + (s.n || s.q || s.u); x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', 'remove');
+    x.addEventListener('click', () => { VF.list.splice(i, 1); vfSave(); VF.items = VF.items.filter(o => o.sid !== vfSid(s)); store.set('vfItems', VF.items); vfMg(); vfRender(); });
+    r.append(t, x); box.appendChild(r);
+  });
+}
+$('vfRef').addEventListener('click', () => vfRefresh());
+$('vfAddGo').addEventListener('click', vfAddSrc);
+$('vfAdd').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); vfAddSrc(); } });
+$('vfReset').addEventListener('click', () => { VF.list = VF_PRESET.map(s => Object.assign({}, s)); vfSave(); VF.sel = 'all'; vfMg(); vfRender(); vfRefresh(); });
+window.__vfOpen = () => { vfMg(); vfRender(); if(!VF.items.length || Date.now() - VF.t > 5 * 60000) vfRefresh(); };
 
 /* home tile, right below "multi-news reel" */
 (function addVnTile(tries){

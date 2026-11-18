@@ -8439,7 +8439,7 @@ function qtHead(ctx, R, i, th){                             // page name + date 
   ctx.fillStyle = th.ink; ctx.font = fontStr(27, 700, BFAM); ctx.fillText(R.page, x, 46, room);
   ctx.font = fontStr(19, 600, BFAM); ctx.fillStyle = th.sub; ctx.fillText(R.today, x, 76, room);
   if(C.logoImg) rlLogoDisc(ctx, RW - 64, 54, 40);               // own corner, nothing else is drawn there
-  R.qtCount = i == null ? '' : nwNum(i + 1) + '/' + nwNum(R.n);
+  R.qtCount = i == null || R.one ? '' : nwNum(i + 1) + '/' + nwNum(R.n);
 }
 /* LIVE bar under the header: the reel's own headlines scroll by, like a news channel */
 function qtNewsStrip(R){
@@ -8515,7 +8515,7 @@ function qtCover(ctx, R, p, d){
   qtLiveBar(ctx, R, R.tm || 0, ac);
   const chip = cv.label || t('rlTitleDef'); ctx.font = fontStr(26, 800, BFAM); const cw = ctx.measureText(chip).width + 36;
   ctx.fillStyle = '#e11d2a'; rr(ctx, QT.tx, QT.top + 6, cw, 46, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(chip, QT.tx + 18, QT.top + 30);
-  if(R.n > 1){ const s = nwNum(R.n) + 'টি খবর'; const sw = ctx.measureText(s).width + 36;
+  if(R.n > 1 && !R.one){ const s = nwNum(R.n) + 'টি খবর'; const sw = ctx.measureText(s).width + 36;
     ctx.fillStyle = th.name === 'paper' ? '#141414' : '#fff'; rr(ctx, RW - QT.tx - sw, QT.top + 6, sw, 46, 8); ctx.fill(); ctx.fillStyle = th.name === 'paper' ? QT.mark : '#111'; ctx.textAlign = 'center'; ctx.fillText(s, RW - QT.tx - sw / 2, QT.top + 30); }
   ctx.save(); ctx.translate(0, 40);
   qtBody(ctx, R, { th, ac, text: cv.text, tag: R.page, sub: '', img: cv.img, z: QT.crop * (1 + 0.05 * clamp(p / d, 0, 1)), p: 9, anim: 'type', photoTop: false, big: true, a: 1 });
@@ -8547,7 +8547,7 @@ function qtOverlay(ctx, R, g, p, tm){
   qtLiveBar(ctx, R, tm, ac);
   const y1 = qtBottom(ctx, R, ac, hl, tm);
   const bw = 560, x0 = (RW - bw) / 2, y0 = y1 + 40, gap = R.n > 20 ? 0 : 6, sw2 = (bw - gap * (R.n - 1)) / R.n;
-  for(let i = 0; i < R.n; i++){
+  for(let i = 0; i < (R.one ? 0 : R.n); i++){
     const f = i < g.i ? 1 : i === g.i ? clamp(p / g.d, 0, 1) : 0, x = x0 + i * (sw2 + gap);
     ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x, y0, sw2, 6);
     if(f > 0){ ctx.fillStyle = hl; ctx.fillRect(x, y0, sw2 * f, 6); }
@@ -9037,6 +9037,27 @@ function lvCapChunks(t){
   w.forEach(x => { cur.push(x); if(cur.length >= 7 || (/[।?!,]$/.test(x) && cur.length >= 3)){ out.push(cur.join(' ')); cur = []; } });
   if(cur.length) out.push(cur.join(' ')); return out.length ? out : [''];
 }
+/* 🎞 footage windows: full, centre-zoom, rounded frame, circle, corner — the edges of the footage (channel logos, tickers) stay hidden */
+function lvGeom(lay, ph, i){
+  if(lay === 'frame') return { mode: 'frame', x: 40, y: 172, w: RW - 80, h: 400, r: 24, z: 1.34, ph };
+  if(lay === 'circle') return { mode: 'circle', c: 1, x: RW / 2 - 200, y: 224, w: 400, h: 400, r: 200, z: 1.55, ph };
+  if(lay === 'corner') return { mode: 'corner', x: i % 2 === 0 ? 26 : RW - 26 - 474, y: 206, w: 474, h: 344, r: 26, z: 1.34, ph };
+  if(lay === 'zoom') return { mode: 'zoom', x: 0, y: 0, w: RW, h: ph, r: 0, z: 1.32, ph };
+  return { mode: 'full', x: 0, y: 0, w: RW, h: ph, z: 1, ph };
+}
+function lvPut(ctx, G, hl, src){
+  if(G.mode === 'full'){ ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0, RW, G.ph); return; }
+  const sw = src.width, sh = src.height, k = Math.max(G.w / sw, G.h / sh) * G.z, cw = G.w / k, ch = G.h / k;
+  const path = () => { if(G.c){ ctx.beginPath(); ctx.arc(G.x + G.w / 2, G.y + G.h / 2, G.w / 2, 0, Math.PI * 2); } else rr(ctx, G.x, G.y, G.w, G.h, G.r); };
+  ctx.save();
+  if(G.mode !== 'zoom'){
+    ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 28; ctx.shadowOffsetY = 8; ctx.fillStyle = '#000'; path(); ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; path(); ctx.clip();
+  }
+  ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, G.x, G.y, G.w, G.h);
+  ctx.restore();
+  if(G.mode !== 'zoom'){ ctx.save(); path(); ctx.lineWidth = 7; ctx.strokeStyle = hl; ctx.stroke(); ctx.restore(); }
+}
 function rlLiveScene(ctx, R, g, p){
   const f = clamp(p / g.d, 0, 1), [ac, hl] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {};
   drawBg(ctx, R.bgs[g.i], f);
@@ -9047,22 +9068,24 @@ function rlLiveScene(ctx, R, g, p){
   // 🎬 from a video: a short part of the video plays first, then it freezes into the screenshot (camera flash)
   const vcd = vc && vc.frames && vc.frames.length ? vc.frames.length / vc.fps : 0, inClip = vcd > 0 && p < vcd;
   if(vcd && p > g.d - 1.6) vcWarm(g.i + 1);
+  const G = lvGeom((it.o && it.o.vid && it.o.lay) || 'full', ph, g.i);
   ctx.save();
   let drew = false;
-  if(inClip){ const bm = vcFrame(g.i, vc, p); if(bm){ ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bm, 0, py, RW, ph); drew = true; } }
+  if(inClip){ const bm = vcFrame(g.i, vc, p); if(bm){ lvPut(ctx, G, hl, bm); drew = true; } }
   if(drew){}
   else if(img){
     const fz = vcd ? clamp((p - vcd) / Math.max(0.5, g.d - vcd), 0, 1) : f;
     const src = rlPicSrc(img, RW, ph, (ed.zoom || 100) / 100, 'in', fz, 'lv');
-    ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, py);
+    lvPut(ctx, G, hl, src);
   }
   else rlPlainBg(ctx, ac, 0, py, RW, ph);
   if(vcd){
     if(inClip){                                                  // ● VIDEO badge while the clip plays
       const bl = 0.55 + 0.45 * Math.sin(p * 8); ctx.font = fontStr(19, 800, BFAM); const w = ctx.measureText('VIDEO').width + 44;
-      ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, RW - w - 18, ph - 52, w, 32, 6); ctx.fill();
-      ctx.beginPath(); ctx.arc(RW - w - 18 + 17, ph - 36, 6, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,40,40,' + bl.toFixed(3) + ')'; ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('VIDEO', RW - w - 18 + 30, ph - 35);
+      const bdx = G.mode === 'full' || G.mode === 'zoom' ? RW - 18 : G.x + G.w - 14, bdy = G.mode === 'full' || G.mode === 'zoom' ? ph - 52 : G.y + G.h - 46;
+      ctx.fillStyle = 'rgba(0,0,0,.55)'; rr(ctx, bdx - w, bdy, w, 32, 6); ctx.fill();
+      ctx.beginPath(); ctx.arc(bdx - w + 17, bdy + 16, 6, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,40,40,' + bl.toFixed(3) + ')'; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('VIDEO', bdx - w + 30, bdy + 17);
     } else if(p - vcd < 0.3){ ctx.fillStyle = 'rgba(255,255,255,' + (0.75 * (1 - (p - vcd) / 0.3)).toFixed(3) + ')'; ctx.fillRect(0, py, RW, ph); }
   }
   const tg = ctx.createLinearGradient(0, 0, 0, 230); tg.addColorStop(0, 'rgba(0,0,0,.78)'); tg.addColorStop(.6, 'rgba(0,0,0,.4)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
@@ -9094,7 +9117,7 @@ function rlLiveScene(ctx, R, g, p){
   ctx.fillStyle = '#fff'; ctx.font = fontStr(20, 800, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('LIVE', 52, sy + 33);
   ctx.font = fontStr(25, 700, BFAM); ctx.fillText(R.page, 132, sy + 33, RW - 132 - 150);
   ctx.textAlign = 'right'; ctx.font = fontStr(20, 600, BFAM); ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW - 22, sy + 33);
+  if(!R.one) ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW - 22, sy + 33);
   // headline panel — words appear one by one
   const hy = sy + LV.sh, hh = LV.hh;
   const pg = ctx.createLinearGradient(0, hy, 0, hy + hh); pg.addColorStop(0, shade(ac, -0.72)); pg.addColorStop(1, 'rgba(6,10,24,.94)');
@@ -9290,19 +9313,19 @@ function dkTop(ctx, R, tm, still){
 function dkOverlay(ctx, R, g, p, tm){
   dkTop(ctx, R, tm);
   const bw2 = 520, x0 = (RW - bw2) / 2, y1 = 1212, gap = R.n > 20 ? 0 : 6, sw = (bw2 - gap * (R.n - 1)) / R.n;
-  for(let i = 0; i < R.n; i++){
+  for(let i = 0; i < (R.one ? 0 : R.n); i++){
     const f = i < g.i ? 1 : i === g.i ? clamp(p / g.d, 0, 1) : 0, x = x0 + i * (sw + gap);
     ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(x, y1, sw, 6);
     if(f > 0){ ctx.fillStyle = '#ffd200'; ctx.fillRect(x, y1, sw * f, 6); }
   }
   ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.font = fontStr(24, 700, BFAM); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW / 2, y1 + 32);
+  if(!R.one) ctx.fillText(nwNum(g.i + 1) + ' / ' + nwNum(R.n), RW / 2, y1 + 32);
 }
 
 /* ---- covers (= the Facebook thumbnail, the very first frame) that match the chosen design. Each shows the most
         eye-catching story, complete from frame 0, plus the page name/logo and a reason to keep watching. ---- */
 function rlCountBadge(ctx, R, bx, by, r, p, bg, fg){
-  if(R.n < 2) return;
+  if(R.n < 2 || R.one) return;
   r *= 1 + 0.04 * Math.sin(p * 5);
   ctx.beginPath(); ctx.arc(bx, by, r + 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
   ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
@@ -9437,7 +9460,7 @@ function rlScene(ctx, R, g, p){
     ctx.fillStyle = R.col(g.i)[1]; ctx.fillRect(0, top + size, RW, 6);
     // story number badge, pops in
     const a = backOut((p - 0.15) / 0.45);
-    if(a > 0){
+    if(a > 0 && !R.one){
       const r = 34 * a, cx = RW / 2, cy = top - 2;
       ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.fillStyle = R.col(g.i)[1]; ctx.fill();
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = R.col(g.i)[0]; ctx.fill();
@@ -9479,7 +9502,7 @@ function rlCoverData(R, items, imgs){
   const said = it && it.o && nwHot(it.o) >= 2 && st.lbl < 0.35;
   return { i, img: imgs[i] || null, text: String(hook || (it && it.text) || R.title).replace(/\s+/g, ' ').trim(), src: (it && it.source) || '', lbl: imgs[i] ? rlPhLbl(it) : '',
     label: said ? t('rlLblSaid') : lbls[Math.floor(st.lbl * lbls.length)],
-    cta: R.n <= 1 ? t('rlCta1') : tf(ctas[Math.floor(st.cta * ctas.length)], { n: nwNum(R.n), m: nwNum(R.n - 1) }) };
+    cta: R.n <= 1 || R.one ? t('rlCta1') : tf(ctas[Math.floor(st.cta * ctas.length)], { n: nwNum(R.n), m: nwNum(R.n - 1) }) };
 }
 function rlWrap(ctx, text, maxW, size, w, maxLines, min){
   for(let s = size; ; s -= 3){
@@ -9598,7 +9621,7 @@ function rlIntro(ctx, R, p, d){
     if(img) rlPhoto(ctx, img, -RW / 2 + 46, -fh / 2, RW - 92, fh, z, 0);
     else { ctx.fillStyle = shade(ac, -0.4); ctx.fillRect(-RW / 2 + 46, -fh / 2, RW - 92, fh); }
     ctx.restore();
-    if(R.n > 1){                                            // story-count badge on the frame corner
+    if(R.n > 1 && !R.one){                                  // story-count badge on the frame corner
       const bx = RW - 92, by = fy + 10, r = 62 * (1 + 0.04 * Math.sin(p * 5));
       ctx.beginPath(); ctx.arc(bx, by, r + 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
       ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
@@ -9771,7 +9794,7 @@ function rlPageWm(ctx, name, x, y, w, h){
 }
 function rlMakeR(items, st){
   const page = pageName();
-  const R = { live: RL.tpl === 'live' || RL.tpl === 'quote', quote: RL.tpl === 'quote', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
+  const R = { one: items.length > 0 && items.every(x => x.o && x.o.vid), live: RL.tpl === 'live' || RL.tpl === 'quote', quote: RL.tpl === 'quote', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
     title: RL.title || t('rlTitleDef'), page, today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
   R.tick = rlTickStrip(RL.ticker || rlTickDef(), R.col(0)[0]);
   return R;
@@ -10754,7 +10777,7 @@ const VN = { open: false, busy: false, file: null, url: '', link: '', yt: '', vi
   shots: store.get('vnShots', 5), clip: store.get('vnClip', 2), listen: store.get('vnListen', true) !== false,
   stills: null, sig: '', ytImgs: null, title: '', author: '' };
 const VN_FPS = 12, VN_PH = 644;
-VN.capOn = store.get('vnCapOn', true) !== false; VN.times = []; VN.waitAns = 0; VN.lastAns = '';
+VN.capOn = store.get('vnCapOn', true) !== false; VN.times = []; VN.waitAns = 0; VN.lastAns = ''; VN.stories = []; VN.si = 0; VN.done = new Set(); VN.seg = null;
 const vnCss = document.createElement('style');
 vnCss.textContent = `
 .vnbox{max-width:620px}
@@ -10836,6 +10859,7 @@ vsheet.innerHTML = `<div class="nsbox vnbox">
     <div class="rlsec">
       <div class="rlf"><span>৫. শিরোনাম ও ভয়েস-স্ক্রিপ্ট</span>
         <div class="vnbtns"><button type="button" class="btn primary" id="vnAi">✨ AI দিয়ে লিখুন</button><button type="button" class="btn" id="vnCopy">📋 প্রম্পট কপি করে জেমিনি খুলুন</button><button type="button" class="btn" id="vnCopyNb">📋 NotebookLM-এর জন্য কপি</button><button type="button" class="btn" id="vnPaste">📥 উত্তর পেস্ট</button></div>
+        <div class="vffb hidden" id="vnStoryBox"></div>
         <textarea id="vnOut" spellcheck="false" placeholder="বিষয়: …&#10;শিরোনাম ১: … *হাইলাইট শব্দ* …&#10;শিরোনাম ২: …&#10;শুরু: …&#10;ভয়েস ১: …&#10;ভয়েস ২: …&#10;শেষ: …"></textarea>
         <div class="vnst" id="vnAiSt">শিরোনামে *তারকা* চিহ্নের ভেতরের শব্দ হলুদ বক্সে হাইলাইট হবে। চাইলে নিজেও লিখে বা বদলে নিতে পারেন।</div></div>
     </div>
@@ -10856,6 +10880,7 @@ function vnOpen(){
   try{ if(!(history.state && history.state.vn)) history.pushState({ vn: 1 }, ''); }catch(e){}
   vnOpts();
   try{ if(window.__vfOpen) window.__vfOpen(); }catch(e){}
+  vnStoryUi();
 }
 function vnClose(fromPop){
   if(!VN.open) return;
@@ -11070,9 +11095,18 @@ function vnVariant(im, i){
   const ox = [0.5, 0.12, 0.88, 0.5, 0.25][(i + r) % 5], oy = [0.45, 0.3, 0.6, 0.2, 0.55][(i + 2 * r) % 5], cw = Math.round(w * f), ch = Math.round(h * f), c = document.createElement('canvas');
   c.width = cw; c.height = ch; c.getContext('2d').drawImage(im, Math.round((w - cw) * ox), Math.round((h - ch) * oy), cw, ch, 0, 0, cw, ch); return c;
 }
+/* a big face in the picture = the studio presenter / a reporter to camera → such a moment is avoided (when the phone can detect faces) */
+let VN_FD = null, VN_FDOK = null;
+async function vnFaceFrac(v){
+  if(VN_FDOK === false) return 0;
+  try{
+    if(!VN_FD){ if(!('FaceDetector' in window)){ VN_FDOK = false; return 0; } VN_FD = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 5 }); VN_FDOK = true; }
+    const fs = await VN_FD.detect(v); let m = 0; fs.forEach(f => { const b = f.boundingBox; m = Math.max(m, (b.width * b.height) / Math.max(1, v.videoWidth * v.videoHeight)); }); return m;
+  }catch(e){ VN_FDOK = false; return 0; }
+}
 function vnExtract(progress){ const p = (VN.exP || Promise.resolve()).catch(() => {}).then(() => vnExtract1(progress)); VN.exP = p; return p; }
 async function vnExtract1(progress){
-  const sig = [VN.file ? VN.file.name + VN.file.size : VN.link, VN.shots, VN.clip, (VN.times || []).map(x => isFinite(x) ? Math.round(x) : '').join(',')].join('|');
+  const sig = [VN.file ? VN.file.name + VN.file.size : VN.link, VN.shots, VN.clip, (VN.times || []).map(x => isFinite(x) ? Math.round(x) : '').join(','), VN.seg ? VN.seg.a + '-' + VN.seg.b : ''].join('|');
   if(VN.stills && VN.sig === sig) return VN.stills;
   const N = VN.shots, out = [];
   if(!VN.vid){                                                   // link: the pictures we have, in turn
@@ -11081,18 +11115,20 @@ async function vnExtract1(progress){
       out.push({ url: im ? URL.createObjectURL(await toBlob(im.width ? im : vnFull(im, 1400), 0.92)) : '', clip: null, t: 0, small: im }); }
     VN.stills = out; VN.sig = sig; return out;
   }
-  const v = VN.vid, D = VN.dur, clFor = i => Math.min(VN.clip === 9 ? (i % 2 === 0 ? 3.5 : 0) : VN.clip, Math.max(0, D / N - 0.3));
+  const v = VN.vid, D = VN.dur, a0 = VN.seg ? Math.max(0, VN.seg.a) : 0, b0 = VN.seg ? Math.min(D, VN.seg.b) : D, SP = Math.max(3, b0 - a0), clFor = i => Math.min(VN.clip === 9 ? (i % 2 === 0 ? 3.5 : 0) : VN.clip, Math.max(0, SP / N - 0.3));
   try{ v.pause(); }catch(e){}
   progress && progress('ভিডিওর মূল অংশ খোঁজা হচ্ছে (লোগো, লেখা, বর্ডার বাদ দিতে)…', 0);
   await vnFocus(v);
   for(let i = 0; i < N; i++){
     if(!VN.open) throw new Error('cancel');
     const cl = clFor(i), ot = VN.times && VN.times[i], pick = isFinite(ot) && ot > 0.5 && ot < D - 0.2;
-    const tgt = pick ? ot : D * (0.06 + 0.88 * (i + 0.5) / N), span = pick ? 0.4 : D / N * 0.3;
+    const tgt = pick ? ot : a0 + SP * (0.06 + 0.88 * (i + 0.5) / N), span = pick ? 0.4 : SP / N * 0.3;
     let best = tgt, bs = -1e9;
-    for(const dt of [-span, 0, span]){                           // three tries around the spot — keep the clearest
+    for(const dt of [-span, 0, span, -2 * span, 2 * span]){      // tries around the spot — keep the clearest, and never a presenter / reporter close-up
       const t = Math.max(cl + 0.1, Math.min(D - 0.15, tgt + dt)); await vnSeek(v, t);
-      const sc = vnScore(v); if(sc > bs){ bs = sc; best = t; }
+      let sc = vnScore(v); const ff = await vnFaceFrac(v); if(ff > 0.02) sc -= 80 + ff * 2000;
+      if(sc > bs){ bs = sc; best = t; }
+      if(dt === span && bs > -40) break;
     }
     progress && progress('স্ক্রিনশট ' + nwNum(i + 1) + '/' + nwNum(N) + ' নেওয়া হচ্ছে…', i / N);
     let clip = null;
@@ -11124,7 +11160,7 @@ const vnTr = () => String($('vnTr').value || '').replace(/\n{3,}/g, '\n\n').trim
 const vnLinkFull = () => VN.yt ? 'https://www.youtube.com/watch?v=' + VN.yt : VN.link;
 function vnPrompt(withMedia){
   const page = pageName(), N = VN.shots, desc = String($('vnDesc').value || '').trim(), tr = vnTr(), link = vnLinkFull();
-  const L = ['তুমি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর অভিজ্ঞ সংবাদকর্মী ও স্ক্রিপ্ট লেখক। একটি ভিডিও থেকে ' + N + 'টি স্ক্রিনশট নিয়ে টিভির "ব্রেকিং নিউজ" ধরনের একটি রিল হবে: প্রতিটি স্ক্রিনশটের নিচে একটি করে শিরোনাম টাইপ হয়ে আসবে, আর পুরো রিলে একটি ভয়েসওভার চলবে।', ''];
+  const L = ['তুমি বাংলাদেশি ফেসবুক নিউজ পেজ "' + page + '"-এর অভিজ্ঞ সংবাদকর্মী ও স্ক্রিপ্ট লেখক। একটি ভিডিও থেকে টিভির "ব্রেকিং নিউজ" ধরনের রিল হবে — এক রিলে শুধু একটি খবর, তাতে প্রায় ' + N + 'টি দৃশ্য/স্ক্রিনশট: প্রতিটির নিচে একটি করে শিরোনাম টাইপ হয়ে আসবে, আর পুরো রিলে একটি ভয়েসওভার/সাবটাইটেল চলবে। ভিডিওতে একাধিক আলাদা খবর থাকলে প্রতিটির জন্য আলাদা আলাদা রিল হবে।', ''];
   if(withMedia === 'copy' || withMedia === 'nblm'){
     if(withMedia === 'nblm') L.push('ধাপ ১: এই নোটবুকে সোর্স হিসেবে যোগ করা ভিডিওটির (' + (link || 'ভিডিও') + ') পুরো ট্রান্সক্রিপ্ট মন দিয়ে পড়ো — কী ঘটেছে, কে কী বলেছেন, কোন সংখ্যা ও নাম এসেছে।', '');
     else if(tr) L.push('ধাপ ১: নিচে ভিডিওর ট্রান্সক্রিপ্ট দেওয়া আছে' + (link ? ' (ভিডিওর লিংক: ' + link + ' — চাইলে খুলে দেখেও মিলিয়ে নিতে পারো)' : '') + ' — মন দিয়ে পড়ে পুরো ঘটনা বুঝে নাও।', '');
@@ -11142,22 +11178,34 @@ function vnPrompt(withMedia){
   L.push('নিয়ম:',
     '১. শুধু দেওয়া তথ্য (ব্যবহারকারীর লেখা, ভিডিওর কথা ও ছবি) থেকে লিখবে — বানিয়ে কোনো নাম, সংখ্যা বা ঘটনা নয়। ব্যবহারকারীর লেখার সাথে ভিডিও না মিললে ব্যবহারকারীর লেখাই মানবে।',
     '২. ভিডিওর কথা হুবহু কপি করবে না — তথ্য ঠিক রেখে নিজের ভাষায় নতুন করে, গুছিয়ে, টিভি সংবাদের মতো লিখবে। ভিডিওর ভাষা অন্য হলেও লেখা হবে প্রমিত বাংলাদেশি বাংলায়।',
-    '৩. শিরোনাম ১ থেকে ' + N + ': প্রতিটি ৬–১২ শব্দ, ছোট ও ধারালো। প্রথমটি মূল খবর; বাকিগুলো একই খবরের পরের ধাপ — বিস্তারিত, কে কী বললেন, প্রতিক্রিয়া, সর্বশেষ অবস্থা; কোনোটার সাথে কোনোটার পুনরাবৃত্তি নয়। প্রতিটি শিরোনামের সবচেয়ে গুরুত্বপূর্ণ ২–৩টি শব্দ *তারকা* চিহ্নের মধ্যে দেবে (যেমন: ঢাকায় *শিক্ষার্থীদের বিক্ষোভ*, আটক ২০)।',
-    '৪. শুরু: এক বাক্যের আকর্ষণীয় সূচনা — পেজের নাম বলবে না।',
-    '৫. ভয়েস ১ থেকে ' + N + ': প্রতিটি স্ক্রিনশট দেখানোর সময় যা বলা হবে — ২–৩ বাক্য, ২৫–৪৫ শব্দ, কানে শোনার মতো সহজ বাক্যে; সব সংখ্যা কথায় লিখবে; কোনো পত্রিকা বা চ্যানেলের নাম বলবে না; প্রতিটি একই শব্দ দিয়ে শুরু করবে না। সব মিলিয়ে যেন একটা পূর্ণ, ধারাবাহিক খবর হয়।',
-    '৬. শেষ: এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া, আর নিয়মিত খবর পেতে "' + page + '" পেজটি ফলো করার অনুরোধ।',
-    '৭. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা।',
-    '৮. ক্যাপশন ১ থেকে ' + N + ': ওই দৃশ্য চলার সময় ভিডিওতে যা বলা হচ্ছে তার সাবটাইটেল — ক্রমানুসারে, ছোট ছোট কথ্য বাক্যে, মোট ১৫–৩০ শব্দ। ভিডিওর কথা না জানলে এই লাইনগুলো ফাঁকা রেখো না, ব্যবহারকারীর লেখা থেকে সারাংশ দাও।',
-    '৯. সময় ১ থেকে ' + N + ': ভিডিওর যে মুহূর্তের ছবি ওই শিরোনামের জন্য সবচেয়ে ভালো (মূল ঘটনার দৃশ্য, লোগো/স্টুডিও/লেখা নয়) — শুধু মিনিট:সেকেন্ড, যেমন ০:৪৫, আর ক্রমানুসারে। ভিডিও দেখতে না পেলে এই লাইনগুলো পুরো বাদ দাও।',
+    '৩. আগে ঠিক করো ভিডিওতে কয়টি আলাদা খবর (ভিন্ন ঘটনা/বিষয়) আছে। মাত্র একটি খবর থাকলে "stories"-এ শুধু একটি অবজেক্ট দেবে। ভিডিও লম্বা (২–৬ মিনিট বা বেশি) হয়ে একাধিক ভিন্ন খবর থাকলে (যেমন ৩টি আলাদা ঘটনা) প্রতিটির জন্য আলাদা অবজেক্ট দেবে — প্রতিটি থেকে আলাদা একটি রিল হবে। একই ঘটনার বিভিন্ন অংশকে ভাগ করবে না; বিজ্ঞাপন, ট্রেলার, শুধু শিরোনাম-পাঠ বা ছোট ঘোষণা আলাদা খবর নয়। সর্বোচ্চ ৮টি।',
+    '৪. প্রতিটি খবরে "from" ও "to": ভিডিওর যে অংশ জুড়ে ওই খবর আছে (মিনিট:সেকেন্ড, যেমন "0:10", "1:25")। ভিডিও দেখতে না পেলে বাদ দাও।',
+    '৫. প্রতিটি খবরে "shots": প্রায় ' + N + 'টি (খবর ছোট হলে ৩–৪টি, বড় হলে ৭টি পর্যন্ত)। প্রতিটি shot একটি আলাদা দৃশ্য/স্ক্রিনশট, আর তার নিজস্ব:',
+    '   • "heading": ৬–১২ শব্দ, ছোট ও ধারালো। প্রথমটি মূল খবর; বাকিগুলো একই খবরের পরের ধাপ — বিস্তারিত, কে কী বললেন, প্রতিক্রিয়া, সর্বশেষ অবস্থা; পুনরাবৃত্তি নয়। সবচেয়ে গুরুত্বপূর্ণ ২–৩টি শব্দ *তারকা* চিহ্নের মধ্যে দেবে (যেমন: ঢাকায় *শিক্ষার্থীদের বিক্ষোভ*, আটক ২০)।',
+    '   • "voice": এই দৃশ্য দেখানোর সময় যা বলা হবে — ২–৩ বাক্য, ২৫–৪৫ শব্দ, কানে শোনার মতো সহজ বাক্যে; সব সংখ্যা কথায়; কোনো পত্রিকা বা চ্যানেলের নাম নয়; প্রতিটি একই শব্দ দিয়ে শুরু নয়। সব মিলিয়ে একটা পূর্ণ, ধারাবাহিক খবর।',
+    '   • "caption": এই দৃশ্য চলার সময় ভিডিওতে যা বলা হচ্ছে তার সাবটাইটেল — ছোট ছোট কথ্য বাক্যে, ক্রমানুসারে, মোট ১৫–৩০ শব্দ।',
+    '   • "time": ভিডিওর যে মুহূর্তের ছবি এই shot-এর জন্য সবচেয়ে ভালো (মিনিট:সেকেন্ড, ক্রমানুসারে, প্রতিটি আলাদা দৃশ্য)। শুধু আসল ফুটেজ/ঘটনার দৃশ্য নেবে — ঘটনাস্থল, জনতা, নথি, ছবি, ভিডিও ফুটেজ। কখনোই নয়: চ্যানেলের উপস্থাপক/উপস্থাপিকা/সংবাদ পাঠক, স্টুডিও, রিপোর্টারের ক্যামেরার দিকে তাকিয়ে কথা বলার দৃশ্য, লোগো, স্ক্রলিং লেখা, টাইটেল বা গ্রাফিক্স কার্ড। ভিডিও দেখতে না পেলে "time" বাদ দাও।',
+    '৬. "intro": এক বাক্যের আকর্ষণীয় সূচনা — পেজের নাম বলবে না। "outro": এক–দুই বাক্যে দর্শকের মতামত জানতে চাওয়া, আর নিয়মিত খবর পেতে "' + page + '" পেজটি ফলো করার অনুরোধ।',
+    '৭. প্রতিটি খবর আলাদা রিল — তাই heading/voice/caption-এ "খবর ১", "পর্ব ২", "নম্বর" বা কোনো ক্রমিক সংখ্যা লিখবে না, অন্য খবরের কথাও মেশাবে না।',
+    '৮. শালীন, নিরপেক্ষ, বিজ্ঞাপন-বান্ধব ভাষা।',
     '',
-    'উত্তর শুধু এই ফরম্যাটে দেবে — কোনো ভূমিকা, ব্যাখ্যা বা মার্কডাউন নয়:',
-    'বিষয়: (ভিডিওটা আসলে কী নিয়ে — ১–২ বাক্যে)');
-  for(let i = 1; i <= N; i++) L.push('শিরোনাম ' + nwNum(i) + ': …');
-  L.push('শুরু: …');
-  for(let i = 1; i <= N; i++) L.push('ভয়েস ' + nwNum(i) + ': …');
-  L.push('শেষ: …');
-  for(let i = 1; i <= N; i++) L.push('ক্যাপশন ' + nwNum(i) + ': …');
-  for(let i = 1; i <= N; i++) L.push('সময় ' + nwNum(i) + ': …');
+    'উত্তর শুধু একটি JSON কোড-ব্লকে (```json … ```) দেবে, যাতে এক ট্যাপে কপি করা যায় — ব্লকের বাইরে কোনো ভূমিকা, ব্যাখ্যা বা অন্য লেখা নয়। JSON-এর লেখার ভেতরে ডাবল-কোটেশন (") বা নতুন লাইন দেবে না। ধাঁচ:',
+    '```json',
+    '{',
+    '  "stories": [',
+    '    {',
+    '      "topic": "এই খবরটা কী নিয়ে — ১–২ বাক্যে",',
+    '      "from": "0:00", "to": "1:20",',
+    '      "intro": "…",',
+    '      "shots": [',
+    '        { "heading": "… *হাইলাইট* …", "voice": "…", "caption": "…", "time": "0:20" },',
+    '        { "heading": "…", "voice": "…", "caption": "…", "time": "0:40" }',
+    '      ],',
+    '      "outro": "…"',
+    '    }',
+    '  ]',
+    '}',
+    '```');
   return L.join('\n');
 }
 /* "০:৪৫" / "1:05" / "45 সেকেন্ড" → seconds (NaN when there is nothing usable) */
@@ -11218,7 +11266,7 @@ async function vnAiWrite(){
         imgs.forEach(d => parts.push({ inlineData: { mimeType: 'image/jpeg', data: d } }));
         parts.push({ text: vnPrompt(imgs.length || mode !== 'img' ? mode : '') });
         r = await gemini({ contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.6 } }, 240000);
-        if(!vnParse(r.text).heads.filter(Boolean).length) throw new Error('Gemini ঠিক ফরম্যাটে উত্তর দেয়নি');
+        if(!vnStories(r.text).length) throw new Error('Gemini ঠিক ফরম্যাটে উত্তর দেয়নি');
       }catch(e){ err = e; r = null; if(!S.ckey) throw e; toast('Gemini: ' + aiErrMsg(e) + ' — Claude লিখছে'); }
     }
     if(!r){
@@ -11228,29 +11276,50 @@ async function vnAiWrite(){
       if(!vnTr() && VN.listen && (VN.yt || VN.file)) toast('Claude ভিডিও শুনতে পারে না — ছবি আর আপনার লেখা থেকে লিখছে। নির্ভুল করতে ৩ নম্বরে ট্রান্সক্রিপ্ট দিন।');
       r = await claude('You write short, accurate Bangladeshi Bengali breaking-news headlines and voice-over scripts for a Facebook news page. Follow the requested output format exactly.', content, 180000, 4000);
     }
-    const o = vnParse(salamOnly(r.text));
-    if(!o.heads.filter(Boolean).length) throw err || new Error('AI ঠিক ফরম্যাটে উত্তর দেয়নি — আবার চাপুন');
-    vnSetOut(o);
+    if(!vnStories(r.text).length) throw err || new Error('AI ঠিক ফরম্যাটে উত্তর দেয়নি — আবার চাপুন');
+    vnApplyAnswer(r.text);
     vSay('vnAiSt', '✔ লেখা তৈরি। চাইলে বদলে নিন, তারপর "নিউজ রিল তৈরি করুন"।', 'ok');
     return true;
   }catch(e){ vSay('vnAiSt', '✖ ' + (typeof aiErrMsg === 'function' ? aiErrMsg(e) : e.message), 'bad'); return false; }
   finally{ b.disabled = false; VN.aiBusy = false; }
 }
-function vnSetOut(o){
-  const tk = a => JSON.stringify((a || []).map(v => isFinite(v) ? Math.round(v) : null)), chg = tk(o.times) !== tk(VN.times) && (o.times || []).some(isFinite);
-  VN.times = o.times || []; $('vnOut').value = vnFormat(o);
-  if(chg && VN.vid){ VN.stills = null; vnShots(); }
+/* an AI answer → a list of stories [{topic, intro, outro, heads, voice, caps, times, from, to}] — JSON (preferred) or the older plain-text format */
+function vnStories(txt){
+  const raw = salamOnly(String(txt || '')); let j = null; const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
+  if(a >= 0 && b > a){ const t = raw.slice(a, b + 1); try{ j = JSON.parse(t); }catch(e){ try{ j = JSON.parse(t.replace(/,\s*([}\]])/g, '$1').replace(/[“”]/g, '"')); }catch(e2){} } }
+  const arr = j ? (Array.isArray(j.stories) ? j.stories : Array.isArray(j.news) ? j.news : Array.isArray(j.shots) ? [j] : []) : [], cl = x => String(x == null ? '' : x).replace(/^["“]|["”]$/g, '').trim();
+  const out = arr.map(st => { const sh = Array.isArray(st.shots) ? st.shots : [];
+    return { topic: cl(st.topic || st.title), intro: cl(st.intro), outro: cl(st.outro), heads: sh.map(x => cl(x.heading || x.headline || x.title)), voice: sh.map(x => cl(x.voice)),
+      caps: sh.map(x => cl(x.caption || x.subtitle)), times: sh.map(x => vnSecs(x.time)), from: vnSecs(st.from), to: vnSecs(st.to) }; })
+    .filter(o => o.heads.some(h => h && h !== '…')).slice(0, 8);
+  if(out.length) return out;
+  const o = vnParse(raw); if(o.heads.some(h => h && h !== '…')){ o.from = NaN; o.to = NaN; return [o]; }
+  return [];
 }
-/* an answer copied from Gemini / any AI → every part goes to its own place (headlines, voice, captions, video moments, shot count) */
-function vnApplyAnswer(x){
-  if(/উত্তর শুধু এই ফরম্যাটে দেবে|তুমি বাংলাদেশি ফেসবুক নিউজ পেজ/.test(x)) return false;   // that is our own prompt, not an answer
-  const o = vnParse(salamOnly(x)), n = o.heads.filter(h => h && h !== '…').length; if(!n) return false;
-  const tk = a => JSON.stringify((a || []).map(v => isFinite(v) ? Math.round(v) : null)); let redo = tk(o.times) !== tk(VN.times) && o.times.some(isFinite);
-  VN.times = o.times;
-  if(n >= 2 && n <= 7 && n !== VN.shots){ VN.shots = n; store.set('vnShots', n); vnOpts(); redo = true; }
+function vnPickStory(i){
+  const o = VN.stories && VN.stories[i]; if(!o) return;
+  VN.si = i; VN.times = o.times || []; VN.seg = (isFinite(o.from) && isFinite(o.to) && o.to - o.from > 3) ? { a: o.from, b: o.to } : null;
+  const n = Math.min(7, o.heads.length); if(n >= 2 && n !== VN.shots){ VN.shots = n; store.set('vnShots', n); vnOpts(); }
   $('vnOut').value = vnFormat(o);
-  if(redo && (VN.vid || VN.ytImgs)){ VN.stills = null; vnShots(); }
-  vSay('vnAiSt', '✔ উত্তর বসানো হয়েছে — শিরোনাম, ভয়েস' + (o.caps.some(Boolean) ? ', ক্যাপশন' : '') + (o.times.some(isFinite) ? ', ভিডিওর সময়' : '') + ' সব জায়গামতো। এবার "নিউজ রিল তৈরি করুন" চাপুন।', 'ok');
+  if(VN.vid || VN.ytImgs){ VN.stills = null; vnShots(); }
+  vnStoryUi();
+}
+function vnStoryUi(){
+  const box = $('vnStoryBox'); if(!box) return; box.innerHTML = '';
+  const L = VN.stories || []; box.classList.toggle('hidden', L.length < 2); if(L.length < 2) return;
+  const t = mk('div'); t.textContent = '📚 এই ভিডিওতে ' + nwNum(L.length) + 'টি আলাদা খবর পাওয়া গেছে — প্রতিটির জন্য আলাদা রিল হবে (একবারে একটি)। যেটার রিল বানাবেন সেটি বেছে নিন, রিল তৈরি ও এক্সপোর্ট করে এসে পরেরটি বেছে নিন:'; t.style.cssText = 'font-size:13px;line-height:1.5;margin-bottom:6px'; box.appendChild(t);
+  const row = mk('div', 'vfchips');
+  L.forEach((o, i) => { const b = mk('button'); b.type = 'button'; b.textContent = (VN.done && VN.done.has(i) ? '✔ ' : '') + 'খবর ' + nwNum(i + 1) + ': ' + (o.topic || o.heads[0] || '').slice(0, 22); if(i === VN.si) b.className = 'on'; b.addEventListener('click', () => { if(!VN.busy) vnPickStory(i); }); row.appendChild(b); });
+  box.appendChild(row);
+}
+/* an answer copied from Gemini / any AI → every part goes to its own place (stories, headlines, voice, captions, video moments, shot count) */
+function vnApplyAnswer(x){
+  if(/উত্তর শুধু একটি JSON কোড-ব্লকে|তুমি বাংলাদেশি ফেসবুক নিউজ পেজ/.test(x)) return false;   // that is our own prompt, not an answer
+  const L = vnStories(x); if(!L.length) return false;
+  VN.stories = L; VN.done = new Set(); vnPickStory(0);
+  const o = L[0];
+  vSay('vnAiSt', L.length > 1 ? '✔ ভিডিওতে ' + nwNum(L.length) + 'টি আলাদা খবর পাওয়া গেছে — ওপরে বেছে নিন কোনটার রিল বানাবেন; এখন খবর ১ বসানো আছে।' :
+    '✔ উত্তর বসানো হয়েছে — শিরোনাম, ভয়েস' + (o.caps.some(Boolean) ? ', ক্যাপশন' : '') + (o.times.some(isFinite) ? ', ভিডিওর সময়' : '') + ' সব জায়গামতো। এবার "নিউজ রিল তৈরি করুন" চাপুন।', 'ok');
   return true;
 }
 function vnFormat(o){
@@ -11264,14 +11333,14 @@ function vnFormat(o){
   return L.join('\n');
 }
 $('vnAi').addEventListener('click', () => { if(!VN.aiBusy) vnAiWrite(); });
-$('vnOut').addEventListener('paste', () => setTimeout(() => { const x = $('vnOut').value; if(/(শিরোনাম|হেডলাইন|headline)\s*[১1]/i.test(x)) vnApplyAnswer(x); }, 80));
+$('vnOut').addEventListener('paste', () => setTimeout(() => { const x = $('vnOut').value; if(/(শিরোনাম|হেডলাইন|headline)\s*[১1]|"heading"|"stories"/i.test(x)) vnApplyAnswer(x); }, 80));
 ['vnCopy', 'vnCopyNb'].forEach(id => $(id).addEventListener('click', () => { VN.waitAns = Date.now(); }));
 /* back from Gemini → if the clipboard holds its answer, it is put in by itself */
 document.addEventListener('visibilitychange', async () => {
   if(document.visibilityState !== 'visible' || !VN.open || !VN.waitAns || Date.now() - VN.waitAns > 90 * 60000 || VN.busy) return;
   try{
     const x = String(await navigator.clipboard.readText() || '');
-    if(/শিরোনাম\s*[১1]\s*[:：]/.test(x) && /শুরু\s*[:：]/.test(x) && x.trim() !== VN.lastAns){ VN.lastAns = x.trim(); if(vnApplyAnswer(x)) VN.waitAns = 0; }
+    if(((/শিরোনাম\s*[১1]\s*[:：]/.test(x) && /শুরু\s*[:：]/.test(x)) || /"stories"\s*:|"heading"\s*:/.test(x)) && x.trim() !== VN.lastAns){ VN.lastAns = x.trim(); if(vnApplyAnswer(x)) VN.waitAns = 0; }
   }catch(e){}
 });
 async function vnClip(x){ try{ await navigator.clipboard.writeText(x); }catch(e){ const ta = document.createElement('textarea'); ta.value = x; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(e2){} ta.remove(); } }
@@ -11291,9 +11360,7 @@ $('vnCopyNb').addEventListener('click', async () => {
 $('vnPaste').addEventListener('click', async () => {
   let x = ''; try{ x = await navigator.clipboard.readText(); }catch(e){}
   if(!x){ $('vnOut').focus(); vSay('vnAiSt', 'উত্তরটি নিচের ঘরে চেপে ধরে পেস্ট করুন।'); return; }
-  const o = vnParse(salamOnly(x));
-  if(!o.heads.filter(Boolean).length){ $('vnOut').value = x; vSay('vnAiSt', '⚠ ফরম্যাট মেলেনি — "শিরোনাম ১: …" এভাবে আছে কিনা দেখুন।', 'bad'); return; }
-  vnApplyAnswer(x);
+  if(!vnApplyAnswer(x)){ $('vnOut').value = x; vSay('vnAiSt', '⚠ ফরম্যাট মেলেনি — জেমিনির পুরো JSON উত্তরটি (```json …```) কপি করেছেন কিনা দেখুন।', 'bad'); }
 });
 
 /* ---------- ৩. captions / transcript ---------- */
@@ -11403,12 +11470,12 @@ $('vnGo').addEventListener('click', async () => {
     VN.times = o.times || [];
     const st = await vnExtract(m => vSay('vnSrcSt', m));
     const src = String($('vnSrc').value || '').trim() || (VN.yt ? (VN.author || 'YouTube') : VN.link ? hostOf(VN.link) : 'ভিডিও');
-    const stamp = Date.now().toString(36), list = [];
+    const stamp = Date.now().toString(36), list = [], seq = ['frame', 'circle', 'corner', 'zoom', 'circle', 'corner', 'zoom'], st0 = Math.floor(Math.random() * seq.length), lays = Array.from({ length: VN.shots }, (_, i) => seq[(st0 + i) % seq.length]);
     for(let i = 0; i < VN.shots; i++){
       const head = o.heads[i] || o.heads[0] || ''; if(!head) continue;
       const s = st[i] || st[st.length - 1] || {};
       list.push({ title: head, link: 'tfvideo://' + stamp + '/' + i, img: s.url || '', imgs: s.url ? [s.url] : [], picked: true, vid: true, noImg: !s.url,
-        vclip: s.clip || null, cap: VN.capOn ? ((o.caps && o.caps[i]) || '') : '', desc: o.voice[i] || '', text: [o.topic, o.voice[i]].filter(Boolean).join(' '),
+        vclip: s.clip || null, lay: lays[i], cap: VN.capOn ? ((o.caps && o.caps[i]) || '') : '', desc: o.voice[i] || '', text: [o.topic, o.voice[i]].filter(Boolean).join(' '),
         src: { id: 'video', bn: src, en: src }, date: '' });
     }
     if(!list.length) throw new Error('কোনো শিরোনাম পাওয়া যায়নি');
@@ -11422,6 +11489,7 @@ $('vnGo').addEventListener('click', async () => {
     if(!window.TFReel.open(list)) return;
     if(o.voice.filter(Boolean).length){ try{ voSetScript(script); }catch(e){} }
     if(voKey() && VO.voice && o.voice.filter(Boolean).length && !VO.on){ VO.on = true; voSave(); voUi(); }
+    if(VN.stories && VN.stories.length > 1 && VN.done){ VN.done.add(VN.si); vnStoryUi(); }
     toast(VO.on ? '🎙 শিরোনাম, ছবি ও ভয়েস-স্ক্রিপ্ট বসানো হয়েছে — নিচের বোতাম চেপে রিল তৈরি করুন' : 'শিরোনাম ও ছবি বসানো হয়েছে — নিচের বোতাম চেপে রিল তৈরি করুন');
   }catch(e){ if(e.message !== 'cancel') vSay('vnAiSt', '✖ ' + (e.message || e), 'bad'); }
   finally{ VN.busy = false; b.disabled = false; }
@@ -11669,7 +11737,7 @@ window.__vfOpen = () => { vfMg(); vfRender(); if(VF.tab === 'web'){ if(!VF.web.l
 window.TFVideoNews = { open: vnOpen };
 (window.TFClearHooks = window.TFClearHooks || []).push({
   has: () => !!(VN.file || VN.link || VN.open || String($('vnDesc').value || '').trim()),
-  clear: () => { if(VN.open) vnClose(true); vnReset(); $('vnDesc').value = ''; $('vnOut').value = ''; $('vnTr').value = ''; $('vnLink').value = ''; $('vnSrc').value = ''; vcClear(); }
+  clear: () => { if(VN.open) vnClose(true); vnReset(); VN.stories = []; VN.done = new Set(); VN.seg = null; VN.times = []; vnStoryUi(); $('vnDesc').value = ''; $('vnOut').value = ''; $('vnTr').value = ''; $('vnLink').value = ''; $('vnSrc').value = ''; vcClear(); }
 });
 })();
 

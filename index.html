@@ -11397,26 +11397,42 @@ vfCss.textContent = `
 `;
 document.head.appendChild(vfCss);
 
+/* YouTube wants a desktop browser look + a consent cookie, otherwise the search page comes back in another shape */
+async function vfGet(u, ms){
+  const H = natHttp(), errs = [];
+  if(H && /^https:\/\//i.test(u)){
+    try{
+      const r = await Promise.race([H.request({ url: u, method: 'GET', responseType: 'text', connectTimeout: ms, readTimeout: ms,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', 'Accept-Language': 'en-US,en;q=0.9', 'Cookie': 'CONSENT=YES+1; SOCS=CAI', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), ms + 1500))]);
+      if(!r || r.status < 200 || r.status >= 400) throw new Error('HTTP ' + (r && r.status));
+      const d = typeof r.data === 'string' ? r.data : JSON.stringify(r.data || ''); if(d && d.length > 30) return d; throw new Error('empty');
+    }catch(e){ errs.push('native: ' + (e.message || e)); }
+  }
+  try{ return await vnGet(u, ms); }catch(e){ errs.push('proxy'); }
+  throw new Error(errs.join(' / '));
+}
 /* find the channel id: a UC… id, a channel page / @handle, or (for a plain name) the first verified channel in YouTube search */
 async function vfResolve(s){
   if(s.c) return s.c;
   const raw = String(s.q || '').trim(); let cid = (raw.match(/UC[\w-]{22}/) || [])[0] || '';
   if(!cid && (/^@/.test(raw) || /youtube\.com\//i.test(raw))){
     const u = /^@/.test(raw) ? 'https://www.youtube.com/' + raw : (/^https?:/i.test(raw) ? raw : 'https://' + raw);
-    const html = await vnGet(u, 20000);
+    const html = await vfGet(u, 20000);
     cid = (html.match(/"(?:externalId|channelId)":"(UC[\w-]{22})"/) || html.match(/channel\/(UC[\w-]{22})/) || [])[1] || '';
   }
   if(!cid){
-    const html = await vnGet('https://www.youtube.com/results?search_query=' + encodeURIComponent(raw) + '&sp=EgIQAg%3D%3D', 22000);
-    const parts = html.split('"channelRenderer":{').slice(1, 6); let best = '';
+    const html = await vfGet('https://www.youtube.com/results?search_query=' + encodeURIComponent(raw) + '&sp=EgIQAg%3D%3D', 22000);
+    const parts = html.split(/"(?:compact)?[cC]hannelRenderer":\{/).slice(1, 8); let best = '';
     for(const p of parts){
-      const id = (p.match(/"channelId":"(UC[\w-]{22})"/) || [])[1]; if(!id) continue;
-      if(/BADGE_STYLE_TYPE_VERIFIED|CHECK_CIRCLE_THICK/.test(p.slice(0, 4000))){ best = id; break; }
+      const id = (p.match(/"(?:channelId|browseId)":"(UC[\w-]{22})"/) || [])[1]; if(!id) continue;
+      if(/BADGE_STYLE_TYPE_VERIFIED|CHECK_CIRCLE_THICK|"verified"/i.test(p.slice(0, 4000))){ best = id; break; }
       if(!best) best = id;
     }
+    if(!best){ const ids = []; html.replace(/"browseId":"(UC[\w-]{22})"/g, (m, id) => { if(!ids.includes(id)) ids.push(id); return m; }); best = ids[0] || ''; }
     cid = best;
   }
-  if(!cid) throw new Error('channel');
+  if(!cid) throw new Error('channel-not-found (' + html.length + ')');
   s.c = cid; return cid;
 }
 function vfParse(xml, s){
@@ -11435,10 +11451,10 @@ function vfParse(xml, s){
 async function vfRefresh(){
   if(VF.busy) return; VF.busy = true;
   const yts = VF.list.filter(s => s.k === 'yt'), st = $('vfSt'), btn = $('vfRef'); btn.disabled = true;
-  let done = 0, fail = 0; const got = [], bad = new Set();
+  let done = 0, fail = 0, why = ''; const got = [], bad = new Set();
   const work = async s => {
-    try{ const cid = await vfResolve(s); got.push(...vfParse(await vnGet('https://www.youtube.com/feeds/videos.xml?channel_id=' + cid, 15000), s)); }
-    catch(e){ fail++; bad.add(s.c ? 'yt:' + s.c : 'yt:' + s.q); }
+    try{ const cid = await vfResolve(s); got.push(...vfParse(await vfGet('https://www.youtube.com/feeds/videos.xml?channel_id=' + cid, 15000), s)); }
+    catch(e){ fail++; if(!why) why = (s.n || s.q) + ': ' + (e.message || e); bad.add(s.c ? 'yt:' + s.c : 'yt:' + s.q); }
     done++; vSay('vfSt', nwNum(done) + '/' + nwNum(yts.length) + ' চ্যানেল দেখা হয়েছে…');
   };
   const q = yts.slice(); vSay('vfSt', 'আপডেট আনা হচ্ছে…');
@@ -11448,7 +11464,7 @@ async function vfRefresh(){
   const seen = new Set(), all = got.concat(keep).filter(o => !seen.has(o.id) && seen.add(o.id)).sort((a, b) => b.p - a.p).slice(0, 80);
   VF.items = all; VF.t = Date.now(); store.set('vfItems', all); store.set('vfT', VF.t);
   VF.busy = false; btn.disabled = false; vfRender();
-  if(!all.length) vSay('vfSt', '✖ কোনো আপডেট আনা গেল না — ইন্টারনেট দেখে আবার চাপুন, অথবা নিচে লিংক পেস্ট করুন।', 'bad');
+  if(!all.length) vSay('vfSt', '✖ কোনো আপডেট আনা গেল না — আবার চাপুন, অথবা নিচে লিংক পেস্ট করুন। (কারণ: ' + why + ')', 'bad');
   else vSay('vfSt', '✔ ' + nwNum(all.length) + 'টি ভিডিও' + (fail ? ' · ' + nwNum(fail) + 'টি চ্যানেল আনা যায়নি' : ''), fail ? '' : 'ok');
 }
 function vfRender(){

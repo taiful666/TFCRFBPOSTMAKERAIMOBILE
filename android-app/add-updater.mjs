@@ -13,6 +13,7 @@ const pkgDir = join(main, 'java', ...cfg.appId.split('.'));
 if (cfg.appId !== 'com.taiful.tfnewscraft') throw new Error('appId changed — update the package line in native/TFUpdaterPlugin.java');
 
 copyFileSync(join(here, 'native', 'TFUpdaterPlugin.java'), join(pkgDir, 'TFUpdaterPlugin.java'));
+copyFileSync(join(here, 'native', 'TFPickerPlugin.java'), join(pkgDir, 'TFPickerPlugin.java'));   // native picture picker for the logo
 
 const actPath = join(pkgDir, 'MainActivity.java');
 let act = readFileSync(actPath, 'utf8');
@@ -23,6 +24,7 @@ if (!act.includes('TFUpdaterPlugin')) {
     '    @Override\n' +
     '    public void onCreate(android.os.Bundle savedInstanceState) {\n' +
     '        registerPlugin(TFUpdaterPlugin.class);\n' +
+    '        registerPlugin(TFPickerPlugin.class);\n' +
     '        super.onCreate(savedInstanceState);\n' +
     '    }\n' +
     '}');
@@ -45,4 +47,5 @@ if (!fp.includes('tf-update')) {
   fp = fp.replace('</paths>', '    <cache-path name="tf_update" path="tf-update/" />\n</paths>');
   writeFileSync(fpPath, fp);
 }
-console.log('in-app updater added');
+if (!readFileSync(actPath, 'utf8').includes('TFPickerPlugin')) throw new Error('TFPickerPlugin not registered');
+console.log('in-app updater + logo picker added');

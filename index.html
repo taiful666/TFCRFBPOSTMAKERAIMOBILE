@@ -7639,11 +7639,47 @@ function plainTitle(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g
     if(app()){
       let v = null; try{ v = typeof window.TFAppVersion === 'function' ? await window.TFAppVersion() : null; }catch(e){}
       now.textContent = v && v.version ? 'ভার্সন ' + v.version : 'Android অ্যাপ';
-    } else { now.textContent = 'ওয়েব ভার্সন (ব্রাউজার)'; b.textContent = '🔄 নতুন ভার্সন লোড করুন'; }
+    } else { now.textContent = 'ওয়েব ভার্সন · ' + webStamp(webBuilt()); b.textContent = '🔄 নতুন ভার্সন লোড করুন'; }
   }
+  /* 🌐 web: the page always checks whether GitHub has a newer copy than the one open in this browser
+     (a browser or the offline copy can keep an old page). The time GitHub published the page is compared. */
+  const isWebPage = () => !app() && /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname);
+  function webBuilt(){ const d = Date.parse(document.lastModified); return isNaN(d) ? 0 : d; }
+  function webStamp(ms){ if(!ms) return '—'; const d = new Date(ms); return (typeof fmtDate === 'function' ? fmtDate(d) : d.toLocaleDateString()) + ', ' + d.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit' }); }
+  async function webLatest(){
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+    const lm = Date.parse(r.headers.get('Last-Modified') || ''); return isNaN(lm) ? 0 : lm;
+  }
+  async function hardReload(){
+    try{ if(navigator.serviceWorker){ const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(x => x.unregister())); } }catch(e){}
+    try{ if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } }catch(e){}
+    location.replace(location.pathname + '?u=' + Date.now() + location.hash);
+  }
+  function webBanner(){
+    if(document.getElementById('tfNewVer')) return;
+    const d = document.createElement('div'); d.id = 'tfNewVer';
+    d.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147482000;background:#2563eb;color:#fff;border-radius:14px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.3);font-size:14.5px;font-weight:600;max-width:94vw';
+    d.innerHTML = '<span>🎉 অ্যাপের নতুন ভার্সন এসেছে</span><button type="button" style="border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:800;background:#fff;color:#2563eb;cursor:pointer">এখনই আপডেট করুন</button><button type="button" aria-label="close" style="border:0;background:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">×</button>';
+    const [go, x] = d.querySelectorAll('button');
+    go.onclick = () => { go.textContent = '⏳ লোড হচ্ছে…'; hardReload(); };
+    x.onclick = () => d.remove();
+    document.body.appendChild(d);
+  }
+  async function webCheck(){
+    if(!isWebPage()) return;
+    try{ const live = await webLatest(), mine = webBuilt(); if(live && mine && live - mine > 60000) webBanner(); }catch(e){}
+  }
+  setTimeout(webCheck, 4000);
+  setInterval(() => { if(!document.hidden) webCheck(); }, 20 * 60000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) webCheck(); });
   fill(); setTimeout(() => { if(app()) fill(); }, 1500);
   b.addEventListener('click', async () => {
-    if(!app()){ show('নতুন ভার্সন লোড হচ্ছে…'); setTimeout(() => location.reload(), 300); return; }
+    if(!app()){
+      show('দেখা হচ্ছে…');
+      let live = 0; try{ live = await webLatest(); }catch(e){}
+      if(live && webBuilt() && live - webBuilt() <= 60000){ show('✅ আপনি সর্বশেষ ভার্সনেই আছেন (' + webStamp(live) + ')।', '#16a34a'); return; }
+      show('নতুন ভার্সন লোড হচ্ছে…'); hardReload(); return;
+    }
     b.disabled = true; const lbl = b.textContent; b.textContent = '⏳ দেখা হচ্ছে…'; msg.style.display = 'none';
     try{
       const r = await window.TFCheckUpdate() || {};

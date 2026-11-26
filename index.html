@@ -1392,7 +1392,7 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
                     <button type="button" data-src="upload" data-i18n="srcUp"></button>
                     <button type="button" data-src="none" data-i18n="srcNone"></button>
                   </div>
-                  <input type="file" id="cardFile" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden">
+                  <input type="file" id="cardFile" accept="image/*" class="hidden">
                   <div class="srcprev"><img id="srcThumb" alt=""><span id="srcInfo"></span></div>
                   <div class="srow" style="margin:0">
                     <button type="button" class="btn" id="changeImgBtn" data-i18n="changeImg"></button>
@@ -1401,7 +1401,7 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
                   <label class="fld"><span data-i18n="zoom"></span><input type="range" id="cZoom" min="100" max="300" step="1"></label>
                   <div class="spkbox">
                     <b data-i18n="spkTitle"></b>
-                    <input type="file" id="spkFile" accept="image/png,image/jpeg,image/webp" class="hidden">
+                    <input type="file" id="spkFile" accept="image/*" class="hidden">
                     <div class="srcprev"><img id="spkThumb" alt="" class="hidden"><span id="spkInfo"></span></div>
                     <div class="srow" style="margin:0"><button type="button" class="btn" id="spkUpBtn" data-i18n="spkUp"></button><button type="button" class="btn" id="spkRmBtn" data-i18n="spkRm"></button></div>
                     <label class="fld"><span data-i18n="spkSize"></span><input type="range" id="cSpkSize" min="30" max="85" step="1"></label>
@@ -1473,7 +1473,7 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
               </details>
               <details><summary data-i18n="secLogo"></summary>
                 <div class="dbody">
-                  <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" class="hidden">
+                  <input type="file" id="logoFile" accept="image/*" class="hidden">
                   <div class="srcprev"><img id="logoThumb" alt="" class="hidden" style="object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px"><span id="logoInfo"></span></div>
                   <div class="srow" style="margin:0">
                     <button type="button" class="btn" id="logoUpBtn" data-i18n="logoUp"></button>
@@ -2836,7 +2836,7 @@ Object.assign(T.bn, {
   logoNone:'কোনো লোগো নেই — লোগো ছাড়াও কার্ড ঠিকমতো তৈরি হবে।',logoNote:'স্বচ্ছ (transparent) PNG সবচেয়ে ভালো। লোগো এই ব্রাউজারে মনে রাখা হবে।',
   previewCard:'🔍 বড় করে দেখুন',dlPng:'⬇ PNG ডাউনলোড',nextDesign:'🎲 নতুন ডিজাইন',resetCard:'↺ রিসেট',backEditor:'← এডিটরে ফিরুন',
   tCardDl:'কার্ড ডাউনলোড হয়েছে',tCardTaint:'⚠️ এই ছবিটি পত্রিকার সার্ভারের নিরাপত্তা সেটিংয়ের কারণে PNG-তে এক্সপোর্ট করা যাচ্ছে না। সমাধান: মূল পাতা থেকে ছবিটি কম্পিউটারে সেভ করে "আপলোড" দিয়ে দিন।',tImgLoadFail:'⚠️ ছবিটি লোড করা যায়নি — অন্য উৎস বেছে নিন বা নিজের ছবি আপলোড করুন।',loadingImg:'ছবি লোড হচ্ছে…',
-  tBadFile:'শুধু JPG, PNG, WEBP বা GIF ছবি দিন (ছবি সর্বোচ্চ ১৫ MB, লোগো ৫ MB)',tNoOrig:'এই খবরে মূল ছবি নেই',tNoAi:'আগে "AI ছবি" ট্যাবে একটি ছবি তৈরি করে "কার্ডে ব্যবহার" চাপুন',tLogoNoSave:'লোগো বসানো হয়েছে, কিন্তু ব্রাউজারে মনে রাখার জায়গা নেই',
+  tBadFile:'শুধু JPG, PNG, WEBP বা GIF ছবি দিন (ছবি সর্বোচ্চ ১৫ MB, লোগো ৫ MB)',tNoOrig:'এই খবরে মূল ছবি নেই',tNoAi:'আগে "AI ছবি" ট্যাবে একটি ছবি তৈরি করে "কার্ডে ব্যবহার" চাপুন',tLogoNoSave:'লোগো বসানো হয়েছে, কিন্তু ব্রাউজারে মনে রাখার জায়গা নেই', tLogoOk:'✔ লোগো বসানো হয়েছে', tLogoBig:'ছবিটা খুব বড় (৪০ MB-এর কম দিন)', tLogoRead:'এই ছবিটা ফোন খুলতে পারছে না — PNG বা JPG ছবি দিন (HEIC ছবি হলে স্ক্রিনশট নিয়ে সেটা দিন)',
   labelAi:'AI দিয়ে তৈরি প্রতীকী ছবি',photoBy:'ছবি: ',srcPrefix:'তথ্যসূত্রঃ ',tCardReset:'কার্ড রিসেট হয়েছে',
   fbTitle:'📣 ফেসবুক পোস্ট প্রস্তুত',fbNote:'এটি সরাসরি ফেসবুকে পোস্ট করে না। পোস্টের লেখা কপি করুন এবং ফটো কার্ড ডাউনলোড করে নিজে ফেসবুকে আপলোড করুন।',fbPost:'পোস্টের লেখা (সম্পাদনাযোগ্য)',
   fbPh:'"📣 ফেসবুকের জন্য প্রস্তুত করুন" চাপুন — পোস্ট, শিরোনাম, বিবরণ, হ্যাশট্যাগ ও ফটো কার্ড একসাথে তৈরি হবে।',fbCopy:'📋 পোস্ট কপি',fbEdit:'✏️ পোস্ট সম্পাদনা',fbCard:'🖼️ ফটো কার্ড তৈরি/সম্পাদনা',fbDl:'⬇ ফটো কার্ড ডাউনলোড',fbSrc:'সূত্র ও লিংক যুক্ত করুন',fbCardLbl:'ফটো কার্ড',
@@ -2870,7 +2870,7 @@ Object.assign(T.en, {
   logoNone:'No logo — the card works fine without one.',logoNote:'A transparent PNG works best. The logo is remembered in this browser.',
   previewCard:'🔍 Preview card',dlPng:'⬇ Download PNG',nextDesign:'🎲 New design',resetCard:'↺ Reset',backEditor:'← Return to editor',
   tCardDl:'Card downloaded',tCardTaint:'⚠️ This photo cannot be exported to PNG because of the news site\'s security settings. Fix: save the photo from the original page to your computer and use "Upload".',tImgLoadFail:'⚠️ Could not load the image — choose another source or upload your own.',loadingImg:'Loading image…',
-  tBadFile:'Use a JPG, PNG, WEBP or GIF image (photo max 15 MB, logo 5 MB)',tNoOrig:'This article has no original image',tNoAi:'First generate an image in the "AI Image" tab and press "Use this image on card"',tLogoNoSave:'Logo placed, but there is no room to remember it in this browser',
+  tBadFile:'Use a JPG, PNG, WEBP or GIF image (photo max 15 MB, logo 5 MB)',tNoOrig:'This article has no original image',tNoAi:'First generate an image in the "AI Image" tab and press "Use this image on card"',tLogoNoSave:'Logo placed, but there is no room to remember it in this browser', tLogoOk:'✔ Logo added', tLogoBig:'The image is too large (use one under 40 MB)', tLogoRead:'This phone cannot open this image — use a PNG or JPG (for HEIC, take a screenshot and use that)',
   labelAi:'AI-generated illustration',photoBy:'Photo: ',srcPrefix:'Source: ',tCardReset:'Card reset',
   fbTitle:'📣 Facebook-ready post',fbNote:'This does not post to Facebook directly. Copy the post text and download the photo card, then upload them to Facebook yourself.',fbPost:'Post text (editable)',
   fbPh:'Press "📣 Prepare for Facebook" — the post, headline, description, hashtags and photo card are prepared together.',fbCopy:'📋 Copy post text',fbEdit:'✏️ Edit post',fbCard:'🖼️ Create/Edit photo card',fbDl:'⬇ Download photo card',fbSrc:'Add source & link',fbCardLbl:'Photo card',
@@ -3867,12 +3867,15 @@ async function previewCard(){
 }
 function closeModal(){ const im = $('cardModalImg'); $('cardModal').classList.add('hidden'); im.removeAttribute('src'); if(im.dataset.u){ try{ URL.revokeObjectURL(im.dataset.u); }catch(e){} im.dataset.u = ''; } }
 function updateFbPreview(){ renderCard(); }
-function validImage(f, maxMB, svg){ const ok = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].concat(svg ? ['image/svg+xml'] : []); return !!f && ok.includes(f.type) && f.size <= maxMB * 1048576; }
+function validImage(f, maxMB, svg){
+  const ty = String((f && f.type) || '').toLowerCase(), byName = !ty || ty === 'application/octet-stream';   // some phones send no file type (and no file extension) — opening the picture decides
+  return !!f && (/^image\//.test(ty) || byName) && (svg || !/svg/.test(ty + (f.name || ''))) && f.size <= maxMB * 1048576;
+}
 function fileToDataUrl(f){ return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
 function loadLogo(url){
   C.logoImg = null;
   if(!url){ updateLogoUi(); scheduleRender(); return; }
-  loadImg(url, false).then(im => { C.logoImg = im; updateLogoUi(); scheduleRender(); }).catch(() => { C.logoUrl = ''; store.set('cardLogo', ''); updateLogoUi(); });
+  loadImg(url, false).then(im => { C.logoImg = im; updateLogoUi(); scheduleRender(); }).catch(e => { if(e && e.message === 'slow'){ updateLogoUi(); return; } C.logoUrl = ''; store.set('cardLogo', ''); updateLogoUi(); });
 }
 function updateLogoUi(){
   const th = $('logoThumb');
@@ -3880,16 +3883,43 @@ function updateLogoUi(){
   $('logoRmBtn').disabled = !C.logoUrl;
 }
 async function onLogoFile(f){
-  if(!validImage(f, 5, true)){ toast(t('tBadFile')); return; }
+  if(!validImage(f, 40, true)){ toast(t(f && f.size > 40 * 1048576 ? 'tLogoBig' : 'tBadFile')); return; }
+  let url = '', im = null;
+  try{ url = URL.createObjectURL(f); im = await loadImg(url, false, 20000); }
+  catch(e){ try{ im = await loadImg(await fileToDataUrl(f), false, 20000); }catch(e2){ im = null; } }   // some phones only open it this way
+  finally{ if(url) setTimeout(() => { try{ URL.revokeObjectURL(url); }catch(e){} }, 1000); }
+  if(!im){ toast(t('tLogoRead')); return; }
   try{
-    const im = await loadImg(await fileToDataUrl(f), false);
-    const iw = im.naturalWidth || 400, ih = im.naturalHeight || 400, s = Math.min(1, 600 / Math.max(iw, ih));
-    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(iw * s)); c.height = Math.max(1, Math.round(ih * s));
+    const out = logoDataUrl(im);
+    C.logoUrl = out; C.logoDX = C.logoDY = 0; saveCardDesign();
+    await logoKeep(out);
+    loadLogo(C.logoUrl); toast(t('tLogoOk'));
+  }catch(e){ console.error('logo', e); toast(t('tLogoRead')); }
+}
+/* small enough to always save: max 512 px; PNG keeps a clear background, WebP when the PNG is too heavy */
+function logoDataUrl(im){
+  const iw = im.naturalWidth || im.width || 400, ih = im.naturalHeight || im.height || 400;
+  for(const max of [512, 400, 300]){
+    const s = Math.min(1, max / Math.max(iw, ih)), c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(iw * s)); c.height = Math.max(1, Math.round(ih * s));
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-    C.logoUrl = c.toDataURL('image/png'); C.logoDX = C.logoDY = 0; saveCardDesign();
-    if(!store.set('cardLogo', C.logoUrl)) toast(t('tLogoNoSave'));
-    loadLogo(C.logoUrl);
-  }catch(e){ toast(t('tBadFile')); }
+    let u = c.toDataURL('image/png');
+    if(u.length > 350000){ const w = c.toDataURL('image/webp', 0.9); if(/^data:image\/webp/.test(w) && w.length < u.length) u = w; }
+    c.width = c.height = 1;
+    if(u.length <= 350000 || max === 300) return u;
+  }
+}
+/* the browser's small store first; when it is full, the phone's bigger store (IndexedDB) keeps the logo */
+function logoDb(){ return new Promise((res, rej) => { try{ const r = indexedDB.open('tf-logo', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }catch(e){ rej(e); } }); }
+async function logoIdb(v){
+  const db = await logoDb();
+  return new Promise((res, rej) => { const tx = db.transaction('kv', v === undefined ? 'readonly' : 'readwrite'), st = tx.objectStore('kv');
+    const r = v === undefined ? st.get('logo') : st.put(v, 'logo'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+}
+async function logoKeep(u){
+  if(store.set('cardLogo', u)){ store.set('cardLogoIdb', false); try{ await logoIdb(''); }catch(e){} return true; }
+  store.set('cardLogo', '');
+  try{ await logoIdb(u); store.set('cardLogoIdb', true); return true; }catch(e){ toast(t('tLogoNoSave')); return false; }
 }
 function onCardFile(f){
   if(!validImage(f, 15)){ toast(t('tBadFile')); return; }
@@ -4068,7 +4098,7 @@ function initStudio(){
   $('cardFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if(f) onCardFile(f); });
   $('logoUpBtn').addEventListener('click', () => $('logoFile').click());
   $('logoFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if(f) onLogoFile(f); });
-  $('logoRmBtn').addEventListener('click', () => { C.logoUrl = ''; C.logoDX = C.logoDY = 0; store.set('cardLogo', ''); saveCardDesign(); loadLogo(''); });
+  $('logoRmBtn').addEventListener('click', () => { C.logoUrl = ''; C.logoDX = C.logoDY = 0; logoKeep(''); saveCardDesign(); loadLogo(''); });
   document.querySelectorAll('[data-cf]').forEach(el => el.addEventListener('input', () => { C.fields[el.dataset.cf] = el.value; if(el.dataset.cf === 'label') C.labelAuto = false; scheduleRender(); }));
   $('cTpl').addEventListener('change', () => applyTemplate($('cTpl').value));
   document.querySelectorAll('#cRatio [data-ratio]').forEach(b => b.addEventListener('click', () => { C.ratio = b.dataset.ratio; syncDesignUi(); saveCardDesign(); scheduleRender(); }));
@@ -4102,6 +4132,7 @@ function initStudio(){
   $('fbDlBtn').addEventListener('click', downloadCard);
   if(document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', scheduleRender);
   syncDesignUi(); loadLogo(C.logoUrl); renderAiImages();
+  if(!C.logoUrl) logoIdb().then(u => { if(u && !C.logoUrl){ C.logoUrl = u; loadLogo(u); } }).catch(() => {});   // logo kept in the bigger store
   studioI18n();
 }
 

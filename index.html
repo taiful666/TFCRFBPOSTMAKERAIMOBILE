@@ -1142,6 +1142,16 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
           </div>
           <div id="tfVerMsg" style="margin-top:8px;font-size:14px;font-weight:600;display:none"></div>
         </div>
+        <div id="setLogoBox" style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--surface-2,var(--surface))">
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px">🖼️ আপনার পেজের লোগো</div>
+          <input type="file" id="logoFile" accept="image/*" class="hidden">
+          <div class="srcprev"><img id="logoThumb" alt="" class="hidden" style="object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px"><span id="logoInfo"></span></div>
+          <div class="srow" style="margin:0">
+            <button type="button" class="btn" id="logoUpBtn" data-i18n="logoUp"></button>
+            <button type="button" class="btn" id="logoRmBtn" data-i18n="logoRm"></button>
+          </div>
+          <p class="tiny" style="margin:8px 0 0">ফটো কার্ড, রিল আর ভিডিও — সব জায়গায় এই লোগো বসবে। কার্ডে লোগোর আকার ও অবস্থান কার্ডের "লোগো" অংশে বদলাতে পারবেন।</p>
+        </div>
         <h4><span data-i18n="aiTitle">✨ Google Gemini API কী (ঐচ্ছিক, আরও নির্ভরযোগ্য)</span><button type="button" class="x" data-close="proxyPanel" aria-label="close">×</button></h4>
         <p data-i18n="aiDesc">কী দিলে কোনো পত্রিকা আটকে গেলে Google Gemini নিজে পাতাটি খুলে শুধু মূল খবর এনে দেবে, এবং "✨ AI পরিষ্কার" বাটন চালু হবে। কী শুধু এই ব্রাউজারেই সংরক্ষিত থাকে, ফাইলের ভেতরে নয়।</p>
         <div style="display:flex;gap:6px">
@@ -1479,12 +1489,7 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
               </details>
               <details><summary data-i18n="secLogo"></summary>
                 <div class="dbody">
-                  <input type="file" id="logoFile" accept="image/*" class="hidden">
-                  <div class="srcprev"><img id="logoThumb" alt="" class="hidden" style="object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px"><span id="logoInfo"></span></div>
-                  <div class="srow" style="margin:0">
-                    <button type="button" class="btn" id="logoUpBtn" data-i18n="logoUp"></button>
-                    <button type="button" class="btn" id="logoRmBtn" data-i18n="logoRm"></button>
-                  </div>
+                  <p class="tiny" style="margin:0 0 8px">🖼️ লোগো দিতে বা বদলাতে উপরের ⚙️ সেটিংসে যান। এখানে শুধু আকার ও অবস্থান।</p>
                   <label class="fld"><span data-i18n="logoSize"></span><input type="range" id="cLogoSize" min="5" max="45" step="1"></label>
                   <label class="fld"><span data-i18n="logoPos"></span>
                     <select id="cLogoPos"><option value="tl" data-i18n="pTL"></option><option value="tc" data-i18n="pTC"></option><option value="tr" data-i18n="pTR"></option><option value="bl" data-i18n="pBL"></option><option value="bc" data-i18n="pBC"></option><option value="br" data-i18n="pBR"></option></select>
@@ -7482,7 +7487,7 @@ Object.assign(T.bn, {
   rlIntro:'শুরুর শিরোনাম', rlTitleDef:'আজকের সেরা খবর', rlTicker:'নিচের চলমান লেখা',
   rlTickDef:'সর্বশেষ ও গুরুত্বপূর্ণ খবর সবার আগে পেতে {p} পেজটি ফলো করুন',
   rlSecs:'প্রতিটি খবর', rlSec:'সে.', rlSecOwn:'নিজে দিন', rlSecAsk:'প্রতিটি খবর কত সেকেন্ড দেখাবে? (২ থেকে ৬০)', rlSecBad:'২ থেকে ৬০-এর মধ্যে একটি সংখ্যা দিন', rlSumL:'সংক্ষেপে', rlAskReply:'💬 উত্তর কমেন্টে লিখুন', rlMusic:'মিউজিক', rlmBeat:'নিউজ বিট', rlmFile:'আমার মিউজিক', mmTitle:'আমার মিউজিক', mmSafe:'· ফোনে সেভ থাকে, ক্লিয়ার দিলেও মুছবে না', mmAdd:'মিউজিক যোগ করুন', mmDel:'মুছুন', mmDelAsk:'"{n}" মিউজিকটি ফোন থেকে মুছে ফেলবেন?', mmDeleted:'মিউজিক মুছে ফেলা হয়েছে', mmSaved:'মিউজিক ফোনে সেভ হয়েছে — পরেও থাকবে', mmNoSave:'এবার ব্যবহার করা যাবে, কিন্তু ফোনে সেভ করা গেল না (জায়গা কম?)', rlmNone:'ছাড়া', rlm_beat:'নিউজ বিট', rlm_breaking:'ব্রেকিং নিউজ', rlm_piano:'নরম পিয়ানো', rlm_emotional:'আবেগী', rlm_tension:'টানটান রহস্য', rlm_happy:'হাসিখুশি', rlm_lofi:'লো-ফাই চিল', rlm_headline:'টিভি হেডলাইন', rlm_war:'যুদ্ধের দামামা', rlm_alert:'জরুরি আপডেট', rlm_trailer:'এপিক ট্রেলার', rlm_countdown:'কাউন্টডাউন', rlm_march:'মার্চিং ড্রাম', rlPvPlay:'▶ শুনুন', rlPvStop:'■ থামান',
-  rlDesign:'কার্ড ডিজাইন', rldQuote:'কোট কার্ড', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlLook:'পত্রিকার ছবিতে পেজের রঙের হালকা টোন', rlOwn:'শুধু AI/নিজের ছবি — পত্রিকার ছবি একদম নয়', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
+  rlDesign:'কার্ড ডিজাইন', rldQuote:'কোট কার্ড', rldLive:'লাইভ ব্রেকিং', rldDeck:'কার্ড ক্যারোসেল', rlSrcL:'খবরের সূত্র: ', rlPageL:'আপনার পেজের নাম', rlPageHint:'ভিডিওর প্রতিটি কার্ডে আর আলাদা কার্ডে এই নাম ও লোগো থাকবে — লোগো দিতে বা বদলাতে ⚙️ সেটিংসে যান', rlWm:'ছবিতে পত্রিকার নাম/লোগো ঘোলা করুন (প্রস্তাবিত নয়)', rlLook:'পত্রিকার ছবিতে পেজের রঙের হালকা টোন', rlOwn:'শুধু AI/নিজের ছবি — পত্রিকার ছবি একদম নয়', rlOwnOn:'নিজের ছবি মোড চালু — পত্রিকার ছবি ব্যবহার হবে না', rlOwnOff:'পত্রিকার ছবি ব্যবহার হবে — কপিরাইট ঝুঁকি থাকে', rlDupAsk:'এই খবরগুলোর বেশিরভাগ দিয়ে গত {h} ঘণ্টায় একটি রিল শেয়ার করা হয়েছে। একই কন্টেন্ট বারবার পোস্ট করলে Facebook রিচ কমিয়ে দিতে পারে। তবুও শেয়ার করবেন?', rlBreak:'ব্রেকিং নিউজ', rldBand:'ব্যান্ড', rldSplit:'স্প্লিট', rldOverlay:'ওভারলে', rldFrame:'ফ্রেম', rldMix:'মিশ্র', rldMine:'আমার ডিজাইন',
   rlColors:'প্রতিটি কার্ডে আলাদা রং', rlStyle:'মোশন', rlShuffle:'স্টাইল বদলান', rlLen:'ভিডিও প্রায় {n} মিনিটের',
   rlMake:'ভিডিও তৈরি করুন', rlRemake:'আবার তৈরি করুন', rlCancel:'বাতিল', rlSave:'সেভ', rlThumb:'থাম্বনেইল', rlThumbNo:'আগে ভিডিও তৈরি করুন', rlThumbSaved:'থাম্বনেইল সেভ হয়েছে — Facebook অন্য ফ্রেম বাছলে "Edit cover" থেকে এটি দিন', rlShare:'শেয়ার', rlCap:'ক্যাপশন', rlCapCopy:'ক্যাপশন কপি',
   rlPrep:'ছবি ও কার্ড তৈরি হচ্ছে… {a}/{b}', rlRec:'ভিডিও তৈরি হচ্ছে… {p}% সম্পন্ন · {a} / {b} মিনিট — স্ক্রিন খোলা রাখুন',
@@ -7508,7 +7513,7 @@ Object.assign(T.en, {
   rlIntro:'Opening title', rlTitleDef:'Top news today', rlTicker:'Scrolling text',
   rlTickDef:'Follow {p} for the latest and most important news first',
   rlSecs:'Each story', rlSec:'s', rlSecOwn:'Custom', rlSecAsk:'How many seconds should each story show? (2 to 60)', rlSecBad:'Enter a number from 2 to 60', rlSumL:'In short', rlAskReply:'💬 Answer in the comments', rlMusic:'Music', rlmBeat:'News beat', rlmFile:'My music', mmTitle:'My music', mmSafe:'· saved on this phone, Clear does not remove it', mmAdd:'Add music', mmDel:'Delete', mmDelAsk:'Delete "{n}" from this phone?', mmDeleted:'Music deleted', mmSaved:'Music saved on this phone — it will stay', mmNoSave:'Usable now, but could not be saved on the phone (low space?)', rlmNone:'None', rlm_beat:'News beat', rlm_breaking:'Breaking news', rlm_piano:'Soft piano', rlm_emotional:'Emotional', rlm_tension:'Suspense', rlm_happy:'Happy', rlm_lofi:'Lo-fi chill', rlm_headline:'TV headline', rlm_war:'War drums', rlm_alert:'Urgent update', rlm_trailer:'Epic trailer', rlm_countdown:'Countdown', rlm_march:'Military march', rlPvPlay:'▶ Listen', rlPvStop:'■ Stop',
-  rlDesign:'Card design', rldQuote:'Quote card', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlLook:'Light page-colour tone on newspaper photos', rlOwn:'Only AI/own pictures — never newspaper photos', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
+  rlDesign:'Card design', rldQuote:'Quote card', rldLive:'Live breaking', rldDeck:'Card carousel', rlSrcL:'Source: ', rlPageL:'Your page name', rlPageHint:'This name and logo go on every card in the video and on the separate cards — add or change the logo in ⚙️ Settings', rlWm:'Blur newspaper names/logos on photos (not recommended)', rlLook:'Light page-colour tone on newspaper photos', rlOwn:'Only AI/own pictures — never newspaper photos', rlOwnOn:'Own-picture mode on — newspaper photos will not be used', rlOwnOff:'Newspaper photos will be used — copyright risk', rlDupAsk:'A reel with most of these stories was shared in the last {h} hours. Posting the same content again can lower your reach. Share anyway?', rlBreak:'BREAKING NEWS', rldBand:'Band', rldSplit:'Split', rldOverlay:'Overlay', rldFrame:'Frame', rldMix:'Mixed', rldMine:'My design',
   rlColors:'Different colour on each card', rlStyle:'Motion', rlShuffle:'New style', rlLen:'Video about {n} min',
   rlMake:'Create video', rlRemake:'Create again', rlCancel:'Cancel', rlSave:'Save', rlThumb:'Thumbnail', rlThumbNo:'Create the video first', rlThumbSaved:'Thumbnail saved — if Facebook picks another frame, set this one under "Edit cover"', rlShare:'Share', rlCap:'Caption', rlCapCopy:'Copy caption',
   rlPrep:'Preparing photos and cards… {a}/{b}', rlRec:'Making video… {p}% done · {a} / {b} min — keep the screen on',
@@ -7716,7 +7721,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div>
     <div class="rlsec">
       <div class="rlf"><label for="rlPageIn" id="rlPageL"></label><input type="text" id="rlPageIn" maxlength="40" autocomplete="off"><div class="rlmeta" id="rlPageHint"></div></div>
-      <div class="rlf"><span id="rlLogoL"></span><div class="rllogo" id="rlLogoBox"><img id="rlLogoTh" alt="" class="hidden"><span id="rlLogoMsg"></span><button type="button" class="btn" id="rlLogoBtn"></button></div></div>
+      <div class="rlf" style="display:none"><span id="rlLogoL"></span><div class="rllogo" id="rlLogoBox"><img id="rlLogoTh" alt="" class="hidden"><span id="rlLogoMsg"></span><button type="button" class="btn" id="rlLogoBtn"></button></div></div>
       <div class="rlf"><label for="rlTitleIn" id="rlTitleL"></label><input type="text" id="rlTitleIn" maxlength="40" autocomplete="off"></div>
       <div class="rlf"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
       <div class="rlf"><div class="rlmh"><span id="rlMusicL"></span><button type="button" class="btn" id="rlPvBtn"></button></div><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>

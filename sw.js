@@ -1,5 +1,5 @@
 /* TF FB Reels & Post Maker service worker — makes the app installable and opens fast/offline */
-const CACHE = 'tfnc-v9-32';
+const CACHE = 'tfnc-v9-33';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'].concat(['400','600','700','800'].flatMap(w => ['bengali', 'latin'].map(s => './fonts/noto-sans-bengali-' + s + '-' + w + '-normal.woff2')));
 const CDN = /^(fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net)$/;
 
@@ -16,7 +16,8 @@ self.addEventListener('fetch', e => {
   if (url.origin === location.origin) {
     // app files: network first (always get the newest version), cache as backup for offline
     e.respondWith(
-      fetch(req).then(res => {
+      // the newest copy from GitHub every time (the browser's own short-term memory is skipped)
+      fetch(req.mode === 'navigate' ? new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : new Request(req, { cache: 'no-cache' })).then(res => (req.mode === 'navigate' && res.redirected) ? fetch(req) : res).then(res => {
         if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req.mode === 'navigate' ? './' : req, copy)); }
         return res;
       }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || (req.mode === 'navigate' ? caches.match('./') : undefined)))

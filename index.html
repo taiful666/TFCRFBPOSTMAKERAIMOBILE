@@ -8922,21 +8922,57 @@ function qtSumFit(ctx, txt, maxW, room){
   const L = rlWrap(ctx, String(txt), maxW, 20, 600, Math.max(2, Math.floor((room - 46) / (20 * 1.42))), 20);
   L.cut = true; L.need24 = L24 ? L24.lines.length : 8; return L;
 }
-/* 📝 the summary, written in line by line: each line slides in from the left with an accent bar */
+/* 📝 the summary is ONE paragraph, not a list of lines: the lines are justified like a newspaper column, one accent bar runs
+   down the whole block, and the words appear in reading order (a quick, soft "writing" — the whole paragraph is there in ~1.5 s).
+   After that the words stand still so it reads easily; only a small light glides slowly down the bar to catch the eye. */
+function rlParaText(ctx, L, x, y0, w, lh, ink, ts, font){
+  const words = L.lines.map(l => l.split(' ').filter(Boolean)), N = words.reduce((a, l) => a + l.length, 0) || 1;
+  const rd = Math.min(1.6, 0.35 + N * 0.035);                       // time until the whole paragraph is written
+  ctx.font = font; ctx.fillStyle = ink;
+  const base = ctx.globalAlpha, sp = ctx.measureText(' ').width;
+  let n = 0;
+  words.forEach((ws, j) => {
+    const ly = y0 + lh * (j + 0.5), last = j === words.length - 1;
+    const tw = ws.reduce((a, wd) => a + ctx.measureText(wd).width, 0);
+    // justify every line but the last, as long as the gaps stay natural (no huge holes in a short line)
+    let gap = sp; if(!last && ws.length > 1){ const g = (w - tw) / (ws.length - 1); if(g >= sp && g <= sp * 3.2) gap = g; }
+    let cx = x;
+    ws.forEach(wd => {
+      const a = clamp((ts - (n / N) * rd) / 0.28, 0, 1); n++;
+      const ww = ctx.measureText(wd).width;
+      if(a > 0){ ctx.globalAlpha = a * base; ctx.fillText(wd, cx, ly + 1 + (1 - ease(a)) * 7); }
+      cx += ww + gap;
+    });
+  });
+  ctx.globalAlpha = base;
+  return rd;
+}
+/* 🟨 a yellow frame round the whole news-in-short, so the eye sees "this is the highlighted short news":
+   it draws itself round the block once (~0.7 s), then stays, with a very soft glow that breathes */
+const RL_SUM_YEL = '#FFD400';
+function rlSumFrame(ctx, x, y, w, h, ts){
+  const k = clamp(ts / 0.7, 0, 1); if(k <= 0) return;
+  const per = 2 * (w + h);
+  ctx.save();
+  ctx.lineWidth = 4; ctx.strokeStyle = RL_SUM_YEL; ctx.lineJoin = 'round';
+  if(k >= 1){ ctx.shadowColor = 'rgba(255,212,0,' + (0.35 + 0.25 * Math.sin(ts * 2.2)).toFixed(3) + ')'; ctx.shadowBlur = 16; }
+  ctx.setLineDash([per * easeIO(k), per]);
+  rr(ctx, x, y, w, h, 18); ctx.stroke();
+  ctx.restore();
+}
+/* the accent bar down the whole paragraph, with a soft light gliding down it every few seconds */
+function rlParaBar(ctx, x, top, h, bar, ts, rd){
+  ctx.fillStyle = bar; rr(ctx, x, top, 6, h, 3); ctx.fill();
+  const cyc = (ts - rd) % 3.2;
+  if(ts > rd && cyc < 1.6){
+    const gy = top + h * easeIO(cyc / 1.6), gr = ctx.createLinearGradient(0, gy - 46, 0, gy + 46);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.save(); ctx.beginPath(); rr(ctx, x, top, 6, h, 3); ctx.clip(); ctx.fillStyle = gr; ctx.fillRect(x, gy - 46, 6, 92); ctx.restore();
+  }
+}
 function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts, d){
   const paper = th.name === 'paper', bar = paper ? ac : hl, n = L.lines.length;
   ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  y += Math.sin(ts * 1.6) * 2.2;                                     // the block floats very gently — never enough to blur a word
-  // 👁 reading guide: once every line is in, a soft band moves down line by line at reading pace, the line under it a little brighter
-  const tIn = 0.25 + (n - 1) * 0.32 + 0.55, per = Math.max(1.1, ((d || 6) - tIn - 0.3) / n), gp = (ts - tIn) / per;
-  let gi = -1;
-  if(gp > 0){
-    gi = Math.min(n - 1, Math.floor(gp));
-    const lhh = L.size * 1.42, fr = gp - Math.floor(gp), mv = gi < n - 1 ? easeIO(clamp((fr - 0.78) / 0.22, 0, 1)) : 0;
-    const gy = y + 44 + lhh * (gi + mv), ga = clamp(gp / 0.4, 0, 1) * (gp > n ? clamp(1 - (gp - n) / 0.5, 0, 1) : 1);
-    ctx.globalAlpha = 0.17 * ga; ctx.fillStyle = hl; rr(ctx, x + 10, gy + 2, w - 6, lhh - 4, 8); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
   const ca = ease(ts / 0.35);
   if(ca > 0){
     ctx.globalAlpha = ca; ctx.font = fontStr(19, 800, BFAM);
@@ -8944,18 +8980,11 @@ function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts, d){
     ctx.fillStyle = hl; rr(ctx, x + (1 - ca) * -30, y, lw, 30, 15); ctx.fill();
     ctx.fillStyle = '#111'; ctx.fillText(lb, x + 12 + (1 - ca) * -30, y + 16);
   }
-  const lh = L.size * 1.42, y0 = y + 44;
-  ctx.font = fontStr(L.size, 600, BFAM);
-  L.lines.forEach((l, j) => {
-    const e = ease((ts - 0.25 - j * 0.32) / 0.45); if(e <= 0) return;
-    const ly = y0 + lh * (j + 0.5), dx = (1 - e) * -40;
-    ctx.globalAlpha = e;
-    const on = gi === j ? 1 : 0;
-    ctx.fillStyle = bar; ctx.fillRect(x + dx, ly - lh / 2 + 4, 5 + on * 3, lh - 8);
-    const sw = clamp((ts - 0.25 - j * 0.32) / 0.7, 0, 1);             // a soft highlight sweeps under the new line, then fades
-    if(sw > 0 && sw < 1){ ctx.globalAlpha = e * 0.28 * (1 - sw); ctx.fillStyle = hl; ctx.fillRect(x + 14 + dx, ly - lh / 2 + 4, (w - 14) * ease(sw * 1.6), lh - 8); ctx.globalAlpha = e; }
-    ctx.fillStyle = th.ink; ctx.font = fontStr(L.size, 600, BFAM); ctx.fillText(l, x + 18 + dx, ly + 1, w - 18);
-  });
+  const lh = L.size * 1.42, y0 = y + 44, bk = ease((ts - 0.15) / 0.4);
+  rlSumFrame(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, ts);
+  if(bk > 0){ ctx.globalAlpha = bk; rlParaBar(ctx, x, y0 + 4, (lh * n - 8) * bk, bar, ts, Math.min(1.6, 0.35 + L.lines.join(' ').split(' ').length * 0.035) + 0.25); }
+  ctx.globalAlpha = 1;
+  rlParaText(ctx, L, x + 20, y0, w - 20, lh, th.ink, ts - 0.25, fontStr(L.size, 600, BFAM));
   ctx.restore();
 }
 /* when the news-in-short starts on a story (same timing as before), or null */
@@ -10297,12 +10326,13 @@ function rlSumPanel(ctx, R, g, p){
   const lh = L.size * 1.42, bh = Math.min(h, 54 + lh * L.lines.length + pad), by = y + (h - bh) / 2 + (1 - k) * 30;
   ctx.save(); ctx.globalAlpha = k;
   ctx.fillStyle = 'rgba(8,12,24,.86)'; rr(ctx, x, by, w, bh, 18); ctx.fill();
-  ctx.fillStyle = hl; ctx.fillRect(x, by + 16, 6, bh - 32);
+  const ts = p - a, rd = Math.min(1.6, 0.35 + txt.split(' ').length * 0.035) + 0.3;
+  rlSumFrame(ctx, x, by, w, bh, ts); ctx.globalAlpha = k;
+  rlParaBar(ctx, x, by + 16, bh - 32, hl, ts, rd); ctx.globalAlpha = k;
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
   ctx.font = fontStr(20, 800, BFAM); const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;
   ctx.fillStyle = hl; rr(ctx, x + pad, by + 14, lw, 30, 15); ctx.fill(); ctx.fillStyle = '#111'; ctx.fillText(lb, x + pad + 12, by + 30);
-  ctx.fillStyle = '#fff'; ctx.font = fontStr(L.size, 600, BFAM);
-  L.lines.forEach((l, j) => ctx.fillText(l, x + pad, by + 54 + lh * (j + 0.5), w - pad * 2));
+  rlParaText(ctx, L, x + pad, by + 54, w - pad * 2, lh, '#fff', ts - 0.3, fontStr(L.size, 600, BFAM));
   ctx.restore();
 }
 /* ➕ a short "follow" pop-up during the reel — most viewers never reach the ending, so they are asked while still watching */
@@ -11285,7 +11315,7 @@ $('rlAi').addEventListener('click', async () => {
     '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. Every card must tell the core of the news by itself — a reader who sees only the card must understand what happened. If the paper\'s headline is a teaser or vague ("যা বললেন X", "মুখ খুললেন X", "কী আছে…", "জেনে নিন", a question, or it hides the main fact), use the summary and the STORY TEXT and write the real main point instead — for a statement: X: “the real main point”; for an event: what happened, where, and the key number — faithful to the text.' +
     '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Line 2, right under it (no blank line), starts with 💬 and is the comment question (see Task 4). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then exactly this line: "👇 আপনার উত্তর কমেন্টে লিখুন।" Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list, and the whole caption must stay under 2000 characters (Facebook refuses longer ones).' +
     '\nTask 3: pick the ONE story most likely to make people stop scrolling and write the thumbnail text for the reel cover: at most 8 words in Bangladeshi Bengali, punchy and curiosity-raising but 100% true to that story (no lies, no exaggeration, no "শক"/"ভয়ংকর"-style shock words), the 1–2 key words wrapped in *asterisks*.' +
-    '\nTask 5: "summaries" — for EACH story, in order, the news in short in 25–40 words of natural Bangladeshi Bengali, in your own words: what happened, who, where, the key number and what happens next. Only facts from the story, no opinion; it is shown on screen under the headline when the story stays longer.' +
+    '\nTask 5: "summaries" — for EACH story, in order, the news in short in 25–40 words of natural Bangladeshi Bengali, in your own words: what happened, who, where, the key number and what happens next. Only facts from the story, no opinion. Write it as ONE flowing paragraph of 2–3 complete sentences, each ending with "।" — no line breaks, no bullet points, no list; it is shown on screen under the headline when the story stays longer.' +
     '\nTask 4 — comment questions, so viewers reply: (a) "question": ONE question for the whole reel (also line 2 of the caption and shown big on the last screen), at most 18 words; (b) "questions": for EACH story, in order, one question at most 14 words shown on screen while that story plays. Every question must be built FROM its story — name the concrete person, place, number, decision or incident — and be easy to answer in one line from viewers\' own life or experience, or by picking a side of a fair practical choice. Never generic ("আপনার মতামত কী?"), respectful আপনি, no engagement bait (never ask to comment a word or number, tag, like or share), never ask people to judge a party, leader, religion or group.' +
     '\nReturn ONLY JSON: {"cards":["headline 1","headline 2"],"caption":"...","question":"...","questions":["question for story 1","question for story 2"],"summaries":["short news 1","short news 2"],"cover":{"story":1,"text":"..."}} with exactly ' + RL.items.length + ' items in "cards".';
   try{

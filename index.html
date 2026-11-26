@@ -8886,6 +8886,19 @@ function rlParaText(ctx, L, x, y0, w, lh, ink, ts, font){
   ctx.globalAlpha = base;
   return rd;
 }
+/* 🟨 a yellow frame round the whole news-in-short, so the eye sees "this is the highlighted short news":
+   it draws itself round the block once (~0.7 s), then stays, with a very soft glow that breathes */
+const RL_SUM_YEL = '#FFD400';
+function rlSumFrame(ctx, x, y, w, h, ts){
+  const k = clamp(ts / 0.7, 0, 1); if(k <= 0) return;
+  const per = 2 * (w + h);
+  ctx.save();
+  ctx.lineWidth = 4; ctx.strokeStyle = RL_SUM_YEL; ctx.lineJoin = 'round';
+  if(k >= 1){ ctx.shadowColor = 'rgba(255,212,0,' + (0.35 + 0.25 * Math.sin(ts * 2.2)).toFixed(3) + ')'; ctx.shadowBlur = 16; }
+  ctx.setLineDash([per * easeIO(k), per]);
+  rr(ctx, x, y, w, h, 18); ctx.stroke();
+  ctx.restore();
+}
 /* the accent bar down the whole paragraph, with a soft light gliding down it every few seconds */
 function rlParaBar(ctx, x, top, h, bar, ts, rd){
   ctx.fillStyle = bar; rr(ctx, x, top, 6, h, 3); ctx.fill();
@@ -8907,6 +8920,7 @@ function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts, d){
     ctx.fillStyle = '#111'; ctx.fillText(lb, x + 12 + (1 - ca) * -30, y + 16);
   }
   const lh = L.size * 1.42, y0 = y + 44, bk = ease((ts - 0.15) / 0.4);
+  rlSumFrame(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, ts);
   if(bk > 0){ ctx.globalAlpha = bk; rlParaBar(ctx, x, y0 + 4, (lh * n - 8) * bk, bar, ts, Math.min(1.6, 0.35 + L.lines.join(' ').split(' ').length * 0.035) + 0.25); }
   ctx.globalAlpha = 1;
   rlParaText(ctx, L, x + 20, y0, w - 20, lh, th.ink, ts - 0.25, fontStr(L.size, 600, BFAM));
@@ -10252,6 +10266,7 @@ function rlSumPanel(ctx, R, g, p){
   ctx.save(); ctx.globalAlpha = k;
   ctx.fillStyle = 'rgba(8,12,24,.86)'; rr(ctx, x, by, w, bh, 18); ctx.fill();
   const ts = p - a, rd = Math.min(1.6, 0.35 + txt.split(' ').length * 0.035) + 0.3;
+  rlSumFrame(ctx, x, by, w, bh, ts); ctx.globalAlpha = k;
   rlParaBar(ctx, x, by + 16, bh - 32, hl, ts, rd); ctx.globalAlpha = k;
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
   ctx.font = fontStr(20, 800, BFAM); const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;

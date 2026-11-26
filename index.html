@@ -398,6 +398,18 @@ html[data-theme="dark"] .nwchip.on{color:#111}
 .nwrel{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}.nwrel span{font-size:12.5px;color:var(--muted)}
 .nwrel button{border:0;border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;font-weight:600;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);cursor:pointer}
 #nwGsBtn{margin-top:8px}
+.nwpick{margin:2px 14px 8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);flex:none;max-height:46vh;overflow:auto}
+.nwpickhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.nwpickhead b{font-size:14.5px;margin-right:auto}.nwpickhead .x{font-size:24px;padding:0 4px;border:0;background:none}
+.nwpickbtns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.nwpickbtns .btn{padding:5px 11px;font-size:13px}
+.nwpicklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:10px}
+.nwpicklist label{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:14px;cursor:pointer;background:var(--bg)}
+.nwpicklist label.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--bg));font-weight:700}
+.nwpicklist input{width:17px;height:17px;accent-color:var(--accent);flex:none}
+#nwPickDone{width:100%}
+.nwfocus{display:flex;align-items:flex-start;gap:7px;padding:2px 14px 6px;font-size:13px;color:var(--text);flex:none;cursor:pointer;line-height:1.35}
+.nwfocus input{width:17px;height:17px;margin-top:1px;accent-color:var(--accent);flex:none}
+.nwitem em.nwsec{font-style:normal;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px;color:#fff}
+.nwitem em.nwsec.s-politics{background:#c0392b}.nwitem em.nwsec.s-intl{background:#1f6fd1}.nwitem em.nwsec.s-bd{background:#138a52}
 .nwtools input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--text);font-size:15px;outline:none}
 .nwstate{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:2px 14px 6px;flex:none}
 .nwfail{color:var(--faint)}
@@ -1574,6 +1586,13 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
   <div class="nsbox">
     <div class="nshead"><b id="nwTitleTxt" data-i18n="nwTitle">📰 লাইভ নিউজ</b><span id="nwUpd" class="nwupd"></span><button type="button" class="btn hidden" id="nwGuideBtn" data-i18n="nwGuideBtn">⚙️ প্রক্সি</button><button type="button" class="btn" id="nwRefresh" title="refresh">🔄</button><button type="button" class="x" id="nwClose" aria-label="close">×</button></div>
     <div id="nwChips" class="nwchips"></div>
+    <div id="nwPick" class="nwpick hidden">
+      <div class="nwpickhead"><b data-i18n="nwPickTitle">📋 কোন কোন পত্রিকার খবর দেখবেন — বেছে নিন</b><button type="button" class="x" id="nwPickClose" aria-label="close">×</button></div>
+      <div class="nwpickbtns"><button type="button" class="btn" data-pk="all" data-i18n="nwPickAll">✅ সব</button><button type="button" class="btn" data-pk="top" data-i18n="nwPickTop">⭐ শীর্ষ পত্রিকা</button><button type="button" class="btn" data-pk="none" data-i18n="nwPickNone">✖ সব বাদ</button></div>
+      <div id="nwPickList" class="nwpicklist"></div>
+      <button type="button" class="btn primary" id="nwPickDone" data-i18n="nwPickDone">✔ এই পত্রিকাগুলোর খবর দেখান</button>
+    </div>
+    <label class="nwfocus"><input type="checkbox" id="nwFocus"> <span data-i18n="nwFocus">🎯 শুধু রাজনীতি · আন্তর্জাতিক · সারাদেশের খবর (খেলা, বিনোদন, লাইফস্টাইলের মতো অপ্রয়োজনীয় খবর বাদ)</span></label>
     <div class="nwtools"><input type="search" id="nwSearch" autocomplete="off" placeholder="কিওয়ার্ড বা বিষয় লিখুন…" enterkeyhint="search"></div>
     <div id="nwCats" class="nwchips nwcats"></div>
     <p class="nwhint"><span data-i18n="nwHint">যেকোনো খবরে চাপ দিন — খবর, ছবি আর সূত্রসহ ফটো কার্ড নিজে থেকেই তৈরি হয়ে যাবে।</span> · <span data-i18n="nwAuto">প্রতি ৩ মিনিটে নিজে থেকে হালনাগাদ হয়</span></p>
@@ -4770,6 +4789,59 @@ const NEWS_SRC = [
 const NW = { src:'all', items:{}, fail:{}, at:{}, busy:{}, open:false, shown:40, timer:0, tok:0, list:[] };
 const NW_REFRESH = 3 * 60 * 1000;
 
+/* ---------- আমার পত্রিকা (my papers) + গুরুত্বপূর্ণ খবর (focus on 3 sectors) ---------- */
+Object.assign(T.bn, {
+  nwMine:'📋 আমার পত্রিকা', nwPickBtn:'✏️ পত্রিকা বাছাই', nwPickTitle:'📋 কোন কোন পত্রিকার খবর দেখবেন — বেছে নিন',
+  nwPickAll:'✅ সব', nwPickTop:'⭐ শীর্ষ পত্রিকা', nwPickNone:'✖ সব বাদ', nwPickDone:'✔ এই পত্রিকাগুলোর খবর দেখান', nwPickEmpty:'অন্তত একটি পত্রিকা বেছে নিন',
+  nwFocus:'🎯 শুধু রাজনীতি · আন্তর্জাতিক · সারাদেশের খবর (খেলা, বিনোদন, লাইফস্টাইলের মতো অপ্রয়োজনীয় খবর বাদ)',
+  nwSecPol:'রাজনীতি', nwSecIntl:'আন্তর্জাতিক', nwSecBd:'সারাদেশ'
+});
+Object.assign(T.en, {
+  nwMine:'📋 My papers', nwPickBtn:'✏️ Choose papers', nwPickTitle:'📋 Choose which papers you want to see',
+  nwPickAll:'✅ All', nwPickTop:'⭐ Top papers', nwPickNone:'✖ None', nwPickDone:'✔ Show news from these papers', nwPickEmpty:'Pick at least one paper',
+  nwFocus:'🎯 Only politics · international · nationwide news (sports, entertainment, lifestyle and other filler hidden)',
+  nwSecPol:'Politics', nwSecIntl:'World', nwSecBd:'Nationwide'
+});
+/* leading papers that update online all day — the default "my papers" list */
+const NW_TOP_IDS = ['prothomalo','kalerkantho','jugantor','samakal','ittefaq','bdpratidin','kalbela','jamuna','somoy','bdnews24','dailystarbn','ajkerpatrika','dhakapost','jagonews'];
+NW.mine = (() => { const v = store.get('nwMine', null); const ok = Array.isArray(v) ? v.filter(id => NEWS_SRC.some(s => s.id === id)) : []; return ok.length ? ok : NW_TOP_IDS.slice(); })();
+NW.focus = store.get('nwFocus', true) !== false;
+/* sections nobody needs in a news card feed */
+const NW_JUNK_PATH = /\/(entertainment|binodon|bindon|showbiz|cinema|music|ott|tv-?show|lifestyle|life-style|jibon-?jap[oa]n|jibonjapon|recipe|cooking|food|fashion|beauty|horoscope|rashifal|travel|tourism|tech|technology|science|gadgets?|auto|automobile|jobs?|chakri|career|education|shiksha|campus|admission|religion|islam|dhormo|ruposhi|nari|women|kids|shishu|literature|sahitya|sahitto|feature|features|opinion|editorial|column|photo|photos|gallery|video|videos|epaper|e-paper|corporate|brand|ads?|advertorial|business|economy|stock|share-?market|bank|health|swasthya|probash|bibidh|miscellaneous|viral|trending|offbeat|sports?|khela|cricket|football)(\/|$|-)/i;
+const NW_KEEP_PATH = /\/(politics?|rajniti|national|bangladesh|country|saradesh|sara-?desh|zilla|district|dhaka|chattogram|crime|accident|court|law|world|international|antorjatik|aantorjatik|bishwo|asia|middle-east|south-asia)(\/|$|-)/i;
+const NW_JUNK_T = /রাশিফল|রেসিপি|রান্না|রূপচর্চা|সাজগোজ|ত্বকের|চুলের যত্ন|ফ্যাশন|টিপস|জেনে নিন|যেসব খাবার|খেলে কী হয়|ওজন কমা|ঘুমের আগে|নিয়োগ বিজ্ঞপ্তি|চাকরির খবর|চাকরি দেবে|কুইজ|ছবিতে দেখুন|ফটো গ্যালারি|ই-পেপার|অফার|ডিসকাউন্ট|ছাড়ে কিনুন|দাম কত|ফোনের দাম|স্মার্টফোন|নামাজের সময়সূচি|সেহরি ও ইফতার|আজকের আবহাওয়া কেমন|প্রেমের|সম্পর্কের টানাপোড়েন|বিয়ের পর/;
+/* which of the 3 main sectors a story belongs to: 'politics' | 'intl' | 'bd' | '' (= filler, hidden in focus mode) */
+function nwSector(o){
+  if(o._sec != null) return o._sec;
+  const tt = String(o.title || '');
+  let path = ''; try{ path = decodeURIComponent(new URL(o.link).pathname); }catch(e){}
+  let v = '';
+  if(nwIsSport(o) || NW_JUNK_T.test(tt)) v = '';
+  else if(NW_JUNK_PATH.test(path) && !NW_KEEP_PATH.test(path) && !NW_POL.test(tt)) v = '';
+  else if(nwIsForeign(o)) v = 'intl';
+  else if(/\/(politics?|rajniti)(\/|$|-)/i.test(path) || NW_POL.test(tt) || (NW_MOVE.test(tt) && !NW_ACCIDENT.test(tt))) v = 'politics';
+  else {
+    const other = ['entertain','tech','religion','edu'].some(id => { const c = NW_CATS.find(x => x.id === id); return c && c.kw.test(nwQN(tt)); });
+    v = other && !NW_KEEP_PATH.test(path) && !NW_RIOT.test(tt) ? '' : 'bd';
+  }
+  return (o._sec = v);
+}
+function nwSecLabel(v){ return v === 'politics' ? t('nwSecPol') : v === 'intl' ? t('nwSecIntl') : v === 'bd' ? t('nwSecBd') : ''; }
+function nwPickRender(){
+  const box = $('nwPickList'); if(!box) return; box.innerHTML = '';
+  NEWS_SRC.forEach(s => {
+    const on = NW.mine.includes(s.id), l = document.createElement('label'); l.className = on ? 'on' : '';
+    l.innerHTML = '<input type="checkbox" value="' + esc(s.id) + '"' + (on ? ' checked' : '') + '> <span>' + esc(S.lang === 'bn' ? s.bn : s.en) + '</span>';
+    box.appendChild(l);
+  });
+}
+function nwPickShow(show){ const p = $('nwPick'); if(!p) return; p.classList.toggle('hidden', !show); if(show) nwPickRender(); }
+function nwPickSave(){
+  const ids = [...$('nwPickList').querySelectorAll('input:checked')].map(i => i.value);
+  if(!ids.length){ toast(t('nwPickEmpty')); return false; }
+  NW.mine = ids; store.set('nwMine', ids); return true;
+}
+
 function nwNum(s){ return S.lang === 'bn' ? bnNum(s) : String(s); }
 /* seconds → minutes as m:ss (৭৫ → ১:১৫) */
 function nwMin(sec){ sec = Math.max(0, Math.round(+sec || 0)); return nwNum(Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0')); }
@@ -4986,7 +5058,7 @@ async function nwGemini(srcs){
   finally{ NW.gemBusy = false; nwSchedule(); }
 }
 const NW_GOOGLE = { id:'google', bn:'গুগল নিউজ', en:'Google News', d:'news.google.com', f:[], gn:'https://news.google.com/rss?hl=bn&gl=BD&ceid=BD:bn' };
-function nwSources(){ return NW.src === 'all' || NW.src === 'quotes' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NEWS_SRC.filter(s => s.id === NW.src); }
+function nwSources(){ return NW.src === 'all' || NW.src === 'quotes' ? NEWS_SRC.filter(s => s.main) : NW.src === 'google' ? [NW_GOOGLE] : NW.src === 'mine' ? NEWS_SRC.filter(s => NW.mine.includes(s.id)) : NEWS_SRC.filter(s => s.id === NW.src); }
 /* news.json — collected every 15 minutes by GitHub on its own servers (see .github/workflows/live-news.yml) */
 NW.json = null; NW.jsonAt = 0;
 function nwJsonUrls(){
@@ -5170,7 +5242,8 @@ function nwCatChips(){
   const box = $('nwCats'); if(!box) return; box.innerHTML = '';
   const mk = (id, label) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (NW.cat === id ? ' on' : ''); b.dataset.cat = id; b.textContent = label; box.appendChild(b); };
   mk('', S.lang === 'bn' ? 'সব বিষয়' : 'All topics');
-  NW_CATS.forEach(c => mk(c.id, S.lang === 'bn' ? c.bn : c.en));
+  const first = ['politics', 'intl', 'bd'];
+  first.concat(NW_CATS.map(c => c.id).filter(id => !first.includes(id))).forEach(id => { const c = NW_CATS.find(x => x.id === id); mk(c.id, S.lang === 'bn' ? (id === 'bd' ? 'সারাদেশ' : c.bn) : (id === 'bd' ? 'Nationwide' : c.en)); });
 }
 async function nwGoogleSearch(){
   const q = ($('nwSearch').value || '').trim(), cat = NW_CATS.find(c => c.id === NW.cat);
@@ -5198,7 +5271,7 @@ function nwRender(){
   const srcs = nwSources(), q = $('nwSearch').value || '';
   const searching = !!(nwQN(q) || NW.cat);
   // while searching, every loaded paper (and Google News search results) is searched, not just the selected one
-  const pool = searching && (NW.src === 'all' || NW.src === 'quotes') ? NEWS_SRC.concat([NW_GOOGLE, { id:'gsearch' }]) : srcs;
+  const pool = searching && (NW.src === 'all' || NW.src === 'quotes') ? NEWS_SRC.concat([NW_GOOGLE, { id:'gsearch' }]) : searching && NW.src === 'mine' ? srcs.concat([{ id:'gsearch' }]) : srcs;
   const seen = new Set(); let all = [];
   pool.forEach(s => (NW.items[s.id] || []).forEach(o => {
     const k = lower(o.title).replace(/[^\p{L}\p{N}]+/gu, '').slice(0, 60);
@@ -5210,6 +5283,9 @@ function nwRender(){
   if(searching){ smart = nwSmart(all, q); all = smart.list; }
   // দেশের খবর আগে: foreign stories are pushed back by 12 hours, so today's Bangladesh news leads the feed
   if(NW.src === 'quotes') all = all.filter(o => nwHot(o) >= 2);
+  // 🎯 focus: only politics, international and nationwide stories (a typed search or a chosen topic always wins)
+  const focusOn = NW.focus && !searching && NW.src !== 'quotes';
+  if(focusOn) all = all.filter(o => nwSector(o));
   // stories with a photo always come first (a photo found earlier on this phone counts too); stories without one go to the end
   const nwHasImg = o => { if(!o.img){ try{ const m = nwImgMem[o.link]; if(m) o.img = m; }catch(e){} } return o.img ? 1 : 0; };
   // order of the list: (1) the most important stories of the chosen view, (2) the rest, (3) sports always at the very end.
@@ -5218,7 +5294,7 @@ function nwRender(){
   //   দেশ / রাজনীতি → সংঘর্ষ-সহিংসতা → তীব্র রাজনৈতিক বক্তব্য → আন্দোলন-বিক্ষোভ
   // inside each group: with photo first, then a "hotness" score expressed as hours added to the publish time
   nwViral(all);
-  const mode = NW.cat === 'intl' ? 'intl' : (NW.cat === 'bd' || NW.cat === 'politics') ? 'bd' : NW.cat ? 'cat' : '';
+  const mode = NW.cat === 'intl' ? 'intl' : (NW.cat === 'bd' || NW.cat === 'politics') ? 'bd' : NW.cat ? 'cat' : focusOn ? 'focus' : '';
   const nwKey = o => (o.date ? o.date.getTime() : 0) + nwBonus(o, mode) * 3600000;
   const nwGrp = o => (NW.cat !== 'sports' && nwIsSport(o)) ? 0 : nwTop(o, mode, now) ? 2 : 1;
   if(!smart || !smart.scored) all.sort((a, b) => nwGrp(b) - nwGrp(a) || nwHasImg(b) - nwHasImg(a) || nwKey(b) - nwKey(a));
@@ -5256,7 +5332,7 @@ function nwRender(){
     const fresh = o.date && now - o.date.getTime() < 30 * 60000;
     const host = o.src && o.src.d && !o.src.gn ? o.src.d.split('/')[0] : '';
     b.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : (host ? '<img class="fav" alt="" src="' + esc(proxImg('www.google.com/s2/favicons?domain=' + host + '&sz=64')) + '">' : '📰')) + '</span>' +
-      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + (o._vir >= 2 ? '<em class="nwv">🔥 ' + esc(S.lang === 'bn' ? 'ভাইরাল' : 'Viral') + '</em>' : '') + (nwHot(o) >= 2 ? '<em class="nwq">' + esc(t('nwQ')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
+      '<span class="nwtxt"><b>' + esc(o.title) + '</b><small>' + (fresh ? '<em>' + esc(t('nwNew')) + '</em>' : '') + (nwSector(o) && (focusOn || NW.focus) ? '<em class="nwsec s-' + nwSector(o) + '">' + esc(nwSecLabel(nwSector(o))) + '</em>' : '') + (o._vir >= 2 ? '<em class="nwv">🔥 ' + esc(S.lang === 'bn' ? 'ভাইরাল' : 'Viral') + '</em>' : '') + (nwHot(o) >= 2 ? '<em class="nwq">' + esc(t('nwQ')) + '</em>' : '') + esc(nwSrcName(o)) + (o.date ? ' <time class="nwdate">🗓 ' + esc(fmtDate(o.date)) + ' · ' + esc(nwAgo(o.date)) + '</time>' : '') + '</small></span>';
     const fav = b.querySelector('img.fav'); if(fav) fav.onerror = () => { fav.parentNode.textContent = '📰'; };
     if(o.img){
       const im = b.querySelector('img'); im.dataset.f = '0';
@@ -5350,6 +5426,12 @@ function nwBonus(o, mode){
   const v = Math.min(o._vir || 0, 6) * 3, hot = [0, 3, 8, 14][nwHot(o)] || 0;
   if(mode === 'intl') return v + nwIntlTier(o) * 6;
   if(mode === 'bd') return v + nwBdTier(o) * 8 + (NW_FIERY.test(o.title || '') ? 2 : 0);
+  if(mode === 'focus'){
+    const sec = nwSector(o);
+    if(sec === 'intl') return v + 2 + nwIntlTier(o) * 4;
+    if(sec === 'politics') return v + 6 + nwBdTier(o) * 6 + (NW_FIERY.test(o.title || '') ? 3 : 0) + (nwHot(o) >= 3 ? 3 : 0);
+    return v + 2 + nwBdTier(o) * 6 + (NW_RIOT.test(o.title || '') || NW_ACCIDENT.test(o.title || '') ? 2 : 0);
+  }
   const foreign = nwIsForeign(o), it = foreign ? nwIntlTier(o) : 0;
   return v + hot + (foreign ? (it >= 1 ? it * 2 - 4 : -12) : nwBdTier(o) * 2);
 }
@@ -5358,6 +5440,7 @@ function nwTop(o, mode, now){
   if(o.date && now - o.date.getTime() > 36 * 3600000) return false;
   if(mode === 'intl') return nwIntlTier(o) >= 1;
   if(mode === 'bd') return nwBdTier(o) >= 1;
+  if(mode === 'focus') return (o._vir || 0) >= 2 || nwBdTier(o) >= 2 || (nwSector(o) === 'intl' && nwIntlTier(o) >= 2);
   return (o._vir || 0) >= 2;
 }
 /* how "hot" is a headline for a quote card? 0 = normal, 1 = political, 2 = statement, 3 = political statement */
@@ -5384,7 +5467,9 @@ function nwDiagText(){
 function nwChips(){
   const box = $('nwChips'); box.innerHTML = '';
   const mk = (id, label) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (NW.src === id ? ' on' : ''); b.dataset.src = id; b.textContent = label; box.appendChild(b); };
-  mk('all', t('nwAll')); mk('quotes', t('nwQuotes')); mk('google', t('nwGoogle'));
+  mk('all', t('nwAll')); mk('mine', t('nwMine') + ' (' + nwNum(NW.mine.length) + ')');
+  const pk = document.createElement('button'); pk.type = 'button'; pk.className = 'nwchip'; pk.id = 'nwPickBtn'; pk.textContent = t('nwPickBtn'); box.appendChild(pk);
+  mk('quotes', t('nwQuotes')); mk('google', t('nwGoogle'));
   NEWS_SRC.forEach(s => mk(s.id, S.lang === 'bn' ? s.bn : s.en));
 }
 function nwOpen(){
@@ -5498,13 +5583,29 @@ function nwInit(){
     $('nwList').scrollTop = 0; nwSchedule();
   });
   $('nwChips').addEventListener('click', e => {
+    if(e.target.closest('#nwPickBtn')){ nwPickShow($('nwPick').classList.contains('hidden')); return; }
     const b = e.target.closest('[data-src]'); if(!b) return;
+    if(b.dataset.src === 'mine' && NW.src === 'mine'){ nwPickShow(true); return; }
     NW.src = b.dataset.src; store.set('nwSrc', NW.src);
     $('nwChips').querySelectorAll('.nwchip').forEach(x => x.classList.toggle('on', x === b));
     $('nwList').scrollTop = 0; nwRefresh(false);
   });
   $('nwState').addEventListener('click', e => { if(e.target.id === 'nwProxyBtn') nwGuide(true); if(e.target.id === 'nwGsBtn'){ nwGoogleSearch.last = ''; nwGoogleSearch(); }
     const rq = e.target.closest('[data-rq]'); if(rq){ const s = $('nwSearch'); s.value = rq.dataset.rq; s.dispatchEvent(new Event('input')); } });
+  $('nwPickClose').addEventListener('click', () => nwPickShow(false));
+  $('nwPickList').addEventListener('change', e => { const l = e.target.closest('label'); if(l) l.classList.toggle('on', e.target.checked); });
+  $('nwPick').addEventListener('click', e => {
+    const b = e.target.closest('[data-pk]'); if(!b) return;
+    const k = b.dataset.pk;
+    $('nwPickList').querySelectorAll('input').forEach(i => { i.checked = k === 'all' || (k === 'top' && NW_TOP_IDS.includes(i.value)); i.closest('label').classList.toggle('on', i.checked); });
+  });
+  $('nwPickDone').addEventListener('click', () => {
+    if(!nwPickSave()) return;
+    NW.src = 'mine'; store.set('nwSrc', 'mine'); nwPickShow(false); nwChips();
+    $('nwList').scrollTop = 0; nwRefresh(false);
+  });
+  $('nwFocus').checked = NW.focus;
+  $('nwFocus').addEventListener('change', e => { NW.focus = e.target.checked; store.set('nwFocus', NW.focus); NW.shown = 40; $('nwList').scrollTop = 0; nwSchedule(); });
   $('nwGuideBtn').addEventListener('click', () => nwGuide($('nwGuide').classList.contains('hidden')));
   $('nwGuideClose').addEventListener('click', () => nwGuide(false));
   $('nwCopyCode').addEventListener('click', async () => {
@@ -5518,10 +5619,10 @@ function nwInit(){
   window.addEventListener('popstate', () => { if(NW.open) nwClose(true); });
   document.addEventListener('visibilitychange', () => { if(!document.hidden && NW.open) nwRefresh(false); });
   const saved = store.get('nwSrc', 'all');
-  if(saved === 'all' || saved === 'google' || NEWS_SRC.some(s => s.id === saved)) NW.src = saved;
+  if(saved === 'all' || saved === 'google' || saved === 'mine' || NEWS_SRC.some(s => s.id === saved)) NW.src = saved;
   $('nwSearch').placeholder = t('nwSearch');
   const langBtns = document.querySelectorAll('[data-lang], #langBtn');
-  langBtns.forEach(b => b.addEventListener('click', () => setTimeout(() => { $('nwSearch').placeholder = t('nwSearch'); nwCatChips(); if(NW.open){ nwChips(); nwRender(); } }, 0)));
+  langBtns.forEach(b => b.addEventListener('click', () => setTimeout(() => { $('nwSearch').placeholder = t('nwSearch'); nwCatChips(); if(NW.open){ nwChips(); if(!$('nwPick').classList.contains('hidden')) nwPickRender(); nwRender(); } }, 0)));
 }
 Object.assign(T.bn, {
   nwGTitle:'⚙️ নিজের ফ্রি প্রক্সি — একবার সেটআপ, সব পত্রিকা চলবে',

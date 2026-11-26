@@ -7800,6 +7800,20 @@ html[data-theme="dark"] .rln{color:#111}
 #rlDone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:48px;background:#e8f7ee;border:1px solid #16a34a;color:#166534;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #rlDone.hidden{display:none}#rlDone b{font-size:15px}#rlDone small{font-size:11.5px;opacity:.8}
 html[data-theme="dark"] #rlDone{background:#123d25;color:#bff0cf}
+.rlgone,#rlMusicL,#rlMusicO,#rlDesignL,#rlDesignO,#rlPvHint{display:none!important}
+#rlNewsT{white-space:nowrap}
+.rlqbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rlqsel{display:flex;align-items:center;gap:4px;flex:1 1 28%;min-width:96px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:var(--bg);cursor:pointer}
+.rlqsel span{font-size:15px}
+.rlqsel select{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:inherit;font-size:13.5px;font-weight:600;padding:9px 0;outline:none;cursor:pointer}
+.rlqbar #rlPvBtn{min-height:38px}
+#rlMore{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.rltg{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:4px 11px;font-size:13px}
+.rlh .rltg{margin-left:auto}
+.rltg .sw{width:30px;height:17px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.rltg .sw::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .2s}
+.rltg[aria-pressed="true"] .sw{background:var(--accent)}
+.rltg[aria-pressed="true"] .sw::after{left:15px}
 .rlf:last-child{margin-bottom:0}
 .rlf>label,.rlf>span{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:600}
 .rlf input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text);font-size:14.5px;outline:none}
@@ -7904,13 +7918,21 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <button type="button" class="btn" id="rlCardSave">${ic(IC_DL)}<span></span></button>
       <button type="button" class="btn" id="rlCardShare">${ic(IC.share)}<span></span></button>
     </div></div>
-    <div class="rlsec"><div class="rlh"><b id="rlNewsT"></b><button type="button" class="btn" id="rlAi">${ic(IC.spark)}<span></span></button></div>
-      <div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div>
+    <div class="rlsec"><div class="rlh"><b id="rlNewsT"></b><button type="button" class="btn rltg" id="rlListTg" aria-pressed="false"><i class="sw"></i><span>তালিকা</span></button><button type="button" class="btn" id="rlAi">${ic(IC.spark)}<span></span></button></div>
+      <div id="rlListWrap" class="hidden"><div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div></div>
     <div class="rlsec">
+      <div class="rlqbar">
+        <label class="rlqsel" title="প্রতিটি খবর কত সেকেন্ড"><span>⏱</span><select id="rlSecsS"></select></label>
+        <label class="rlqsel" title="মিউজিক"><span>🎵</span><select id="rlMusicS"></select></label>
+        <label class="rlqsel" title="কার্ড ডিজাইন"><span>🎨</span><select id="rlDesignS"></select></label>
+        <span id="rlPvSlot"></span>
+        <button type="button" class="btn rltg" id="rlMoreTg" aria-pressed="false"><i class="sw"></i><span>আরও সেটিংস</span></button>
+      </div>
+      <div id="rlMore" class="hidden">
       <div class="rlf"><label for="rlPageIn" id="rlPageL"></label><input type="text" id="rlPageIn" maxlength="40" autocomplete="off"><div class="rlmeta" id="rlPageHint"></div></div>
       <div class="rlf" style="display:none"><span id="rlLogoL"></span><div class="rllogo" id="rlLogoBox"><img id="rlLogoTh" alt="" class="hidden"><span id="rlLogoMsg"></span><button type="button" class="btn" id="rlLogoBtn"></button></div></div>
       <div class="rlf"><label for="rlTitleIn" id="rlTitleL"></label><input type="text" id="rlTitleIn" maxlength="40" autocomplete="off"></div>
-      <div class="rlf"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
+      <div class="rlf rlgone"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
       <div class="rlf"><div class="rlmh"><span id="rlMusicL"></span><button type="button" class="btn" id="rlPvBtn"></button></div><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>
       <div class="rlf"><span id="rlDesignL"></span><div class="rlopts" id="rlDesignO"></div>
         <label class="rlchk"><input type="checkbox" id="rlMixC"><span id="rlMixL"></span></label>
@@ -7921,6 +7943,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div class="rlf rlstyle"><span id="rlStyleT"></span><button type="button" class="btn" id="rlShuffle">${ic(IC_SHUF)}<span></span></button></div>
       <div class="rlf"><label for="rlTickIn" id="rlTickL"></label><input type="text" id="rlTickIn" maxlength="160" autocomplete="off"></div>
       <p class="rlmeta" id="rlTip"></p>
+      </div>
     </div>
     <details class="rlsec rlcap" id="rlVoBox"><summary><b>🎙 ভয়েস-স্ক্রিপ্ট (Cartesia — নিজের কণ্ঠ)</b></summary>
       <div class="rlvoinfo"><span id="rlVoWho">ভয়েস: —</span><button type="button" class="btn" id="rlVoSet">⚙️ কী ও ভয়েস (সেটিংস)</button></div>
@@ -7973,8 +7996,28 @@ function rlTexts(){
   rlPvUi(); mmRender();
   opts('rlDesignO', [['quote', t('rldQuote')], ['live', t('rldLive')], ['deck', t('rldDeck')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
   $('rlMixC').checked = !!RL.mixColor; $('rlWmC').checked = wmOn(); $('rlOwnC').checked = ownPicOn(); $('rlLookC').checked = lookOn();
-  rlMeta(); try{ rlDoneUi(); }catch(e){}
+  rlMeta(); rlBarFill(); try{ rlDoneUi(); }catch(e){}
 }
+/* compact bar: each drop-down mirrors its (hidden) chip row and simply presses the chosen chip */
+function rlBarFill(){
+  [['rlSecsS', 'rlSecsO'], ['rlMusicS', 'rlMusicO'], ['rlDesignS', 'rlDesignO']].forEach(([sid, oid]) => {
+    const sel = $(sid), box = $(oid); if(!sel || !box) return;
+    const bs = [...box.querySelectorAll('button[data-v]')];
+    sel.innerHTML = bs.map(b => '<option value="' + esc(b.dataset.v) + '"' + (b.classList.contains('on') ? ' selected' : '') + '>' + esc(b.textContent) + '</option>').join('');
+    if(!bs.some(b => b.classList.contains('on'))) sel.selectedIndex = -1;
+    if(!sel.dataset.wired){ sel.dataset.wired = '1';
+      sel.addEventListener('change', () => { const b = [...box.querySelectorAll('button[data-v]')].find(x => x.dataset.v === sel.value); if(b) b.click(); setTimeout(rlBarFill, 0); setTimeout(rlBarFill, 1500); }); }
+  });
+  const pv = $('rlPvBtn'), slot = $('rlPvSlot'); if(pv && slot && pv.parentNode !== slot) slot.appendChild(pv);
+}
+function rlToggle(btnId, boxId, key, labelOn, labelOff){
+  const b = $(btnId), box = $(boxId); if(!b || !box) return;
+  const set = on => { box.classList.toggle('hidden', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.querySelector('span').textContent = on ? labelOn : labelOff; };
+  set(!!store.get(key, false));
+  b.addEventListener('click', () => { const on = box.classList.contains('hidden'); store.set(key, on); set(on); });
+}
+rlToggle('rlListTg', 'rlListWrap', 'rlListOpen', 'তালিকা', 'তালিকা');
+rlToggle('rlMoreTg', 'rlMore', 'rlMoreOpen', 'আরও সেটিংস', 'আরও সেটিংস');
 function rlTickDef(){ return tf('rlTickDef', { p: pageName() }); }
 function rlMeta(){
   const n = RL.items.length, total = Math.round(rlTimeline(n, RL.secs).total);
@@ -8948,6 +8991,21 @@ function qtSumFit(ctx, txt, maxW, room){
 /* 📝 the summary is ONE paragraph, not a list of lines: the lines are justified like a newspaper column, one accent bar runs
    down the whole block, and the words appear in reading order (a quick, soft "writing" — the whole paragraph is there in ~1.5 s).
    After that the words stand still so it reads easily; only a small light glides slowly down the bar to catch the eye. */
+/* re-wraps the same words so the last line is not a short stub (same number of lines, same size) —
+   every line then fills the full width and the paragraph reads as one even block */
+function rlBalance(ctx, L, maxW){
+  if(!L || !L.lines || L.lines.length < 2) return L;
+  ctx.save(); ctx.font = fontStr(L.size, 600, BFAM);
+  const words = L.lines.join(' ').split(' ').filter(Boolean), n = L.lines.length;
+  const wrap = mw => { const out = []; let cur = ''; for(const wd of words){ const tr = cur ? cur + ' ' + wd : wd; if(cur && ctx.measureText(tr).width > mw){ out.push(cur); cur = wd; } else cur = tr; } if(cur) out.push(cur); return out; };
+  let best = L.lines, bestR = ctx.measureText(L.lines[n - 1]).width / maxW;
+  for(let f = 0.99; f >= 0.93 && bestR < 0.45; f -= 0.01){
+    const ls = wrap(maxW * f); if(ls.length !== n) continue;
+    const r = ctx.measureText(ls[n - 1]).width / maxW; if(r > bestR){ best = ls; bestR = r; }
+  }
+  ctx.restore();
+  return Object.assign({}, L, { lines: best });
+}
 function rlParaText(ctx, L, x, y0, w, lh, ink, ts, font){
   const words = L.lines.map(l => l.split(' ').filter(Boolean)), N = words.reduce((a, l) => a + l.length, 0) || 1;
   const rd = Math.min(1.6, 0.35 + N * 0.035);                       // time until the whole paragraph is written
@@ -8958,7 +9016,7 @@ function rlParaText(ctx, L, x, y0, w, lh, ink, ts, font){
     const ly = y0 + lh * (j + 0.5), last = j === words.length - 1;
     const tw = ws.reduce((a, wd) => a + ctx.measureText(wd).width, 0);
     // justify every line but the last, as long as the gaps stay natural (no huge holes in a short line)
-    let gap = sp; if(!last && ws.length > 1){ const g = (w - tw) / (ws.length - 1); if(g >= sp && g <= sp * 3.2) gap = g; }
+    let gap = sp; if(!last && ws.length > 1){ const g = (w - tw) / (ws.length - 1); if(g >= sp * 0.6) gap = g; }
     let cx = x;
     ws.forEach(wd => {
       const a = clamp((ts - (n / N) * rd) / 0.28, 0, 1); n++;
@@ -8983,31 +9041,22 @@ function rlSumFrame(ctx, x, y, w, h, ts){
   rr(ctx, x, y, w, h, 18); ctx.stroke();
   ctx.restore();
 }
-/* the accent bar down the whole paragraph, with a soft light gliding down it every few seconds */
-function rlParaBar(ctx, x, top, h, bar, ts, rd){
-  ctx.fillStyle = bar; rr(ctx, x, top, 6, h, 3); ctx.fill();
-  const cyc = (ts - rd) % 3.2;
-  if(ts > rd && cyc < 1.6){
-    const gy = top + h * easeIO(cyc / 1.6), gr = ctx.createLinearGradient(0, gy - 46, 0, gy + 46);
-    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.save(); ctx.beginPath(); rr(ctx, x, top, 6, h, 3); ctx.clip(); ctx.fillStyle = gr; ctx.fillRect(x, gy - 46, 6, 92); ctx.restore();
-  }
-}
 function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts, d){
-  const paper = th.name === 'paper', bar = paper ? ac : hl, n = L.lines.length;
+  L = rlBalance(ctx, L, w - 20);
+  const n = L.lines.length, lh = L.size * 1.42, y0 = y + 44;
   ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const pa = ease(ts / 0.4);                                         // a solid dark panel, so the words are always easy to read
+  if(pa > 0){ ctx.globalAlpha = pa; ctx.fillStyle = 'rgba(9,14,30,.94)'; rr(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, 18); ctx.fill(); ctx.globalAlpha = 1; }
   const ca = ease(ts / 0.35);
   if(ca > 0){
     ctx.globalAlpha = ca; ctx.font = fontStr(19, 800, BFAM);
     const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;
-    ctx.fillStyle = hl; rr(ctx, x + (1 - ca) * -30, y, lw, 30, 15); ctx.fill();
+    ctx.fillStyle = RL_SUM_YEL; rr(ctx, x + (1 - ca) * -30, y, lw, 30, 15); ctx.fill();
     ctx.fillStyle = '#111'; ctx.fillText(lb, x + 12 + (1 - ca) * -30, y + 16);
   }
-  const lh = L.size * 1.42, y0 = y + 44, bk = ease((ts - 0.15) / 0.4);
-  rlSumFrame(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, ts);
-  if(bk > 0){ ctx.globalAlpha = bk; rlParaBar(ctx, x, y0 + 4, (lh * n - 8) * bk, bar, ts, Math.min(1.6, 0.35 + L.lines.join(' ').split(' ').length * 0.035) + 0.25); }
   ctx.globalAlpha = 1;
-  rlParaText(ctx, L, x + 20, y0, w - 20, lh, th.ink, ts - 0.25, fontStr(L.size, 600, BFAM));
+  rlSumFrame(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, ts);
+  rlParaText(ctx, L, x + 9, y0, w - 20, lh, '#ffffff', ts - 0.25, fontStr(L.size, 600, BFAM));
   ctx.restore();
 }
 /* when the news-in-short starts on a story (same timing as before), or null */
@@ -10346,15 +10395,15 @@ function rlSumPanel(ctx, R, g, p){
   const k = ease((p - a) / 0.5), [x, y, w, h] = rlSumRect(R, g.i), [ac, hl] = R.col(g.i), pad = 22;
   let L = null; for(let n = 7; n >= 3 && !L; n--) L = rlWrapFull(ctx, txt, w - pad * 2, 29, 600, n, 20);
   if(!L) L = rlWrap(ctx, txt, w - pad * 2, 22, 600, 7, 18);
+  L = rlBalance(ctx, L, w - pad * 2);
   const lh = L.size * 1.42, bh = Math.min(h, 54 + lh * L.lines.length + pad), by = y + (h - bh) / 2 + (1 - k) * 30;
   ctx.save(); ctx.globalAlpha = k;
-  ctx.fillStyle = 'rgba(8,12,24,.86)'; rr(ctx, x, by, w, bh, 18); ctx.fill();
-  const ts = p - a, rd = Math.min(1.6, 0.35 + txt.split(' ').length * 0.035) + 0.3;
+  ctx.fillStyle = 'rgba(9,14,30,.94)'; rr(ctx, x, by, w, bh, 18); ctx.fill();
+  const ts = p - a;
   rlSumFrame(ctx, x, by, w, bh, ts); ctx.globalAlpha = k;
-  rlParaBar(ctx, x, by + 16, bh - 32, hl, ts, rd); ctx.globalAlpha = k;
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
   ctx.font = fontStr(20, 800, BFAM); const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;
-  ctx.fillStyle = hl; rr(ctx, x + pad, by + 14, lw, 30, 15); ctx.fill(); ctx.fillStyle = '#111'; ctx.fillText(lb, x + pad + 12, by + 30);
+  ctx.fillStyle = RL_SUM_YEL; rr(ctx, x + pad, by + 14, lw, 30, 15); ctx.fill(); ctx.fillStyle = '#111'; ctx.fillText(lb, x + pad + 12, by + 30);
   rlParaText(ctx, L, x + pad, by + 54, w - pad * 2, lh, '#fff', ts - 0.3, fontStr(L.size, 600, BFAM));
   ctx.restore();
 }

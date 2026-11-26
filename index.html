@@ -6426,6 +6426,8 @@ function withEngage(post, q, ctx){
   return hook.trim() + '\n💬 ' + qq + (rest ? '\n\n' + rest : '') + '\n\n' + (bn ? '👇 আপনার উত্তর কমেন্টে লিখুন।' : '👇 Tell us your answer in the comments.') + '\n👉 ' + engFollow(bn);
 }
 /* the question of the current story: shown on the photo card (a band under it), in the caption and as the first comment */
+Object.assign(T.bn, { rlCmHand:'এখানে কমেন্ট করুন 💬|লাইক দিন 👍|আপনার মত লিখুন ✍️' });
+Object.assign(T.en, { rlCmHand:'Comment here 💬|Give it a like 👍|Tell us your view ✍️' });
 Object.assign(T.bn, { askOn:'💬 কার্ডের নিচে কমেন্টের প্রশ্ন', askHint:'খবর থেকে নেওয়া প্রশ্ন — মানুষ কার্ড দেখেই কমেন্টে উত্তর দেবে। নিজের মতো বদলাতে পারেন।', askReply:'আপনার উত্তর কমেন্টে লিখুন 👇', fcAsk:'💬 প্রশ্ন: ' });
 Object.assign(T.en, { askOn:'💬 Comment question under the card', askHint:'A question taken from this news — people answer it in the comments. Edit it if you like.', askReply:'Write your answer in the comments 👇', fcAsk:'💬 Question: ' });
 S.askOn = store.get('askOn', true) !== false; S.ask = ''; S.askKey = '';
@@ -8693,33 +8695,108 @@ function qtLiveBar(ctx, R, tm, ac){
     ctx.fillStyle = ac; ctx.fillRect(RW - cw, y, cw, h); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(R.qtCount, RW - cw / 2, y + h / 2 + 1); }
   ctx.fillStyle = ac; ctx.fillRect(0, y + h, RW, 3);
 }
-/* lays out headline + tag + photo for one story or for the cover */
+/* lays out headline + tag + photo for one story or for the cover.
+   sm (📝 news in short): the big headline first; then it shrinks and moves up, and the summary is written line by line
+   in the space it leaves — the photo is never covered */
 function qtBody(ctx, R, o){
-  const { th, ac, text, tag, sub, img, z, p, anim, photoTop, big, a, fx } = o;
+  const { th, ac, text, tag, sub, img, z, p, anim, photoTop, big, a, fx, sm, hl } = o;
   const maxW = RW - 2 * QT.tx;
+  const drawPhoto = (py, ph) => { if(fx) qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a, fx); else { ctx.save(); ctx.translate(0, (1 - a) * 40); qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a); ctx.restore(); } };
+  let L, qy, by, tagY, py, ph;
   if(photoTop){
-    const L = qtWrap(ctx, text, maxW, big ? 62 : 54, 4, 34), tagH = sub ? 72 : 48;
+    L = qtWrap(ctx, text, maxW, big ? 62 : 54, 4, 34); const tagH = sub ? 72 : 48;
     const textH = 70 + L.lh * (L.lines.length - 1) + L.size * 0.4 + 26 + tagH;
-    const py = QT.top + 30, ph = Math.max(180, Math.min(420, QT.bot - 30 - textH - py - 40));
-    qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a, fx);
-    const qy = py + ph + 110; qtQuoteMark(ctx, QT.tx, qy, th.qm);
-    const end = qtText(ctx, L, QT.tx, qy + L.size * 0.55, th, anim, p);
-    qtTag(ctx, tag, sub, QT.tx, end + 30, ac, th);
+    py = QT.top + 30; ph = Math.max(180, Math.min(420, QT.bot - 30 - textH - py - 40));
+    qy = py + ph + 110; by = qy + L.size * 0.55; tagY = by + (L.lines.length - 1) * L.lh + 30;
   } else {
-    const L = qtWrap(ctx, text, maxW, big ? 66 : 56, big ? 4 : 5, 34);
-    const qy = QT.top + 110; qtQuoteMark(ctx, QT.tx, qy, th.qm);
-    const end = qtText(ctx, L, QT.tx, qy + L.size * 0.55, th, anim, p);
-    const tagEnd = qtTag(ctx, tag, sub, QT.tx, Math.min(end + 30, 640), ac, th);
-    const py = Math.max(tagEnd + 36, 660), ph = QT.bot - 24 - py;
-    if(fx) qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a, fx); else { ctx.save(); ctx.translate(0, (1 - a) * 40); qtPhoto(ctx, img, 70, py, RW - 140, ph, z, ac, a); ctx.restore(); }
+    L = qtWrap(ctx, text, maxW, big ? 66 : 56, big ? 4 : 5, 34);
+    qy = QT.top + 110; by = qy + L.size * 0.55;
+    tagY = Math.min(by + (L.lines.length - 1) * L.lh + 30, 640);
+    py = Math.max(tagY + (sub ? 72 : 48) + 36, 660); ph = QT.bot - 24 - py;
   }
+  if(!sm){                                              // headline only
+    if(photoTop) drawPhoto(py, ph);
+    qtQuoteMark(ctx, QT.tx, qy, th.qm);
+    qtText(ctx, L, QT.tx, by, th, anim, p);
+    qtTag(ctx, tag, sub, QT.tx, tagY, ac, th);
+    if(!photoTop) drawPhoto(py, ph);
+    return;
+  }
+  // the small headline and where the summary goes
+  const S = qtWrap(ctx, text, maxW, 34, 3, 24);
+  const sy = photoTop ? py + ph + 26 + S.size : QT.top + 34 + S.size;   // first baseline of the small headline
+  const sumY = sy + (S.lines.length - 1) * S.lh + S.size * 0.45 + 20;
+  const roomOf = (ppy, pph) => photoTop ? QT.bot - 14 - sumY : ppy - 22 - sumY;
+  let SL = qtSumFit(ctx, sm.txt, maxW - 20, roomOf(py, ph)), py2 = py, ph2 = ph;
+  if(SL.cut){                                           // too long: the photo gives up a little room (never below 230 px)
+    const need = 46 + 24 * 1.42 * (SL.need24 || 6), give = Math.max(0, Math.min(need - roomOf(py, ph), ph - 230));
+    if(photoTop) ph2 = ph - give; else { py2 = py + give; ph2 = ph - give; }
+    SL = qtSumFit(ctx, sm.txt, maxW - 20, roomOf(py2, ph2) + (photoTop ? give : 0));
+  }
+  const k = sm.k, pyN = py + (py2 - py) * k, phN = ph + (ph2 - ph) * k;
+  drawPhoto(photoTop ? py : pyN, phN);
+  const shift = photoTop ? (phN - ph) : 0;
+  // big headline: shrinks toward the small one's place, then hands over to the re-wrapped small headline
+  const bigA = 1 - clamp((k - 0.4) / 0.45, 0, 1);
+  if(bigA > 0){
+    const sc = 1 + (S.size / L.size - 1) * k, ty = by + (sy + shift - by) * k;
+    ctx.save(); ctx.globalAlpha = bigA; ctx.translate(QT.tx, ty); ctx.scale(sc, sc); ctx.translate(-QT.tx, -by);
+    ctx.save(); ctx.globalAlpha = bigA * (1 - k); qtQuoteMark(ctx, QT.tx, qy, th.qm); ctx.restore();
+    qtText(ctx, L, QT.tx, by, th, anim, p);
+    ctx.globalAlpha = bigA * (1 - k); qtTag(ctx, tag, sub, QT.tx, tagY, ac, th);
+    ctx.restore();
+  }
+  const smA = clamp((k - 0.5) / 0.4, 0, 1);
+  if(smA > 0){ ctx.save(); ctx.globalAlpha = smA; qtText(ctx, S, QT.tx, sy + shift, th, 'none', 9); ctx.restore(); }
+  if(k >= 0.6) qtSumDraw(ctx, SL, QT.tx, sumY + shift, maxW, th, ac, hl || QT.mark, sm.ts);
+}
+/* the largest summary size that fits the room without cutting a word; cut = it had to be shortened */
+function qtSumFit(ctx, txt, maxW, room){
+  for(let s = 27; s >= 20; s--){
+    const n = Math.floor((room - 46) / (s * 1.42)); if(n < 2) continue;
+    const L = rlWrapFull(ctx, txt, maxW, s, 600, n, s); if(L) return L;
+  }
+  const L24 = rlWrapFull(ctx, txt, maxW, 24, 600, 14, 24);
+  const L = rlWrap(ctx, String(txt), maxW, 20, 600, Math.max(2, Math.floor((room - 46) / (20 * 1.42))), 20);
+  L.cut = true; L.need24 = L24 ? L24.lines.length : 8; return L;
+}
+/* 📝 the summary, written in line by line: each line slides in from the left with an accent bar */
+function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts){
+  const paper = th.name === 'paper', bar = paper ? ac : hl;
+  ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const ca = ease(ts / 0.35);
+  if(ca > 0){
+    ctx.globalAlpha = ca; ctx.font = fontStr(19, 800, BFAM);
+    const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;
+    ctx.fillStyle = hl; rr(ctx, x + (1 - ca) * -30, y, lw, 30, 15); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.fillText(lb, x + 12 + (1 - ca) * -30, y + 16);
+  }
+  const lh = L.size * 1.42, y0 = y + 44;
+  ctx.font = fontStr(L.size, 600, BFAM);
+  L.lines.forEach((l, j) => {
+    const e = ease((ts - 0.25 - j * 0.32) / 0.45); if(e <= 0) return;
+    const ly = y0 + lh * (j + 0.5), dx = (1 - e) * -40;
+    ctx.globalAlpha = e;
+    ctx.fillStyle = bar; ctx.fillRect(x + dx, ly - lh / 2 + 4, 5, lh - 8);
+    const sw = clamp((ts - 0.25 - j * 0.32) / 0.7, 0, 1);             // a soft highlight sweeps under the new line, then fades
+    if(sw > 0 && sw < 1){ ctx.globalAlpha = e * 0.28 * (1 - sw); ctx.fillStyle = hl; ctx.fillRect(x + 14 + dx, ly - lh / 2 + 4, (w - 14) * ease(sw * 1.6), lh - 8); ctx.globalAlpha = e; }
+    ctx.fillStyle = th.ink; ctx.font = fontStr(L.size, 600, BFAM); ctx.fillText(l, x + 18 + dx, ly + 1, w - 18);
+  });
+  ctx.restore();
+}
+/* when the news-in-short starts on a story (same timing as before), or null */
+function qtSumOf(R, g, p){
+  if(g.k !== 'card' || g.d < 6 || !R.sums) return null;
+  const txt = R.sums[g.i]; if(!txt) return null;
+  const a = Math.min(2.2, g.d * 0.3); if(p < a) return null;
+  return { txt: String(txt).replace(/\*/g, '').replace(/\s+/g, ' ').trim(), k: easeIO((p - a) / 0.7), ts: p - a - 0.5 };
 }
 function qtScene(ctx, R, g, p){
-  const f = clamp(p / g.d, 0, 1), [ac] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {}, v = qtVar(R, g.i), th = qtTheme(v.theme, ac);
+  const f = clamp(p / g.d, 0, 1), [ac, hl] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {}, v = qtVar(R, g.i), th = qtTheme(v.theme, ac);
   qtBack(ctx, th, ac);
   qtHead(ctx, R, g.i, th);
-  const z = QT.crop * ((ed.zoom || 100) / 100), fx = Object.assign(rlPicPick(R, g.i), { f, p, hl: R.col(g.i)[1] });
-  qtBody(ctx, R, { th, ac, text: it.text || '', tag: it.date || R.today, sub: '', img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45), fx });
+  const z = QT.crop * ((ed.zoom || 100) / 100), fx = Object.assign(rlPicPick(R, g.i), { f, p, hl });
+  qtBody(ctx, R, { th, ac, hl, text: it.text || '', tag: it.date || R.today, sub: '', img: cardOf(R, g.i), z, p, anim: v.anim, photoTop: v.photoTop, a: ease(p / 0.45), fx, sm: qtSumOf(R, g, p) });
   rlSrcTiny(ctx, it.source, RW - 26, QT.bot - 12, ease((p - 0.5) / 0.5));
 }
 /* the news source: only a tiny reference in a corner — never a big label */
@@ -9923,6 +10000,19 @@ function rlAskPanel(ctx, R, g, p, tm){
   ctx.strokeStyle = hl; ctx.lineWidth = 3 + 2 * glow; rr(ctx, x, y, w, h, 18); ctx.stroke();
   // left: speech bubble that gently bobs
   ctx.fillStyle = hl; rr(ctx, x, y, iw, h, 18); ctx.fill(); ctx.fillRect(x + iw - 18, y, 18, h);
+  // ✨ a soft shine sweeps across the panel every few seconds, so the eye goes to the question
+  const sh = ((tm + 0.6) % 2.6) / 1.05;
+  if(sh < 1){
+    const bx = x - 140 + (w + 280) * easeIO(sh), sk = 70;
+    ctx.save(); rr(ctx, x, y, w, h, 18); ctx.clip();
+    const gr = ctx.createLinearGradient(bx - 90, 0, bx + 90, 0);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, hl); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalAlpha = enter * 0.42; ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.moveTo(bx - 60 + sk / 2, y); ctx.lineTo(bx + 60 + sk / 2, y); ctx.lineTo(bx + 60 - sk / 2, y + h); ctx.lineTo(bx - 60 - sk / 2, y + h); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = enter * 0.85; ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.beginPath(); ctx.moveTo(bx - 6 + sk / 2, y); ctx.lineTo(bx + 6 + sk / 2, y); ctx.lineTo(bx + 6 - sk / 2, y + h); ctx.lineTo(bx - 6 - sk / 2, y + h); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
   const by = y + h / 2 + Math.sin(tm * 4) * 3;
   ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x + iw / 2, by - 4, 17, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.moveTo(x + iw / 2 - 9, by + 8); ctx.lineTo(x + iw / 2 - 15, by + 20); ctx.lineTo(x + iw / 2 + 2, by + 11); ctx.fill();
@@ -9938,6 +10028,34 @@ function rlAskPanel(ctx, R, g, p, tm){
   // the question, all of it
   ctx.globalAlpha = enter * ta; ctx.fillStyle = '#111'; ctx.font = fontStr(L.size, 700, BFAM); ctx.textAlign = 'left';
   L.lines.forEach((l, j) => ctx.fillText(l, tx, y + head + 4 + lh * (j + 0.5), tw));
+  ctx.restore();
+  if(p > 0.9) rlCmHand(ctx, x, y, w, h, ac, hl, tm, ease((p - 0.9) / 0.4));
+}
+/* 👇 a hand taps the comment panel with a short call ("comment here", "give it a like" …), on and off through the story */
+function rlCmHand(ctx, x, y, w, h, ac, hl, tm, a){
+  const cyc = 3.4, c = tm % cyc, on = 2.4; if(c > on || a <= 0) return;
+  const vis = a * Math.min(ease(c / 0.3), ease((on - c) / 0.3));
+  const msgs = t('rlCmHand').split('|'), msg = msgs[Math.floor(tm / cyc) % msgs.length];
+  const px = x + w * 0.74, py = y + 26;                               // where the finger taps
+  const tap = Math.max(0, Math.sin(c * Math.PI * 2 / 0.8));           // two taps a cycle
+  ctx.save(); ctx.globalAlpha = vis;
+  // ripple where the finger lands
+  const rp = (c % 0.8) / 0.8;
+  ctx.strokeStyle = ac; ctx.lineWidth = 4 * (1 - rp); ctx.globalAlpha = vis * (1 - rp);
+  ctx.beginPath(); ctx.ellipse(px, py, 14 + 34 * rp, (14 + 34 * rp) * 0.55, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = vis;
+  // the pill with the call, just above the panel
+  ctx.font = fontStr(25, 800, BFAM); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const mw = Math.min(RW - 60, ctx.measureText(msg).width + 38), mh = 48, mx = clamp(px - 40 - mw, 16, RW - 16 - mw), my = y - mh - 22 - (1 - ease(c / 0.3)) * 12;
+  ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 12;
+  ctx.fillStyle = ac; rr(ctx, mx, my, mw, mh, mh / 2); ctx.fill(); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = hl; ctx.lineWidth = 2.5; rr(ctx, mx, my, mw, mh, mh / 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(mx + mw - 30, my + mh - 1); ctx.lineTo(mx + mw - 10, my + mh + 14); ctx.lineTo(mx + mw - 48, my + mh - 1); ctx.closePath(); ctx.fillStyle = ac; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText(msg, mx + mw / 2, my + mh / 2 + 1, mw - 20);
+  // the hand, pressing down
+  ctx.font = fontStr(70, 400, 'sans-serif'); ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 8;
+  ctx.fillText('👇', px + 4, py + 10 - 14 * (1 - tap));
   ctx.restore();
 }
 /* wrap without cutting: null when the text does not fit in maxLines at the smallest size */
@@ -9959,7 +10077,7 @@ function rlSumRect(R, i){
   return [34, 250, RW - 68, 330];
 }
 function rlSumPanel(ctx, R, g, p){
-  if(g.k !== 'card' || g.d < 6 || !R.sums) return;
+  if(g.k !== 'card' || g.d < 6 || !R.sums || R.quote) return;   // the quote design writes it in its own free space (qtBody)
   const txt = R.sums[g.i], it = R.items[g.i]; if(!txt || (it && it.o && it.o.vclip)) return;   // real video footage stays uncovered
   const a = Math.min(2.2, g.d * 0.3); if(p < a) return;
   const k = ease((p - a) / 0.5), [x, y, w, h] = rlSumRect(R, g.i), [ac, hl] = R.col(g.i), pad = 22;

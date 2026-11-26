@@ -90,6 +90,11 @@ post = mustReplace(post, "    // c) record in real time\n", `    // c0) desktop 
 `);
 writeFileSync(join(out, 'post', 'index.html'), post);
 copyFileSync(join(root, 'node_modules', '@mozilla', 'readability', 'Readability.js'), join(out, 'post', 'Readability.js'));
+// the app's own default reel music
+if (existsSync(join(SRC_POST, 'music'))) {
+  mkdirSync(join(out, 'post', 'music'), { recursive: true });
+  for (const f of readdirSync(join(SRC_POST, 'music'))) copyFileSync(join(SRC_POST, 'music', f), join(out, 'post', 'music', f));
+}
 if (existsSync(join(SRC_POST, 'fonts'))) {
   mkdirSync(join(out, 'post', 'fonts'), { recursive: true });
   for (const f of readdirSync(join(SRC_POST, 'fonts'))) copyFileSync(join(SRC_POST, 'fonts', f), join(out, 'post', 'fonts', f));

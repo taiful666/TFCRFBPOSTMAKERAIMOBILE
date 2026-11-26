@@ -295,23 +295,29 @@
   }
   async function checkUpdate(force) {
     var now = Date.now();
-    if (upBusy || dialogOpen) return;
+    if (upBusy || dialogOpen) return { state: 'busy' };
     if (!force && now - lastCheck < 10 * 60 * 1000) return;     // after a successful check: at most once every 10 minutes
     try {
       if (!myBuild && App && App.getInfo) myBuild = parseInt((await App.getInfo()).build, 10) || 0;
-      if (!myBuild) return;
+      if (!myBuild) return { state: 'error' };
       var ready = -1;
       if (Up) { try { ready = (await Up.info()).readyVersion; } catch (e) {} }    // also deletes a finished update file
       var got = null;
       try { got = await latestFromFile(); } catch (e) { got = null; }
       if (!got) { try { got = await latestFromApi(); } catch (e) { got = null; } }
-      if (!got) return;                                   // no internet / GitHub busy — checked again next time the app opens
+      if (!got) return { state: 'offline', build: myBuild };   // no internet / GitHub busy — checked again next time the app opens
       lastCheck = now; rel = got.rel;
-      if (got.build > myBuild && (force || got.build !== skipped)) showUpdate(got.build, ready >= got.build);
-      else if (force) say('আপনার অ্যাপ সর্বশেষ ভার্সনে আছে ✓ (1.0.' + myBuild + ')');
-    } catch (e) { /* try again next time */ }
+      if (got.build > myBuild && (force || got.build !== skipped)) { showUpdate(got.build, ready >= got.build); return { state: 'update', build: myBuild, latest: got.build }; }
+      if (force && !window.TFVerUi) say('আপনার অ্যাপ সর্বশেষ ভার্সনে আছে ✓ (1.0.' + myBuild + ')');
+      return { state: got.build > myBuild ? 'update' : 'latest', build: myBuild, latest: got.build };
+    } catch (e) { return { state: 'error', build: myBuild }; }
   }
-  window.TFCheckUpdate = function () { return checkUpdate(true); };   // "আপডেট দেখুন" in settings
+  window.TFCheckUpdate = function () { return checkUpdate(true); };   // "আপডেট আছে কিনা দেখুন" in settings
+  /* the version running on this phone (shown in settings) */
+  window.TFAppVersion = async function () {
+    try { if (!myBuild && App && App.getInfo) { var i = await App.getInfo(); myBuild = parseInt(i.build, 10) || 0; } } catch (e) {}
+    return { build: myBuild, version: myBuild ? '1.0.' + myBuild : '' };
+  };
 
   function startUpdateChecks() {
     setTimeout(function () { checkUpdate(false); }, 3000);

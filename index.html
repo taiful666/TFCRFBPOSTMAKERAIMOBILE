@@ -1135,7 +1135,13 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
       </div>
 
       <div id="proxyPanel" class="panel hidden">
-        <button type="button" class="btn" id="tfUpdBtn" style="display:none;width:100%;margin-bottom:12px">🔄 অ্যাপের নতুন আপডেট দেখুন</button>
+        <div id="tfVerBox" style="display:none;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--surface-2,var(--surface))">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px"><div style="font-size:13px;opacity:.75">📱 আপনার ফোনে এখন চলছে</div><div id="tfVerNow" style="font-size:18px;font-weight:700">ভার্সন …</div></div>
+            <button type="button" class="btn primary" id="tfUpdBtn">🔄 আপডেট আছে কিনা দেখুন</button>
+          </div>
+          <div id="tfVerMsg" style="margin-top:8px;font-size:14px;font-weight:600;display:none"></div>
+        </div>
         <h4><span data-i18n="aiTitle">✨ Google Gemini API কী (ঐচ্ছিক, আরও নির্ভরযোগ্য)</span><button type="button" class="x" data-close="proxyPanel" aria-label="close">×</button></h4>
         <p data-i18n="aiDesc">কী দিলে কোনো পত্রিকা আটকে গেলে Google Gemini নিজে পাতাটি খুলে শুধু মূল খবর এনে দেবে, এবং "✨ AI পরিষ্কার" বাটন চালু হবে। কী শুধু এই ব্রাউজারেই সংরক্ষিত থাকে, ফাইলের ভেতরে নয়।</p>
         <div style="display:flex;gap:6px">
@@ -7434,10 +7440,32 @@ async function sfAiQuotes(list){
 }
 function plainTitle(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim(); }
 /* Android app: a button in settings to look for a new app update right now */
-(function(){ const b = document.getElementById('tfUpdBtn'); if(!b) return;
-  const on = () => { if(typeof window.TFCheckUpdate === 'function') b.style.display = ''; };
-  on(); setTimeout(on, 1500);
-  b.addEventListener('click', async () => { if(typeof window.TFCheckUpdate !== 'function') return; b.disabled = true; try{ await window.TFCheckUpdate(); } finally { b.disabled = false; } });
+/* 📱 settings: which version runs on this phone + "is there an update?" — the answer shows right here */
+(function(){ const box = document.getElementById('tfVerBox'), b = document.getElementById('tfUpdBtn'), now = document.getElementById('tfVerNow'), msg = document.getElementById('tfVerMsg'); if(!box || !b) return;
+  const app = () => typeof window.TFCheckUpdate === 'function';
+  const show = (txt, col) => { msg.style.display = ''; msg.style.color = col || ''; msg.textContent = txt; };
+  window.TFVerUi = true;
+  async function fill(){
+    box.style.display = '';
+    if(app()){
+      let v = null; try{ v = typeof window.TFAppVersion === 'function' ? await window.TFAppVersion() : null; }catch(e){}
+      now.textContent = v && v.version ? 'ভার্সন ' + v.version : 'Android অ্যাপ';
+    } else { now.textContent = 'ওয়েব ভার্সন (ব্রাউজার)'; b.textContent = '🔄 নতুন ভার্সন লোড করুন'; }
+  }
+  fill(); setTimeout(() => { if(app()) fill(); }, 1500);
+  b.addEventListener('click', async () => {
+    if(!app()){ show('নতুন ভার্সন লোড হচ্ছে…'); setTimeout(() => location.reload(), 300); return; }
+    b.disabled = true; const lbl = b.textContent; b.textContent = '⏳ দেখা হচ্ছে…'; msg.style.display = 'none';
+    try{
+      const r = await window.TFCheckUpdate() || {};
+      if(r.build) now.textContent = 'ভার্সন 1.0.' + r.build;
+      if(r.state === 'latest') show('✅ সব ঠিক আছে — আপনার অ্যাপ সর্বশেষ ভার্সনে আছে' + (r.latest ? ' (1.0.' + r.latest + ')' : '') + '।', '#16a34a');
+      else if(r.state === 'update') show('🎉 নতুন ভার্সন 1.0.' + r.latest + ' এসেছে — "আপডেট করুন" চাপুন।', '#2563eb');
+      else if(r.state === 'offline') show('⚠️ ইন্টারনেট পাওয়া যাচ্ছে না বা GitHub ব্যস্ত — একটু পরে আবার চাপুন।', '#d97706');
+      else if(r.state === 'busy') show('⏳ আপডেট এখন নামছে বা আপডেটের বার্তা খোলা আছে।', '#d97706');
+      else if(r.state) show('⚠️ এখন দেখা গেল না — একটু পরে আবার চাপুন।', '#d97706');
+    } finally { b.disabled = false; b.textContent = lbl; }
+  });
 })();
 window.TFFix = { sfBadImg, sfGenericTitle, sfTeaser, sfSpeaker, sfQuote, sfNeeds, sfEnrich, sfDupes };
 

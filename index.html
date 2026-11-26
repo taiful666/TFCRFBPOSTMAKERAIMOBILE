@@ -7496,7 +7496,7 @@ Object.assign(T.bn, {
   rlDone:'রিল তৈরি হয়েছে', rlCanceled:'ভিডিও তৈরি বাতিল হয়েছে', rlHidden:'অ্যাপ থেকে বের হলে ভিডিও থেমে যায় — আবার "ভিডিও তৈরি করুন" চাপুন',
   rlNoRec:'এই ব্রাউজারে ভিডিও তৈরি করা যায় না — Chrome দিয়ে খুলুন', rlNeedOne:'অন্তত ১টি খবর বেছে নিন', rlMax:'একসাথে সর্বোচ্চ {n}টি খবর',
   rlLong:'অনেক খবর — ভিডিও তৈরি হতে ভিডিওর সমান সময় লাগবে', rlNoImg:'{n}টি খবরের ছবি আনা যায়নি — রঙিন ব্যাকগ্রাউন্ড দেওয়া হয়েছে',
-  rlCapCopied:'ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন', rlSaved:'ভিডিও সেভ হয়েছে', rlAiDone:'শিরোনাম ও ক্যাপশন লেখা হয়েছে',
+  rlCapCopied:'ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন', rlCapCut:'ক্যাপশন ২৪০০ অক্ষরের মধ্যে ছোট করে কপি করা হয়েছে', rlSaved:'ভিডিও সেভ হয়েছে', rlAiDone:'শিরোনাম ও ক্যাপশন লেখা হয়েছে',
   rlFileBad:'এই অডিও ফাইলটি চালানো যাচ্ছে না', rlChoose:'ফাইল বাছুন', rlToday:'আজকের', rlCount:'{n}টি গুরুত্বপূর্ণ খবর এক নজরে',
   rlLatest:'সর্বশেষ', rlFollow:'ফলো করুন', rlMoreNews:'আরও খবর পেতে আমাদের পেজটি ফলো করুন', rlLcs:'আপনার মত কমেন্টে জানান', rlGlance:'এক নজরে',
   rlLbls:'আজকের আলোচিত|বড় খবর|সর্বশেষ|গুরুত্বপূর্ণ খবর|এক নজরে আজ|আজকের শিরোনাম', rlLblSaid:'কে কী বললেন',
@@ -7522,7 +7522,7 @@ Object.assign(T.en, {
   rlDone:'Reel ready', rlCanceled:'Video cancelled', rlHidden:'The video stops if you leave the app — tap "Create video" again',
   rlNoRec:'This browser cannot record video — open in Chrome', rlNeedOne:'Pick at least 1 story', rlMax:'At most {n} stories at once',
   rlLong:'Many stories — making the video takes as long as the video itself', rlNoImg:'No photo for {n} stories — a colour background was used',
-  rlCapCopied:'Caption copied — paste it on Facebook', rlSaved:'Video saved', rlAiDone:'Headlines and caption written',
+  rlCapCopied:'Caption copied — paste it on Facebook', rlCapCut:'Caption shortened to 2400 characters and copied', rlSaved:'Video saved', rlAiDone:'Headlines and caption written',
   rlFileBad:'This audio file cannot be played', rlChoose:'Choose file', rlToday:'Today', rlCount:'{n} important stories at a glance',
   rlLatest:'Latest', rlFollow:'Follow', rlMoreNews:'Follow our page for more news', rlLcs:'Tell us your view in the comments', rlGlance:'At a glance',
   rlLbls:'Talk of the day|Big story|Latest|Top story|Today at a glance|Today\'s headline', rlLblSaid:'Who said what',
@@ -7768,7 +7768,7 @@ function rlTexts(){
   $('rlPageL').textContent = t('rlPageL'); $('rlPageHint').textContent = t('rlPageHint'); $('rlPageIn').placeholder = t('fbPageDef');
   $('rlTickL').textContent = t('rlTicker'); $('rlTickIn').placeholder = rlTickDef();
   $('rlSecsL').textContent = t('rlSecs'); $('rlMusicL').textContent = t('rlMusic'); $('rlDesignL').textContent = t('rlDesign'); $('rlMixL').textContent = t('rlColors'); $('rlWmL').textContent = t('rlWm'); $('rlOwnL').textContent = t('rlOwn'); $('rlLookL').textContent = t('rlLook');
-  $('rlShuffle').querySelector('span').textContent = t('rlShuffle'); $('rlTip').textContent = t('rlTip'); $('rlCapT').textContent = t('rlCap');
+  $('rlShuffle').querySelector('span').textContent = t('rlShuffle'); $('rlTip').textContent = t('rlTip'); rlCapCount();
   $('rlMake').querySelector('span').textContent = RL.blob ? t('rlRemake') : t('rlMake');
   { const base = [2, 3, 4, 5, 7, 10, 15], own = !base.includes(RL.secs);
     const L = base.map(n => [n, nwNum(n) + ' ' + t('rlSec')]).concat([['own', own ? '✏️ ' + nwNum(RL.secs) + ' ' + t('rlSec') : '✏️ ' + t('rlSecOwn')]]);
@@ -8746,9 +8746,9 @@ function qtBody(ctx, R, o){
     ctx.globalAlpha = bigA * (1 - k); qtTag(ctx, tag, sub, QT.tx, tagY, ac, th);
     ctx.restore();
   }
-  const smA = clamp((k - 0.5) / 0.4, 0, 1);
-  if(smA > 0){ ctx.save(); ctx.globalAlpha = smA; qtText(ctx, S, QT.tx, sy + shift, th, 'none', 9); ctx.restore(); }
-  if(k >= 0.6) qtSumDraw(ctx, SL, QT.tx, sumY + shift, maxW, th, ac, hl || QT.mark, sm.ts);
+  const smA = sm.mode === 'type' ? (k > 0.8 ? 1 : 0) : clamp((k - 0.5) / 0.4, 0, 1);
+  if(smA > 0){ ctx.save(); ctx.globalAlpha = smA; qtTextIdle(ctx, S, QT.tx, sy + shift, th, sm.mode, sm.hs, hl || QT.mark); ctx.restore(); }
+  if(k >= 0.6) qtSumDraw(ctx, SL, QT.tx, sumY + shift, maxW, th, ac, hl || QT.mark, sm.ts, sm.d);
 }
 /* the largest summary size that fits the room without cutting a word; cut = it had to be shortened */
 function qtSumFit(ctx, txt, maxW, room){
@@ -8761,9 +8761,20 @@ function qtSumFit(ctx, txt, maxW, room){
   L.cut = true; L.need24 = L24 ? L24.lines.length : 8; return L;
 }
 /* 📝 the summary, written in line by line: each line slides in from the left with an accent bar */
-function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts){
-  const paper = th.name === 'paper', bar = paper ? ac : hl;
+function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts, d){
+  const paper = th.name === 'paper', bar = paper ? ac : hl, n = L.lines.length;
   ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  y += Math.sin(ts * 1.6) * 2.2;                                     // the block floats very gently — never enough to blur a word
+  // 👁 reading guide: once every line is in, a soft band moves down line by line at reading pace, the line under it a little brighter
+  const tIn = 0.25 + (n - 1) * 0.32 + 0.55, per = Math.max(1.1, ((d || 6) - tIn - 0.3) / n), gp = (ts - tIn) / per;
+  let gi = -1;
+  if(gp > 0){
+    gi = Math.min(n - 1, Math.floor(gp));
+    const lhh = L.size * 1.42, fr = gp - Math.floor(gp), mv = gi < n - 1 ? easeIO(clamp((fr - 0.78) / 0.22, 0, 1)) : 0;
+    const gy = y + 44 + lhh * (gi + mv), ga = clamp(gp / 0.4, 0, 1) * (gp > n ? clamp(1 - (gp - n) / 0.5, 0, 1) : 1);
+    ctx.globalAlpha = 0.17 * ga; ctx.fillStyle = hl; rr(ctx, x + 10, gy + 2, w - 6, lhh - 4, 8); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
   const ca = ease(ts / 0.35);
   if(ca > 0){
     ctx.globalAlpha = ca; ctx.font = fontStr(19, 800, BFAM);
@@ -8777,7 +8788,8 @@ function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts){
     const e = ease((ts - 0.25 - j * 0.32) / 0.45); if(e <= 0) return;
     const ly = y0 + lh * (j + 0.5), dx = (1 - e) * -40;
     ctx.globalAlpha = e;
-    ctx.fillStyle = bar; ctx.fillRect(x + dx, ly - lh / 2 + 4, 5, lh - 8);
+    const on = gi === j ? 1 : 0;
+    ctx.fillStyle = bar; ctx.fillRect(x + dx, ly - lh / 2 + 4, 5 + on * 3, lh - 8);
     const sw = clamp((ts - 0.25 - j * 0.32) / 0.7, 0, 1);             // a soft highlight sweeps under the new line, then fades
     if(sw > 0 && sw < 1){ ctx.globalAlpha = e * 0.28 * (1 - sw); ctx.fillStyle = hl; ctx.fillRect(x + 14 + dx, ly - lh / 2 + 4, (w - 14) * ease(sw * 1.6), lh - 8); ctx.globalAlpha = e; }
     ctx.fillStyle = th.ink; ctx.font = fontStr(L.size, 600, BFAM); ctx.fillText(l, x + 18 + dx, ly + 1, w - 18);
@@ -8789,7 +8801,44 @@ function qtSumOf(R, g, p){
   if(g.k !== 'card' || g.d < 6 || !R.sums) return null;
   const txt = R.sums[g.i]; if(!txt) return null;
   const a = Math.min(2.2, g.d * 0.3); if(p < a) return null;
-  return { txt: String(txt).replace(/\*/g, '').replace(/\s+/g, ' ').trim(), k: easeIO((p - a) / 0.7), ts: p - a - 0.5 };
+  const q = R.st.qs == null ? 0.37 : R.st.qs, mode = QT_IDLE[(Math.floor(q * 997) + g.i * 3) % QT_IDLE.length];
+  return { txt: String(txt).replace(/\*/g, '').replace(/\s+/g, ' ').trim(), k: easeIO((p - a) / 0.7), ts: p - a - 0.5, hs: p - a - 0.7, d: g.d - a - 0.5, mode };
+}
+/* the small headline never stands still: it is typed in, or a shine runs through the letters, or the words lift one by one
+   in a wave, or the highlight marker breathes — a different one on each story, all of them gentle enough to read */
+const QT_IDLE = ['type', 'sweep', 'wave', 'marker'];
+function qtTextIdle(ctx, L, x, y, th, mode, hs, hl){
+  const ts = mode === 'type' ? hs + 0.2 : hs, total = L.lines.reduce((a, l) => a + l.length, 0);
+  const shown = mode === 'type' ? Math.ceil(total * clamp(ts / 1.2, 0, 1)) : total;
+  const cyc = Math.max(0, ts) % 3.6, glint = mode === 'sweep' || mode === 'marker' || (mode === 'type' && ts > 1.6);
+  ctx.save(); ctx.font = fontStr(L.size, 700, BFAM); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const width = Math.max(...L.lines.map(ln => ln.reduce((a, tk) => a + tk.ww + L.sp, 0)));
+  const gx = x - 120 + (width + 240) * clamp(cyc / 1.3, 0, 1), showG = glint && cyc < 1.3 && ts > 0.5;
+  let n = 0, cx0 = x, cy0 = y;
+  L.lines.forEach((ln, k) => {
+    let cx = x; const base = y + k * L.lh;
+    ln.forEach((tk, j) => {
+      const idx = n++; if(idx >= shown) return;
+      let by = base;
+      if(mode === 'wave' && ts > 0.3){ const dd = cyc * 7 - idx; if(dd > 0 && dd < 1) by -= Math.sin(dd * Math.PI) * 7; }
+      if(mode === 'type' && idx === shown - 1 && shown < total) by -= 3 * (1 - (total * clamp(ts / 1.2, 0, 1) % 1));
+      const pad = j < ln.length - 1 && ln[j + 1].hl && tk.hl ? L.sp : 0;
+      if(tk.hl){ const br = mode === 'marker' ? 2 + 3 * Math.sin(ts * 3.2) : 0;
+        ctx.fillStyle = QT.mark; ctx.fillRect(cx - 4 - br, by - L.size * 0.98 - br, tk.ww + 8 + pad + br * 2, L.size * 1.3 + br * 2); }
+      ctx.fillStyle = tk.hl ? '#111' : th.ink; ctx.fillText(tk.w, cx, by);
+      if(showG){                                                         // the shine runs through the letters only
+        const gr = ctx.createLinearGradient(gx - 70, 0, gx + 70, 0);
+        const c = th.name === 'paper' && !tk.hl ? '255,214,0' : '255,255,255';
+        gr.addColorStop(0, 'rgba(' + c + ',0)'); gr.addColorStop(0.5, 'rgba(' + c + ',.95)'); gr.addColorStop(1, 'rgba(' + c + ',0)');
+        ctx.fillStyle = gr; ctx.fillText(tk.w, cx, by);
+      }
+      cx0 = cx + tk.ww; cy0 = base; cx += tk.ww + L.sp;
+    });
+  });
+  if(mode === 'type' && Math.floor(Math.max(0, ts) * 2.2) % 2 === 0){       // typist's cursor keeps blinking at the end
+    ctx.fillStyle = hl; ctx.fillRect(cx0 + 6, cy0 - L.size * 0.82, 4, L.size * 0.95);
+  }
+  ctx.restore();
 }
 function qtScene(ctx, R, g, p){
   const f = clamp(p / g.d, 0, 1), [ac, hl] = R.col(g.i), it = R.items[g.i] || {}, ed = it.ed || {}, v = qtVar(R, g.i), th = qtTheme(v.theme, ac);
@@ -10907,7 +10956,8 @@ function rlFile(){
   return new File([RL.blob], name, { type: RL.blob.type });
 }
 async function rlCopyCap(quiet){
-  const s = $('rlCapIn').value;
+  const s0 = $('rlCapIn').value, s = capLimit(s0);
+  if(s !== s0.trim()){ $('rlCapIn').value = s; rlCapCount(); toast(t('rlCapCut')); quiet = true; }
   try{ await navigator.clipboard.writeText(s); if(!quiet) toast(t('rlCapCopied')); return true; }
   catch(e){ const ta = $('rlCapIn'); $('rlCapBox').open = true; ta.focus(); ta.select(); try{ document.execCommand('copy'); if(!quiet) toast(t('rlCapCopied')); return true; }catch(e2){ return false; } }
 }
@@ -10989,7 +11039,8 @@ $('rlCardShare').addEventListener('click', () => rlCardsGo(true));
 
 /* ---------------- 7) caption + AI writing ---------------- */
 let capEdited = false;
-$('rlCapIn').addEventListener('input', () => { capEdited = true; });
+$('rlCapIn').addEventListener('input', () => { capEdited = true; rlCapCount(); });
+function rlCapCount(){ const n = $('rlCapIn').value.length, el = $('rlCapT'); if(!el) return; el.textContent = t('rlCap') + ' · ' + nwNum(n) + '/' + nwNum(CAP_MAX); el.style.color = n > CAP_MAX ? '#e11d2a' : ''; }
 function plain(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim(); }
 const RL_QS = [
   'এই খবরগুলোর মধ্যে কোনটি আপনাকে সবচেয়ে বেশি ভাবিয়েছে? আপনার মত কমেন্টে লিখুন।',
@@ -11019,12 +11070,28 @@ function rlQ(items){                                   // the comment question f
 function pageTag(){ return '#' + String(pageName() || '').replace(/[^\p{L}\p{N}_]/gu, ''); }
 function rlFollowLine(){ return 'নিয়মিত গুরুত্বপূর্ণ খবর পেতে ' + pageName() + ' পেজটি ফলো করুন।'; }
 /* fixes captions that came back from AI as a list or as JSON text ("...", lines) */
+/* ✂️ Facebook refuses long captions: the reel caption never goes over 2400 characters. Story lines are shortened first,
+   then the last stories and extra hashtags go; the hook, the question, "comment" and "follow" lines always stay. */
+const CAP_MAX = 2400;
+function capLimit(v, max){
+  max = max || CAP_MAX; let s = String(v == null ? '' : v).trim(); if(s.length <= max) return s;
+  let L = s.split('\n');
+  const isStory = l => /^\s*[০-৯0-9]+[.)।]\s/.test(l), isTag = l => /^\s*#/.test(l) || (l.match(/#\S+/g) || []).length >= 3;
+  const len = () => L.join('\n').length;
+  const cut = (l, n) => { if(l.length <= n) return l; let c = l.slice(0, n); c = c.replace(/\s+\S*$/, ''); return c.replace(/[\s,;:—–-]+$/, '') + '…'; };
+  for(const n of [200, 150, 110, 80]){ if(len() <= max) break; L = L.map(l => isStory(l) ? cut(l, n) : l); }
+  while(len() > max && L.filter(isStory).length > 1){ let i = -1; for(let j = L.length - 1; j >= 0; j--) if(isStory(L[j])){ i = j; break; } L.splice(i, 1); }
+  for(let i = L.length - 1; i >= 0 && len() > max; i--) if(isTag(L[i])){ const tags = L[i].match(/#\S+/g) || []; L[i] = tags.slice(0, 2).join(' '); }
+  for(const n of [300, 200, 140]){ if(len() <= max) break; L = L.map((l, i) => i > 1 && !isTag(l) ? cut(l, n) : l); }
+  s = L.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return s.length <= max ? s : cut(s, max - 1);
+}
 function capFix(v){
   if(Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean).join('\n');
   let s = String(v == null ? '' : v).trim();
   if(/^\[[\s\S]*\]$/.test(s)){ try{ const a = JSON.parse(s); if(Array.isArray(a)) return capFix(a); }catch(e){} }
   s = s.split('\n').map(l => { const m = l.match(/^\s*"(.*)"\s*,?\s*$/); return m ? m[1].replace(/\\"/g, '"') : l; }).join('\n');
-  return s.replace(/\n{3,}/g, '\n\n').trim();
+  return capLimit(s.replace(/\n{3,}/g, '\n\n').trim());
 }
 function rlCaptionAuto(force){
   if(capEdited && !force) return;
@@ -11044,7 +11111,7 @@ function rlCaptionAuto(force){
     (srcs.length ? '\nতথ্যসূত্র: ' + srcs.join(', ') : '') +
     '\n\n' + pageTag() + ' #খবর #আজকের_খবর #বাংলাদেশ #সর্বশেষ_খবর';
   if(S.mask && typeof maskText === 'function') cap = maskText(cap, S.maskCh).text;
-  $('rlCapIn').value = cap;
+  $('rlCapIn').value = capLimit(cap); rlCapCount();
 }
 $('rlAi').addEventListener('click', async () => {
   if(!S.gkey && !S.ckey){ needKey(); return; }
@@ -11054,7 +11121,7 @@ $('rlAi').addEventListener('click', async () => {
   const list = RL.items.map((it, i) => { const tz = (sfTeaser(it.o.title || it.text) || VAGUE.test(plain(it.o.title || it.text))) && it.o.text; return (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']' + (tz ? '\n   STORY TEXT: ' + shorten(norm(it.o.text), 900) : ''); }).join('\n');
   const prompt = 'These are ' + RL.items.length + ' Bangladeshi news stories for a vertical news-roundup video reel on a Facebook news page:\n' + list +
     '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. Every card must tell the core of the news by itself — a reader who sees only the card must understand what happened. If the paper\'s headline is a teaser or vague ("যা বললেন X", "মুখ খুললেন X", "কী আছে…", "জেনে নিন", a question, or it hides the main fact), use the summary and the STORY TEXT and write the real main point instead — for a statement: X: “the real main point”; for an event: what happened, where, and the key number — faithful to the text.' +
-    '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Line 2, right under it (no blank line), starts with 💬 and is the comment question (see Task 4). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then exactly this line: "👇 আপনার উত্তর কমেন্টে লিখুন।" Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list.' +
+    '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Line 2, right under it (no blank line), starts with 💬 and is the comment question (see Task 4). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then exactly this line: "👇 আপনার উত্তর কমেন্টে লিখুন।" Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list, and the whole caption must stay under 2000 characters (Facebook refuses longer ones).' +
     '\nTask 3: pick the ONE story most likely to make people stop scrolling and write the thumbnail text for the reel cover: at most 8 words in Bangladeshi Bengali, punchy and curiosity-raising but 100% true to that story (no lies, no exaggeration, no "শক"/"ভয়ংকর"-style shock words), the 1–2 key words wrapped in *asterisks*.' +
     '\nTask 5: "summaries" — for EACH story, in order, the news in short in 25–40 words of natural Bangladeshi Bengali, in your own words: what happened, who, where, the key number and what happens next. Only facts from the story, no opinion; it is shown on screen under the headline when the story stays longer.' +
     '\nTask 4 — comment questions, so viewers reply: (a) "question": ONE question for the whole reel (also line 2 of the caption and shown big on the last screen), at most 18 words; (b) "questions": for EACH story, in order, one question at most 14 words shown on screen while that story plays. Every question must be built FROM its story — name the concrete person, place, number, decision or incident — and be easy to answer in one line from viewers\' own life or experience, or by picking a side of a fair practical choice. Never generic ("আপনার মতামত কী?"), respectful আপনি, no engagement bait (never ask to comment a word or number, tag, like or share), never ask people to judge a party, leader, religion or group.' +
@@ -11069,7 +11136,7 @@ $('rlAi').addEventListener('click', async () => {
     { const E = window.TFEngage, cl = x => E ? E.cleanQ(x) : norm(x), q = cl(o.question); if(q) RL.cq = q;
       (Array.isArray(o.summaries) ? o.summaries : []).forEach((x, i) => { const v = norm(String(x || '')).replace(/\*/g, ''); if(RL.items[i] && v.length > 20) RL.items[i].sum = S.mask && typeof maskText === 'function' ? maskText(v, S.maskCh).text : v; });
       (Array.isArray(o.questions) ? o.questions : []).forEach((x, i) => { const v = cl(x); if(RL.items[i] && v) RL.items[i].q = S.mask && typeof maskText === 'function' ? maskText(v, S.maskCh).text : v; }); }
-    if(norm(capFix(o.caption))){ let cap = capFix(o.caption); if(S.mask && typeof maskText === 'function') cap = maskText(cap, S.maskCh).text; $('rlCapIn').value = cap; capEdited = true; $('rlCapBox').open = true; }
+    if(norm(capFix(o.caption))){ let cap = capFix(o.caption); if(S.mask && typeof maskText === 'function') cap = maskText(cap, S.maskCh).text; $('rlCapIn').value = capLimit(cap); capEdited = true; $('rlCapBox').open = true; rlCapCount(); }
     rlRenderList(); rlPreview(); toast(t('rlAiDone'));
   }catch(e){ toast(aiErrMsg(e)); }
   finally{ btn.disabled = false; btn.innerHTML = lbl; }

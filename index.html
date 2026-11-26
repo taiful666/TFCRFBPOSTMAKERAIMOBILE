@@ -8735,10 +8735,11 @@ function qtTheme(name, ac){
   if(name === 'tint') return { name, bg: [shade(ac, -0.12), shade(ac, -0.55)], grid: 'rgba(255,255,255,.07)', ink: '#ffffff', sub: 'rgba(255,255,255,.8)', tag: 'rgba(0,0,0,.35)', qm: '#ffe23a' };
   return { name: 'paper', bg: ['#efeee9', '#e4e3dd'], grid: 'rgba(0,0,0,.06)', ink: '#141414', sub: 'rgba(0,0,0,.6)', tag: '#0f2a44', qm: ac };
 }
-/* the look of one story: changes from story to story, and the starting point changes with every new reel */
+/* the look of one story: theme and text animation change from story to story (and with every new reel), but the
+   layout is FIXED — headline + summary always on top, photo always below — so viewers always read in the same place */
 function qtVar(R, i){
   const q = R.st.qs == null ? 0.37 : R.st.qs, a = Math.floor(q * 997), k = i == null ? 0 : i + 1;
-  return { theme: QT_THEMES[(a + k) % QT_THEMES.length], photoTop: ((Math.floor(a / 3) + k) % 2) === 1 && i != null, anim: QT_ANIMS[(Math.floor(a / 7) + k * 2) % QT_ANIMS.length] };
+  return { theme: QT_THEMES[(a + k) % QT_THEMES.length], photoTop: false, anim: QT_ANIMS[(Math.floor(a / 7) + k * 2) % QT_ANIMS.length] };
 }
 function qtBack(ctx, th, ac){
   const g = ctx.createLinearGradient(0, 0, 0, RH); g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, RW, RH);

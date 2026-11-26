@@ -2330,7 +2330,10 @@ Short, punchy and conversational — 6–14 words, the most surprising true fact
 
 === CAPTIONS AND FACEBOOK POSTS ===
 The card is the hook; the caption is the TRUST. A reader who taps "see more" must not feel cheated: the caption must clearly tell what the story is really about, so they understand the full matter without opening the newspaper.
-Short and human. First line = a hook under 15 words (the most interesting fact or the essence of the statement; may start with one fitting emoji such as 📌 or 🗣️). Then 2–4 short lines that give an honest overview of the real story: who said or did what, where and when, the background/context, and what happens next — the key facts, not just more drama. For a quote card, explain the situation in which the statement was made and what it refers to. Simple spoken Bengali, short sentences, no long paragraphs, no "বিস্তারিত কমেন্টে", no "লাইক/শেয়ার/কমেন্ট করুন", no ALL-CAPS, no hashtags inside the text (hashtags go in their own field when asked). Respect the word limit you are given.
+Short and human. First line = a hook under 15 words (the most interesting fact or the essence of the statement; may start with one fitting emoji such as 📌 or 🗣️). Then 2–4 short lines that give an honest overview of the real story: who said or did what, where and when, the background/context, and what happens next — the key facts, not just more drama. For a quote card, explain the situation in which the statement was made and what it refers to. Simple spoken Bengali, short sentences, no long paragraphs, no "বিস্তারিত কমেন্টে", no "লাইক/শেয়ার করুন", no ALL-CAPS, no hashtags inside the text (hashtags go in their own field when asked). Do not end the caption with a question or a "follow the page" line — when a "comment_question" field is asked, write the question there and the app adds it with the follow line. Respect the word limit you are given.
+
+=== COMMENT QUESTION (comment_question) ===
+One short question (8–20 words) at the end of every post that makes ordinary readers WANT to reply. It must be about THIS story — never generic like "আপনার মতামত কী?". Best: ask about the reader's own life or experience with the topic ("আপনার এলাকায় কি…?", "আপনি হলে কী করতেন?", "এমন পরিস্থিতিতে আপনার পরামর্শ কী?"), or a fair two-sided practical choice anyone can answer in one line. Address readers respectfully as "আপনি". Never engagement bait (no "কমেন্টে হ্যাঁ/১ লিখুন", no tagging friends, no like/share requests), never ask people to judge or attack a party, leader, religion or group, nothing that invites hate. Ends with ?.
 
 === ALWAYS ===
 - Accuracy first: every name, number, date and statement must come from the article. Never invent quotes.
@@ -3951,7 +3954,7 @@ async function prepareFacebook(){
     setBusy('fb', true);
     try{
       checkTextModel.forWriting = true; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
-      const prompt = 'Prepare Facebook-ready content for the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE + ' ' + hookRules() + ' Return ONLY one JSON object (no markdown fences) with this shape: {"card_options":' + hookShape() + ',"post":"' + postSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
+      const prompt = 'Prepare Facebook-ready content for the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE + ' ' + hookRules() + ' Return ONLY one JSON object (no markdown fences) with this shape: {"card_options":' + hookShape() + ',"post":"' + postSpec() + '","comment_question":"' + cqSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
       const r = await writeAi({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.75, responseMimeType: 'application/json' } }, 90000);
       data = parseAiJson(r.text);
     }catch(e){ toast(aiErrMsg(e) + ' — ' + t('tFbLocal')); }
@@ -3959,7 +3962,7 @@ async function prepareFacebook(){
   }
   if(!data){ data = localFb(title, body); if(!canWrite()) toast(t('tFbLocal')); }
   let tags = (Array.isArray(data.hashtags) ? data.hashtags : []).map(h => '#' + String(h).replace(/^#+/, '').replace(/\s+/g, '')).filter(h => h.length > 1).slice(0, 6);
-  let post = trimToWords(cleanAiText(data.post || title), fbWordLimit());
+  let post = withEngage(trimToWords(cleanAiText(data.post || title), fbWordLimit()), data.comment_question, title + ' ' + body.slice(0, 600));
   let maskFound = [];
   if(S.mask){ tags = tags.filter(h => !hasSensitive(h.slice(1))); const mk = maskText(post, S.maskCh); post = mk.text; maskFound = mk.found; }
   if($('fbSrcChk').checked) post += '\n\n' + fbSourceLine();
@@ -4525,12 +4528,13 @@ async function rewritePost(){
   try{
     checkTextModel.forWriting = true; try{ await checkTextModel(); }finally{ checkTextModel.forWriting = false; }
     const prompt = 'Write a Facebook post about the news article below. Write in the same language as the article. Use only facts from the article; do not invent anything. ' + AD_SAFE +
-      ' Return ONLY one JSON object (no markdown fences) with this shape: {"post":"' + postSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
+      ' Return ONLY one JSON object (no markdown fences) with this shape: {"post":"' + postSpec() + '","comment_question":"' + cqSpec() + '","hashtags":["3 to 5 relevant hashtags without #"]}\n\n' + articleForAi(30000);
     const r = await writeAi({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: 'application/json' } }, 90000);
     const data = parseAiJson(r.text);
     let tags = (Array.isArray(data.hashtags) ? data.hashtags : []).map(h => '#' + String(h).replace(/^#+/, '').replace(/\s+/g, '')).filter(h => h.length > 1).slice(0, 6);
     let post = trimToWords(cleanAiText(data.post || ''), fbWordLimit());
     if(!post) throw new Error('Empty response');
+    post = withEngage(post, data.comment_question, norm($('artTitle').textContent) + ' ' + bodyText().slice(0, 600));
     if(S.mask){ tags = tags.filter(h => !hasSensitive(h.slice(1))); const mk = maskText(post, S.maskCh); post = mk.text; showMaskInfo(mk.found); }
     if(tags.length) post += '\n\n' + tags.join(' ');
     if($('fbSrcChk').checked) post += '\n\n' + fbSourceLine();
@@ -6312,13 +6316,63 @@ postSpec = function(){
     '(1) one short scroll-stopping first line, at most about 12 words, stating the most striking real fact; it may start with ONE fitting emoji such as 📌 🔴 ⚡ 📢 (never a graphic or violent emoji). ' +
     '(2) 2–3 very short paragraphs of 1–2 sentences each with who, what, where and when — mention the date or day of the event clearly if the article gives it. ' +
     '(3) only if the article has several numbers or points, add up to 3 short lines starting with "▪️". ' +
-    '(4) end with one gentle, non-political question that invites comments, related to everyday life (not about the government or any party). ' +
+    '(4) do NOT end with a question or a follow request — the app adds the comment question and the follow line itself. ' +
     'At most 3 emojis in the whole post, no ALL CAPS, no clickbait phrases like "you won\'t believe", no exclamation marks in a row, no hashtags, no links';
 };
 fbSourceLine = function(){
   const a = S.article, prof = paperProfile(a.url, a.site), d = norm(C.fields.date || '') || (parseDate(a.published) ? fmtDate(parseDate(a.published)) : '');
   return '📰 ' + t('source') + ': ' + prof.name + (d ? '  •  📅 ' + d : '');
 };
+/* ---- 💬 every post / reel ends with a question about THIS story + a follow line, so people comment and follow ----
+   The question is written by AI for each story (in its own field, so the word limit never cuts it off);
+   without AI, a topic-matched question is used. Engagement bait ("কমেন্টে হ্যাঁ লিখুন", tag/share requests) is never used. */
+const ENG_BAIT = /(?:^|\s)[\"“'‘]?(?:হ্যাঁ|১|২|আমিন|yes|done)[\"”'’]?\s*(?:লিখুন|লিখে|লিখবেন|টাইপ|কমেন্ট\s*করুন)|(?:লিখুন|লিখে|টাইপ)\s*(?:করুন\s*)?["“'‘]?\s*(?:হ্যাঁ|না|১|২|yes|no|আমিন|done)|ট্যাগ|tag\s+(?:a\s+)?friend|শেয়ার\s*করুন|লাইক\s*(?:দিন|করুন)|like\s+(?:and|&)\s+share|share\s+this/i;
+function cqSpec(){ return 'one short question (8–20 words) about THIS story that makes ordinary readers want to reply from their own life, experience or a fair practical choice; respectful আপনি; same language as the post; no engagement bait, no tagging/sharing/liking, never asks people to judge a party, leader, religion or group; ends with ?'; }
+const ENG_TOPIC = [
+  [/দাম|বাজার|মূল্য|টাকা|বেতন|ভাড়া|খরচ|দ্রব্য|চাল|তেল|গ্যাস|বিদ্যুৎ/, ['আপনার এলাকায় এখন দাম কেমন যাচ্ছে? সংসারের খরচ সামলাতে আপনি কী করছেন?', 'এই খরচের চাপ আপনার পরিবারে কতটা পড়ছে? কমেন্টে জানান।']],
+  [/দুর্ঘটনা|সড়ক|বাস|ট্রাক|মোটরসাইকেল|ট্রেন|যানজট|লঞ্চ/, ['আপনার এলাকার রাস্তায় এমন ঝুঁকি কোথায় সবচেয়ে বেশি দেখেন? নিরাপদ থাকতে আপনার পরামর্শ কী?', 'সড়কে নিরাপদ থাকতে আপনি নিজে কোন নিয়মটা সবসময় মানেন?']],
+  [/ক্রিকেট|ফুটবল|ম্যাচ|খেলা|দল|গোল|উইকেট|টুর্নামেন্ট|বিশ্বকাপ/, ['পরের ম্যাচে আপনার প্রত্যাশা কী? কাকে একাদশে দেখতে চান?', 'এই পারফরম্যান্সকে আপনি ১০-এ কত দেবেন, আর কেন?']],
+  [/পরীক্ষা|শিক্ষা|স্কুল|কলেজ|বিশ্ববিদ্যালয়|শিক্ষার্থী|ভর্তি|ফল প্রকাশ/, ['আপনার বা আপনার সন্তানের পড়াশোনায় এর কী প্রভাব পড়বে বলে মনে করেন?', 'শিক্ষার্থীদের জন্য এ বিষয়ে আপনার পরামর্শ কী?']],
+  [/বৃষ্টি|ঝড়|বন্যা|শীত|গরম|তাপমাত্রা|আবহাওয়া|ঘূর্ণিঝড়|কুয়াশা/, ['আপনার এলাকায় এখন আবহাওয়া কেমন? কমেন্টে জেলার নামসহ জানান।', 'এই আবহাওয়ায় আপনার এলাকার মানুষ কী সমস্যায় পড়ছেন?']],
+  [/হাসপাতাল|রোগ|চিকিৎসা|ডাক্তার|স্বাস্থ্য|ডেঙ্গু|ভাইরাস|ওষুধ/, ['আপনার এলাকায় চিকিৎসা পেতে কেমন অভিজ্ঞতা হয়েছে? অন্যদের জন্য পরামর্শ দিন।', 'সুস্থ থাকতে আপনি নিজে কোন অভ্যাসটা মেনে চলেন?']],
+  [/প্রবাস|রেমিট্যান্স|বিদেশ|ভিসা|মালয়েশিয়া|সৌদি|দুবাই|ইতালি/, ['আপনি বা আপনার পরিবারের কেউ কি প্রবাসে আছেন? এ বিষয়ে আপনার অভিজ্ঞতা জানান।', 'প্রবাসীদের জন্য সবচেয়ে জরুরি কোন সুবিধাটা চালু হওয়া উচিত বলে মনে করেন?']]
+];
+const ENG_GEN_BN = ['এ বিষয়ে আপনার অভিজ্ঞতা বা ভাবনা কী? কমেন্টে জানান।', 'আপনার এলাকায় কি এমন কিছু ঘটেছে? কমেন্টে লিখুন।', 'আপনি হলে এই পরিস্থিতিতে কী করতেন?', 'এই খবরটি আপনার জীবনে কোনো প্রভাব ফেলবে বলে মনে করেন?'];
+const ENG_GEN_EN = ['What is your experience with this? Tell us in the comments.', 'Has something like this happened where you live?', 'What would you have done in this situation?'];
+const engPick = a => a[Math.floor(Math.random() * a.length)];
+function engIsBn(s){ return /[ঀ-৿]/.test(String(s || '')); }
+function engFallbackQ(ctx){
+  const c = String(ctx || '');
+  if(!engIsBn(c)) return engPick(ENG_GEN_EN);
+  const hit = ENG_TOPIC.find(([re]) => re.test(c));
+  return engPick(hit ? hit[1] : ENG_GEN_BN);
+}
+function engFollow(bn){
+  const p = pageName();
+  return engPick(bn ? [
+    'এমন আরও খবর সবার আগে পেতে ' + p + ' পেজটি ফলো করুন।',
+    'প্রতিদিনের গুরুত্বপূর্ণ খবর মিস করতে না চাইলে ফলো করে রাখুন ' + p + '।',
+    'সঠিক ও সহজ ভাষায় খবর পেতে ' + p + '-এর সাথেই থাকুন — পেজটি ফলো করুন।'
+  ] : ['Follow ' + p + ' for more news like this.', 'Don\'t miss the next update — follow ' + p + '.']);
+}
+function engCleanQ(q){
+  let s = norm(String(q || '').replace(/^["“'‘\s💬❓]+|["”'’\s]+$/g, ''));
+  if(!s || s.length < 8 || s.length > 160 || ENG_BAIT.test(s)) return '';
+  if(!/[?？]/.test(s) && !/(জানান|লিখুন)[।.!]?$/.test(s)) s = s.replace(/[।.!]+$/, '') + '?';
+  return s;
+}
+/* drop a question / follow / comment request the AI may still have put at the end, then add ours */
+function withEngage(post, q, ctx){
+  let paras = String(post || '').trim().split(/\n\s*\n/);
+  while(paras.length > 1){
+    const last = paras[paras.length - 1].trim();
+    if(/ফলো|follow|কমেন্ট|comment|মতামত/i.test(last) || /[?？]\s*$/.test(last) && last.length < 160) paras.pop(); else break;
+  }
+  const body = paras.join('\n\n').trim(), bn = engIsBn(body || ctx);
+  const qq = engCleanQ(q) || engFallbackQ((ctx || '') + ' ' + body);
+  return body + '\n\n💬 ' + qq + '\n👉 ' + engFollow(bn);
+}
+window.TFEngage = { cqSpec, withEngage, cleanQ: engCleanQ, fallbackQ: engFallbackQ, follow: engFollow };
 const localFb61 = localFb;
 localFb = function(title, body){ const d = localFb61(title, body); d.post = '📌 ' + String(d.post || '').replace(/\n{3,}/g, '\n\n'); return d; };
 const cleanAiText61 = cleanAiText;
@@ -7477,6 +7531,7 @@ $('rlGo').addEventListener('click', () => {
   if(!RL.sel.size){ toast(t('rlNeedOne')); return; }
   nwClose(true);                                    // keep the history entry and reuse it for the reel sheet
   try{ history.replaceState({ rl: 1 }, ''); }catch(e){}
+  capEdited = false; RL.cq = '';                     // a new reel gets its own caption and comment question
   rlOpen();
 });
 
@@ -8972,7 +9027,7 @@ function voInit(){
   $('rlVoTxt').addEventListener('input', () => { RL.voSig = voSig(); });
 }
 function rlTimeline(n, secs){
-  const I = 2.4, O = 2.4, segs = [{ k: 'intro', s: 0, d: I }]; let s = I;
+  const I = 2.4, O = 3.6, segs = [{ k: 'intro', s: 0, d: I }]; let s = I;   // ending: follow button + the comment question
   for(let i = 0; i < n; i++){ segs.push({ k: 'card', i, s, d: secs }); s += secs; }
   segs.push({ k: 'outro', s, d: O });
   return { segs, total: s + O };
@@ -9653,7 +9708,7 @@ function rlOutro(ctx, R, p, d){
   ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, RW, RH);
   const [ac, hl] = R.col(R.n), a = backOut(p / 0.5), b = ease((p - 0.3) / 0.4), c = ease((p - 0.55) / 0.4);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  let y = 430;
+  let y = R.cq ? 340 : 430;                            // a little higher when the comment question is shown below
   if(C.logoImg && a > 0){
     rlLogoDisc(ctx, RW / 2, y, 118 * a);
     y += 170;
@@ -9666,8 +9721,35 @@ function rlOutro(ctx, R, p, d){
   ctx.fillStyle = ac; rr(ctx, RW / 2 - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.fill();
   ctx.strokeStyle = hl; ctx.lineWidth = 4; ctx.stroke();
   ctx.fillStyle = '#fff'; ctx.font = fontStr(36 * pulse, 700, BFAM); ctx.fillText(t('rlFollow'), RW / 2, by + 3);
-  ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = fontStr(26, 600, BFAM); ctx.fillText(t('rlLcs'), RW / 2, by + 110);
+  const q = String(R.cq || '').replace(/^💬\s*/, '').trim(), d2 = ease((p - 0.8) / 0.45);
+  if(q){                                              // 💬 the comment question of this reel, in a speech bubble
+    ctx.globalAlpha = d2;
+    const L = rlWrap(ctx, q, RW - 140, 32, 700, 3, 24), lh = L.size * 1.34, bh = lh * L.lines.length + 74, bx = 40, bw = RW - 80, top = by + 78 + 16 * (1 - d2);
+    ctx.fillStyle = 'rgba(255,255,255,.96)'; rr(ctx, bx, top, bw, bh, 26); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(RW / 2 - 18, top); ctx.lineTo(RW / 2, top - 18); ctx.lineTo(RW / 2 + 18, top); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.font = fontStr(L.size, 700, BFAM);
+    L.lines.forEach((l, j) => ctx.fillText(l, RW / 2, top + 22 + lh * (j + 0.5), bw - 40));
+    ctx.fillStyle = ac; ctx.font = fontStr(24, 700, BFAM); ctx.fillText('💬 ' + t('rlLcs'), RW / 2, top + bh - 28, bw - 40);
+  } else { ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = fontStr(26, 600, BFAM); ctx.fillText(t('rlLcs'), RW / 2, by + 110); }
   ctx.globalAlpha = 1;
+}
+/* ➕ a short "follow" pop-up during the reel — most viewers never reach the ending, so they are asked while still watching */
+function rlFollowPop(ctx, R, g, p){
+  if(g.k !== 'card' || g.i !== Math.min(1, R.n - 1)) return;
+  const a = 0.9, b = Math.min(g.d - 0.35, 4.6); if(p < a || p > b) return;
+  const k = Math.min(ease((p - a) / 0.35), ease((b - p) / 0.35));
+  const [ac, hl] = R.col(g.i), txt = t('rlFollow') + ' · ' + R.page;
+  ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = fontStr(24, 700, BFAM);
+  const tw = Math.min(RW - 150, ctx.measureText(txt).width), h = 52, w = tw + 92, y = R.deck ? 1250 : 1228, x = RW / 2 - w / 2 + (1 - k) * (RW / 2 + w);
+  ctx.globalAlpha = k; ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 14;
+  ctx.fillStyle = ac; rr(ctx, x, y - h / 2, w, h, h / 2); ctx.fill(); ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = hl; ctx.lineWidth = 3; ctx.stroke();
+  const pr = 1 + 0.12 * Math.sin(p * 8), cx = x + 30;
+  ctx.beginPath(); ctx.arc(cx, y, 17 * pr, 0, Math.PI * 2); ctx.fillStyle = hl; ctx.fill();
+  ctx.fillStyle = '#111'; ctx.font = fontStr(28, 800, BFAM); ctx.textAlign = 'center'; ctx.fillText('+', cx, y + 1);
+  ctx.fillStyle = '#fff'; ctx.font = fontStr(24, 700, BFAM); ctx.textAlign = 'left'; ctx.fillText(txt, cx + 28, y + 2, tw);
+  ctx.restore();
 }
 const TRANS_ALL = ['cube', 'slide', 'page', 'zoom', 'blinds', 'flipcard', 'wipe', 'zoomout', 'circle', 'push', 'fade', 'flash'];
 function rlTrans(ctx, R, ga, gb, pb, e){
@@ -9777,6 +9859,7 @@ function rlFrame(ctx, R, t){
   if(k > 0 && p < XT && !(R.deck && g.k === 'card' && segs[k - 1].k === 'card')) rlTrans(ctx, R, segs[k - 1], g, p, p / XT);
   else rlScene(ctx, R, g, p);
   rlOverlay(ctx, R, g, p, t);
+  rlFollowPop(ctx, R, g, p);
   if(g.k === 'card' && store.get('rlPgWm', false)) rlPageWm(ctx, R.page, 0, 150, RW, 880);
   if(C.logoImg && g.k === 'card' && !R.deck && !R.quote) rlLogoDisc(ctx, 66, 104, 46);   // the quote design has the logo in its own header     // page logo stays fixed on every story (the cover has it in the top label, the ending shows it big)
 }
@@ -9795,7 +9878,7 @@ function rlPageWm(ctx, name, x, y, w, h){
 function rlMakeR(items, st){
   const page = pageName();
   const R = { one: items.length > 0 && items.every(x => x.o && x.o.vid), live: RL.tpl === 'live' || RL.tpl === 'quote', quote: RL.tpl === 'quote', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
-    title: RL.title || t('rlTitleDef'), page, today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
+    title: RL.title || t('rlTitleDef'), page, cq: RL.cq || '', today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
   R.tick = rlTickStrip(RL.ticker || rlTickDef(), R.col(0)[0]);
   return R;
 }
@@ -10552,6 +10635,11 @@ const RL_QS = [
   'এই বিষয়গুলো নিয়ে আপনার মতামত কী? ভদ্র ভাষায় কমেন্টে লিখুন।',
   'কোন খবরটি আপনার জীবনে সবচেয়ে বেশি প্রভাব ফেলবে বলে মনে করেন? কমেন্টে জানান।'
 ];
+function rlQ(items){                                   // the comment question for this reel (also shown big on the last screen)
+  const E = window.TFEngage, one = items.length === 1;
+  RL.cq = one && E ? E.fallbackQ(plain(items[0].text) + ' ' + plain(items[0].o && items[0].o.desc)) : pick(RL_QS);
+  return RL.cq;
+}
 function pageTag(){ return '#' + String(pageName() || '').replace(/[^\p{L}\p{N}_]/gu, ''); }
 function rlFollowLine(){ return 'নিয়মিত গুরুত্বপূর্ণ খবর পেতে ' + pageName() + ' পেজটি ফলো করুন।'; }
 /* fixes captions that came back from AI as a list or as JSON text ("...", lines) */
@@ -10576,7 +10664,7 @@ function rlCaptionAuto(force){
   const srcs = Array.from(new Set(items.map(it => it.source).filter(Boolean)));
   const hook = '📌 ' + plain(items[0].text);
   let cap = hook + '\n\n' + title + ' — ' + bn(items.length) + 'টি গুরুত্বপূর্ণ খবর এক নজরে 👇\n\n' + lines.join('\n') +
-    '\n\n' + pick(RL_QS) + '\n\n' + rlFollowLine() +
+    '\n\n💬 ' + rlQ(items) + '\n\n' + rlFollowLine() +
     (srcs.length ? '\nতথ্যসূত্র: ' + srcs.join(', ') : '') +
     '\n\n' + pageTag() + ' #খবর #আজকের_খবর #বাংলাদেশ #সর্বশেষ_খবর';
   if(S.mask && typeof maskText === 'function') cap = maskText(cap, S.maskCh).text;
@@ -10590,9 +10678,10 @@ $('rlAi').addEventListener('click', async () => {
   const list = RL.items.map((it, i) => { const tz = (sfTeaser(it.o.title || it.text) || VAGUE.test(plain(it.o.title || it.text))) && it.o.text; return (i + 1) + '. ' + plain(it.o.title || it.text) + (it.o.desc ? ' — ' + shorten(norm(nwStrip ? nwStrip(it.o.desc) : it.o.desc), 220) : '') + ' [' + it.source + ']' + (tz ? '\n   STORY TEXT: ' + shorten(norm(it.o.text), 900) : ''); }).join('\n');
   const prompt = 'These are ' + RL.items.length + ' Bangladeshi news stories for a vertical news-roundup video reel on a Facebook news page:\n' + list +
     '\n\nTask 1: for EACH story, in the same order, write a short card headline in natural Bangladeshi Bengali, in your own words: catchy but completely true to the story, at most 12 words so it fits in two lines. Do not add facts, do not exaggerate, no clickbait, no opinion, no political comment. Wrap the 1–3 most important words in *asterisks* for highlighting. Every card must tell the core of the news by itself — a reader who sees only the card must understand what happened. If the paper\'s headline is a teaser or vague ("যা বললেন X", "মুখ খুললেন X", "কী আছে…", "জেনে নিন", a question, or it hides the main fact), use the summary and the STORY TEXT and write the real main point instead — for a statement: X: “the real main point”; for an event: what happened, where, and the key number — faithful to the text.' +
-    '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then ONE genuine open question that invites people to share their opinion about these stories (no engagement bait: never ask people to comment a word or number, tag friends, like or share). Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list.' +
+    '\nTask 2: write a Facebook caption for the reel, all in Bangladeshi Bengali, addressing readers respectfully as "আপনি". Line 1 is the hook that people see before "See more": the single most important or surprising fact from these stories in under 15 words, starting with 📌 (never a generic line such as "আজকের সেরা খবর"). Then a numbered list, one line per story, in your own words (never copy the paper\'s headline): one clear sentence of at most 25 words that tells the core of the news — what happened, to whom or where, and the key number, decision or consequence — so a reader understands the story without opening it. Then ONE genuine open question, starting with 💬, about THESE stories (not generic like "আপনার মতামত কী?") that ordinary viewers can answer in one line from their own life or experience, or a fair practical choice (no engagement bait: never ask people to comment a word or number, tag friends, like or share; never ask them to judge a party, leader, religion or group). Then exactly this line: ' + JSON.stringify(rlFollowLine()) + ' Then one line crediting the sources starting with "তথ্যসূত্র:". Then 4–6 relevant hashtags, the first one ' + pageTag() + '. No emojis at the start of other lines, nothing that could anger the public. The caption must be ONE plain-text string with line breaks, never a list.' +
     '\nTask 3: pick the ONE story most likely to make people stop scrolling and write the thumbnail text for the reel cover: at most 8 words in Bangladeshi Bengali, punchy and curiosity-raising but 100% true to that story (no lies, no exaggeration, no "শক"/"ভয়ংকর"-style shock words), the 1–2 key words wrapped in *asterisks*.' +
-    '\nReturn ONLY JSON: {"cards":["headline 1","headline 2"],"caption":"...","cover":{"story":1,"text":"..."}} with exactly ' + RL.items.length + ' items in "cards".';
+    '\nTask 4: copy the same question (without 💬) into "question" — it is also shown big on the reel\'s last screen, so at most 18 words.' +
+    '\nReturn ONLY JSON: {"cards":["headline 1","headline 2"],"caption":"...","question":"...","cover":{"story":1,"text":"..."}} with exactly ' + RL.items.length + ' items in "cards".';
   try{
     const r = await writeAi({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, responseMimeType: 'application/json' } }, 90000);
     const o = parseAiJson(r.text), cards = Array.isArray(o.cards) ? o.cards : [];
@@ -10600,6 +10689,7 @@ $('rlAi').addEventListener('click', async () => {
     RL.cover = (ci >= 0 && ci < RL.items.length && norm(cvr.text)) ? { link: RL.items[ci].link, text: norm(cvr.text), sig: RL.items.map(x => x.link).join('|') } : null;
     cards.forEach((c, i) => { if(RL.items[i] && norm(c)){ RL.items[i].text = norm(c); RL.items[i].manual = false; RL.items[i].quoted = false; } });
     RL.cardFiles = null;
+    { const E = window.TFEngage, q = E ? E.cleanQ(o.question) : norm(o.question); if(q) RL.cq = q; }
     if(norm(capFix(o.caption))){ let cap = capFix(o.caption); if(S.mask && typeof maskText === 'function') cap = maskText(cap, S.maskCh).text; $('rlCapIn').value = cap; capEdited = true; $('rlCapBox').open = true; }
     rlRenderList(); rlPreview(); toast(t('rlAiDone'));
   }catch(e){ toast(aiErrMsg(e)); }
@@ -11746,6 +11836,7 @@ window.TFReel = {
     RL.sel = new Map();
     (list || []).forEach(o => { if(o && o.link && o.title && RL.sel.size < RL_MAX) RL.sel.set(o.link, o); });
     if(!RL.sel.size){ toast(t('rlNeedOne')); return false; }
+    capEdited = false; RL.cq = '';                       // a new reel gets its own caption and comment question
     setMode(false); rlOpen(); return true;
   }
 };

@@ -158,7 +158,7 @@ body.focus .toolbar{top:0}
 #sheet.capture .screen-only{display:none!important}
 
 /* toast */
-#toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,30px);opacity:0;background:var(--text);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:13.5px;z-index:70;transition:all .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,30px);opacity:0;background:var(--text);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:13.5px;z-index:2147483000;transition:all .2s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 
 @media print{
@@ -3972,6 +3972,26 @@ async function logoDecode(f){
   }
   return '';
 }
+/* Android app: the phone's own picker reads the picture natively (on some phones, e.g. Samsung with the new
+   photo picker, a picture chosen through the web page never arrives). Elsewhere: the normal file box. */
+function logoNativePicker(){
+  const C0 = window.Capacitor;
+  try{ if(!(C0 && C0.isNativePlatform && C0.isNativePlatform())) return null; if(C0.isPluginAvailable && !C0.isPluginAvailable('TFPicker')) return null;
+    return (C0.Plugins && C0.Plugins.TFPicker) || (C0.registerPlugin && C0.registerPlugin('TFPicker')) || null; }catch(e){ return null; }
+}
+async function pickLogo(){
+  const P = logoNativePicker();
+  if(!P){ $('logoFile').click(); return; }
+  let r;
+  try{ r = await P.pickImage(); }
+  catch(e){ console.warn('native picker', e); toast(S.lang === 'bn' ? 'ফোনের পিকার কাজ করেনি — অন্যভাবে খোলা হচ্ছে…' : 'Phone picker failed — trying another way…'); $('logoFile').click(); return; }
+  if(!r || r.cancelled || !r.data) return;
+  try{
+    const bin = atob(r.data), u8 = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    onLogoFile(new File([u8], r.name || 'logo', { type: r.mime || '' }));
+  }catch(e){ console.error('logo bytes', e); toast(t('tLogoRead')); }
+}
 async function onLogoFile(f){
   if(!f) return;
   if(f.size > 60 * 1048576){ toast(t('tLogoBig')); return; }
@@ -4187,7 +4207,7 @@ function initStudio(){
   document.querySelectorAll('#srcSeg [data-src]').forEach(b => b.addEventListener('click', () => setSource(b.dataset.src)));
   $('changeImgBtn').addEventListener('click', () => $('cardFile').click());
   $('cardFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if(f) onCardFile(f); });
-  $('logoUpBtn').addEventListener('click', () => $('logoFile').click());
+  $('logoUpBtn').addEventListener('click', () => pickLogo());
   $('logoFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if(f) onLogoFile(f); });
   $('logoRmBtn').addEventListener('click', () => { C.logoUrl = ''; C.logoDX = C.logoDY = 0; logoKeep(''); saveCardDesign(); loadLogo(''); });
   document.querySelectorAll('[data-cf]').forEach(el => el.addEventListener('input', () => { C.fields[el.dataset.cf] = el.value; if(el.dataset.cf === 'label') C.labelAuto = false; scheduleRender(); }));
@@ -11486,7 +11506,7 @@ function rlLogoUi(){
   $('rlLogoBtn').textContent = has ? t('rlLogoCh') : t('rlLogoUp');
   $('rlPvHint').textContent = t('rlPvHint');
 }
-$('rlLogoBtn').addEventListener('click', () => $('logoFile').click());
+$('rlLogoBtn').addEventListener('click', () => pickLogo());
 const updateLogoUiRl = updateLogoUi;
 updateLogoUi = function(){ updateLogoUiRl(); try{ rlLogoUi(); if(RL.open){ RL.cardFiles = null; rlPreview(); } if(ED.open) edDraw(); }catch(e){} };
 const rlTextsEd = rlTexts;

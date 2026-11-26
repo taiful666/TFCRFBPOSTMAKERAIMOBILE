@@ -7639,11 +7639,47 @@ function plainTitle(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g
     if(app()){
       let v = null; try{ v = typeof window.TFAppVersion === 'function' ? await window.TFAppVersion() : null; }catch(e){}
       now.textContent = v && v.version ? 'ভার্সন ' + v.version : 'Android অ্যাপ';
-    } else { now.textContent = 'ওয়েব ভার্সন (ব্রাউজার)'; b.textContent = '🔄 নতুন ভার্সন লোড করুন'; }
+    } else { now.textContent = 'ওয়েব ভার্সন · ' + webStamp(webBuilt()); b.textContent = '🔄 নতুন ভার্সন লোড করুন'; }
   }
+  /* 🌐 web: the page always checks whether GitHub has a newer copy than the one open in this browser
+     (a browser or the offline copy can keep an old page). The time GitHub published the page is compared. */
+  const isWebPage = () => !app() && /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname);
+  function webBuilt(){ const d = Date.parse(document.lastModified); return isNaN(d) ? 0 : d; }
+  function webStamp(ms){ if(!ms) return '—'; const d = new Date(ms); return (typeof fmtDate === 'function' ? fmtDate(d) : d.toLocaleDateString()) + ', ' + d.toLocaleTimeString('bn-BD', { hour: 'numeric', minute: '2-digit' }); }
+  async function webLatest(){
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+    const lm = Date.parse(r.headers.get('Last-Modified') || ''); return isNaN(lm) ? 0 : lm;
+  }
+  async function hardReload(){
+    try{ if(navigator.serviceWorker){ const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(x => x.unregister())); } }catch(e){}
+    try{ if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } }catch(e){}
+    location.replace(location.pathname + '?u=' + Date.now() + location.hash);
+  }
+  function webBanner(){
+    if(document.getElementById('tfNewVer')) return;
+    const d = document.createElement('div'); d.id = 'tfNewVer';
+    d.style.cssText = 'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147482000;background:#2563eb;color:#fff;border-radius:14px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.3);font-size:14.5px;font-weight:600;max-width:94vw';
+    d.innerHTML = '<span>🎉 অ্যাপের নতুন ভার্সন এসেছে</span><button type="button" style="border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:800;background:#fff;color:#2563eb;cursor:pointer">এখনই আপডেট করুন</button><button type="button" aria-label="close" style="border:0;background:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">×</button>';
+    const [go, x] = d.querySelectorAll('button');
+    go.onclick = () => { go.textContent = '⏳ লোড হচ্ছে…'; hardReload(); };
+    x.onclick = () => d.remove();
+    document.body.appendChild(d);
+  }
+  async function webCheck(){
+    if(!isWebPage()) return;
+    try{ const live = await webLatest(), mine = webBuilt(); if(live && mine && live - mine > 60000) webBanner(); }catch(e){}
+  }
+  setTimeout(webCheck, 4000);
+  setInterval(() => { if(!document.hidden) webCheck(); }, 20 * 60000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) webCheck(); });
   fill(); setTimeout(() => { if(app()) fill(); }, 1500);
   b.addEventListener('click', async () => {
-    if(!app()){ show('নতুন ভার্সন লোড হচ্ছে…'); setTimeout(() => location.reload(), 300); return; }
+    if(!app()){
+      show('দেখা হচ্ছে…');
+      let live = 0; try{ live = await webLatest(); }catch(e){}
+      if(live && webBuilt() && live - webBuilt() <= 60000){ show('✅ আপনি সর্বশেষ ভার্সনেই আছেন (' + webStamp(live) + ')।', '#16a34a'); return; }
+      show('নতুন ভার্সন লোড হচ্ছে…'); hardReload(); return;
+    }
     b.disabled = true; const lbl = b.textContent; b.textContent = '⏳ দেখা হচ্ছে…'; msg.style.display = 'none';
     try{
       const r = await window.TFCheckUpdate() || {};
@@ -7719,9 +7755,14 @@ Object.assign(T.en, {
 const tf = (k, o) => { let s = t(k); Object.keys(o || {}).forEach(x => { s = s.split('{' + x + '}').join(o[x]); }); return s; };
 const IC_FILM = '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>';
 const RL_MAX = 100, RW = 720, RH = 1280, XT = 0.62, CARD_CY = 590;
+function rlMusicStart(){                           // ⭐ the app's own music is the default (also switched on once for earlier users)
+  if(!store.get('rlTfmMig', 0)){ store.set('rlTfmMig', 1); store.set('rlMusic', 'tfm'); }
+  const m = store.get('rlMusic', 'tfm');
+  return ['tfm','beat','headline','war','alert','trailer','countdown','march','breaking','piano','emotional','tension','happy','lofi','file','none'].includes(m) ? m : 'tfm';
+}
 const RL = {
   on: false, open: false, sel: new Map(), items: [], imgs: new Map(), busy: false, cancel: false,
-  secs: store.get('rlSecs', 3), music: (m => ['beat','headline','war','alert','trailer','countdown','march','breaking','piano','emotional','tension','happy','lofi','file','none'].includes(m) ? m : 'beat')(store.get('rlMusic', 'beat')), tpl: (store.get('rlLiveMig', 0) ? (store.get('rlQuoteMig', 0) ? store.get('rlTpl', 'live') : 'quote') : (store.set('rlLiveMig', 1), store.set('rlTpl', 'live'), 'quote')), mixColor: store.get('rlMixColor', true),
+  secs: store.get('rlSecs', 3), music: rlMusicStart(), mvol: Math.max(0, Math.min(150, +store.get('rlMusVol', 100) || 0)), tfmAB: null, tpl: (store.get('rlLiveMig', 0) ? (store.get('rlQuoteMig', 0) ? store.get('rlTpl', 'live') : 'quote') : (store.set('rlLiveMig', 1), store.set('rlTpl', 'live'), 'quote')), mixColor: store.get('rlMixColor', true),
   tpl2: (store.get('rlQuoteMig', 0) ? 0 : (store.set('rlQuoteMig', 1), store.set('rlTpl', 'quote'), 0)),
   title: store.get('rlTitle', ''), ticker: store.get('rlTicker', ''), musicAB: null, musicName: '', blob: null, url: '', caption: '', style: null
 };
@@ -7797,6 +7838,25 @@ html[data-theme="dark"] .rln{color:#111}
 .rlbtns button:active{background:var(--line)}
 #rlAdd{width:100%;margin-top:8px;min-height:40px}
 .rlf{margin-bottom:12px}
+#rlDone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:48px;background:#e8f7ee;border:1px solid #16a34a;color:#166534;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#rlDone.hidden{display:none}#rlDone b{font-size:15px}#rlDone small{font-size:11.5px;opacity:.8}
+html[data-theme="dark"] #rlDone{background:#123d25;color:#bff0cf}
+.rlgone,#rlMusicL,#rlMusicO,#rlDesignL,#rlDesignO,#rlPvHint{display:none!important}
+#rlNewsT{white-space:nowrap}
+.rlqbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rlqsel{display:flex;align-items:center;gap:4px;flex:1 1 28%;min-width:96px;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:var(--bg);cursor:pointer}
+.rlqsel span{font-size:15px}
+.rlqsel select{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:inherit;font-size:13.5px;font-weight:600;padding:9px 0;outline:none;cursor:pointer}
+.rlqbar #rlPvBtn{min-height:38px}
+.rlqvol{display:flex;align-items:center;gap:6px;flex:1 1 100%;border:1px solid var(--line);border-radius:10px;padding:4px 10px;background:var(--bg);min-height:38px}
+.rlqvol input{flex:1;min-width:0;accent-color:var(--accent)}.rlqvol b{font-size:13px;min-width:44px;text-align:right}
+#rlMore{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.rltg{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:4px 11px;font-size:13px}
+.rlh .rltg{margin-left:auto}
+.rltg .sw{width:30px;height:17px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.rltg .sw::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .2s}
+.rltg[aria-pressed="true"] .sw{background:var(--accent)}
+.rltg[aria-pressed="true"] .sw::after{left:15px}
 .rlf:last-child{margin-bottom:0}
 .rlf>label,.rlf>span{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:600}
 .rlf input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text);font-size:14.5px;outline:none}
@@ -7901,13 +7961,22 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <button type="button" class="btn" id="rlCardSave">${ic(IC_DL)}<span></span></button>
       <button type="button" class="btn" id="rlCardShare">${ic(IC.share)}<span></span></button>
     </div></div>
-    <div class="rlsec"><div class="rlh"><b id="rlNewsT"></b><button type="button" class="btn" id="rlAi">${ic(IC.spark)}<span></span></button></div>
-      <div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div>
+    <div class="rlsec"><div class="rlh"><b id="rlNewsT"></b><button type="button" class="btn rltg" id="rlListTg" aria-pressed="false"><i class="sw"></i><span>তালিকা</span></button><button type="button" class="btn" id="rlAi">${ic(IC.spark)}<span></span></button></div>
+      <div id="rlListWrap" class="hidden"><div id="rlList"></div><button type="button" class="btn" id="rlAdd"></button></div></div>
     <div class="rlsec">
+      <div class="rlqbar">
+        <label class="rlqsel" title="প্রতিটি খবর কত সেকেন্ড"><span>⏱</span><select id="rlSecsS"></select></label>
+        <label class="rlqsel" title="মিউজিক"><span>🎵</span><select id="rlMusicS"></select></label>
+        <label class="rlqsel" title="কার্ড ডিজাইন"><span>🎨</span><select id="rlDesignS"></select></label>
+        <span id="rlPvSlot"></span>
+        <label class="rlqvol" title="মিউজিকের ভলিউম"><span id="rlVolIc">🔊</span><input type="range" id="rlVol" min="0" max="150" step="5"><b id="rlVolT"></b></label>
+        <button type="button" class="btn rltg" id="rlMoreTg" aria-pressed="false"><i class="sw"></i><span>আরও সেটিংস</span></button>
+      </div>
+      <div id="rlMore" class="hidden">
       <div class="rlf"><label for="rlPageIn" id="rlPageL"></label><input type="text" id="rlPageIn" maxlength="40" autocomplete="off"><div class="rlmeta" id="rlPageHint"></div></div>
       <div class="rlf" style="display:none"><span id="rlLogoL"></span><div class="rllogo" id="rlLogoBox"><img id="rlLogoTh" alt="" class="hidden"><span id="rlLogoMsg"></span><button type="button" class="btn" id="rlLogoBtn"></button></div></div>
       <div class="rlf"><label for="rlTitleIn" id="rlTitleL"></label><input type="text" id="rlTitleIn" maxlength="40" autocomplete="off"></div>
-      <div class="rlf"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
+      <div class="rlf rlgone"><span id="rlSecsL"></span><div class="rlopts" id="rlSecsO"></div></div>
       <div class="rlf"><div class="rlmh"><span id="rlMusicL"></span><button type="button" class="btn" id="rlPvBtn"></button></div><div class="rlopts" id="rlMusicO"></div><input type="file" id="rlMusicFile" accept="audio/*" class="hidden"><div class="rlmeta" id="rlMusicName"></div></div>
       <div class="rlf"><span id="rlDesignL"></span><div class="rlopts" id="rlDesignO"></div>
         <label class="rlchk"><input type="checkbox" id="rlMixC"><span id="rlMixL"></span></label>
@@ -7918,6 +7987,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
       <div class="rlf rlstyle"><span id="rlStyleT"></span><button type="button" class="btn" id="rlShuffle">${ic(IC_SHUF)}<span></span></button></div>
       <div class="rlf"><label for="rlTickIn" id="rlTickL"></label><input type="text" id="rlTickIn" maxlength="160" autocomplete="off"></div>
       <p class="rlmeta" id="rlTip"></p>
+      </div>
     </div>
     <details class="rlsec rlcap" id="rlVoBox"><summary><b>🎙 ভয়েস-স্ক্রিপ্ট (Cartesia — নিজের কণ্ঠ)</b></summary>
       <div class="rlvoinfo"><span id="rlVoWho">ভয়েস: —</span><button type="button" class="btn" id="rlVoSet">⚙️ কী ও ভয়েস (সেটিংস)</button></div>
@@ -7929,7 +7999,7 @@ sheet.innerHTML = `<div class="nsbox rlbox">
     </details>
     <details class="rlsec rlcap" id="rlCapBox"><summary><b id="rlCapT"></b></summary><textarea id="rlCapIn" spellcheck="false"></textarea></details>
   </div>
-  <div class="rlfoot"><button type="button" class="btn rlvotg" id="rlVoTg" aria-pressed="false"><span class="vt">🎙 AI ভয়েস</span><i class="sw"></i></button><button type="button" class="btn primary" id="rlMake">${ic(IC_FILM)}<span></span></button></div>
+  <div class="rlfoot"><button type="button" class="btn rlvotg" id="rlVoTg" aria-pressed="false"><span class="vt">🎙 AI ভয়েস</span><i class="sw"></i></button><button type="button" class="btn primary" id="rlMake">${ic(IC_FILM)}<span></span></button><button type="button" class="btn rldone hidden" id="rlDone"><b>✅ এক্সপোর্ট সম্পন্ন</b><small>আবার বানাতে ডাবল-ক্লিক করুন</small></button></div>
 </div>`;
 document.body.appendChild(sheet);
 
@@ -7970,8 +8040,35 @@ function rlTexts(){
   rlPvUi(); mmRender();
   opts('rlDesignO', [['quote', t('rldQuote')], ['live', t('rldLive')], ['deck', t('rldDeck')], ['band', t('rldBand')], ['split', t('rldSplit')], ['overlay', t('rldOverlay')], ['frame', t('rldFrame')], ['mix', t('rldMix')], ['mine', t('rldMine')]], RL.tpl, v => { RL.tpl = v; store.set('rlTpl', v); rlPreview(); });
   $('rlMixC').checked = !!RL.mixColor; $('rlWmC').checked = wmOn(); $('rlOwnC').checked = ownPicOn(); $('rlLookC').checked = lookOn();
-  rlMeta();
+  rlMeta(); rlBarFill(); rlVolUi(); if(RL.music === 'tfm') rlTfmLoad(); try{ rlDoneUi(); }catch(e){}
 }
+/* compact bar: each drop-down mirrors its (hidden) chip row and simply presses the chosen chip */
+function rlBarFill(){
+  [['rlSecsS', 'rlSecsO'], ['rlMusicS', 'rlMusicO'], ['rlDesignS', 'rlDesignO']].forEach(([sid, oid]) => {
+    const sel = $(sid), box = $(oid); if(!sel || !box) return;
+    const bs = [...box.querySelectorAll('button[data-v]')];
+    sel.innerHTML = bs.map(b => '<option value="' + esc(b.dataset.v) + '"' + (b.classList.contains('on') ? ' selected' : '') + '>' + esc(b.textContent) + '</option>').join('');
+    if(!bs.some(b => b.classList.contains('on'))) sel.selectedIndex = -1;
+    if(!sel.dataset.wired){ sel.dataset.wired = '1';
+      sel.addEventListener('change', () => { const b = [...box.querySelectorAll('button[data-v]')].find(x => x.dataset.v === sel.value); if(b) b.click(); setTimeout(rlBarFill, 0); setTimeout(rlBarFill, 1500); }); }
+  });
+  const pv = $('rlPvBtn'), slot = $('rlPvSlot'); if(pv && slot && pv.parentNode !== slot) slot.appendChild(pv);
+}
+function rlVolUi(){
+  const r = $('rlVol'); if(!r) return; r.value = RL.mvol; $('rlVolT').textContent = nwNum(RL.mvol) + '%';
+  $('rlVolIc').textContent = RL.mvol === 0 ? '🔇' : RL.mvol < 60 ? '🔉' : '🔊'; r.disabled = RL.music === 'none';
+  if(!r.dataset.wired){ r.dataset.wired = '1';
+    r.addEventListener('input', () => { RL.mvol = +r.value; store.set('rlMusVol', RL.mvol); rlVolUi(); if(RL.pv && RL.pv.ac) rlPvStop(); });
+    $('rlVolIc').addEventListener('click', e => { e.preventDefault(); RL.mvol = RL.mvol ? 0 : 100; store.set('rlMusVol', RL.mvol); rlVolUi(); }); }
+}
+function rlToggle(btnId, boxId, key, labelOn, labelOff){
+  const b = $(btnId), box = $(boxId); if(!b || !box) return;
+  const set = on => { box.classList.toggle('hidden', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.querySelector('span').textContent = on ? labelOn : labelOff; };
+  set(!!store.get(key, false));
+  b.addEventListener('click', () => { const on = box.classList.contains('hidden'); store.set(key, on); set(on); });
+}
+rlToggle('rlListTg', 'rlListWrap', 'rlListOpen', 'তালিকা', 'তালিকা');
+rlToggle('rlMoreTg', 'rlMore', 'rlMoreOpen', 'আরও সেটিংস', 'আরও সেটিংস');
 function rlTickDef(){ return tf('rlTickDef', { p: pageName() }); }
 function rlMeta(){
   const n = RL.items.length, total = Math.round(rlTimeline(n, RL.secs).total);
@@ -8087,7 +8184,7 @@ async function rlPvPlay(){
   while(s < 10){ segs.push({ k: 'card', i: segs.length - 1, s, d: secs }); s += secs; }
   const R = { tl: { segs, total: s }, st: RL.style, musicBuf: null };
   await rlMusEnsure();
-  if(RL.music === 'file' && RL.musicAB){ try{ R.musicBuf = await ac.decodeAudioData(RL.musicAB.slice(0)); }catch(e){} }
+  if(rlMusicAB()){ try{ R.musicBuf = await ac.decodeAudioData(rlMusicAB().slice(0)); }catch(e){} }
   if(RL.pv !== P) return;
   P.stop = rlAudio(ac, ac.destination, R, ac.currentTime + 0.08);
   P.to = setTimeout(rlPvStop, s * 1000 + 400);
@@ -8152,6 +8249,7 @@ async function mmLoad(id){                        // put the chosen saved music 
   }catch(e){ return false; }
 }
 function rlMusEnsure(){                           // before listening / making a reel
+  if(RL.music === 'tfm') return rlTfmLoad();
   if(RL.music !== 'file' || RL.musicAB) return Promise.resolve();
   if(!MM.loading) MM.loading = mmLoad(MM.sel || (MM.list[0] && MM.list[0].id)).then(ok => { MM.loading = null; if(!ok){ RL.music = 'beat'; store.set('rlMusic', 'beat'); } });
   return MM.loading;
@@ -8945,6 +9043,21 @@ function qtSumFit(ctx, txt, maxW, room){
 /* 📝 the summary is ONE paragraph, not a list of lines: the lines are justified like a newspaper column, one accent bar runs
    down the whole block, and the words appear in reading order (a quick, soft "writing" — the whole paragraph is there in ~1.5 s).
    After that the words stand still so it reads easily; only a small light glides slowly down the bar to catch the eye. */
+/* re-wraps the same words so the last line is not a short stub (same number of lines, same size) —
+   every line then fills the full width and the paragraph reads as one even block */
+function rlBalance(ctx, L, maxW){
+  if(!L || !L.lines || L.lines.length < 2) return L;
+  ctx.save(); ctx.font = fontStr(L.size, 600, BFAM);
+  const words = L.lines.join(' ').split(' ').filter(Boolean), n = L.lines.length;
+  const wrap = mw => { const out = []; let cur = ''; for(const wd of words){ const tr = cur ? cur + ' ' + wd : wd; if(cur && ctx.measureText(tr).width > mw){ out.push(cur); cur = wd; } else cur = tr; } if(cur) out.push(cur); return out; };
+  let best = L.lines, bestR = ctx.measureText(L.lines[n - 1]).width / maxW;
+  for(let f = 0.99; f >= 0.93 && bestR < 0.45; f -= 0.01){
+    const ls = wrap(maxW * f); if(ls.length !== n) continue;
+    const r = ctx.measureText(ls[n - 1]).width / maxW; if(r > bestR){ best = ls; bestR = r; }
+  }
+  ctx.restore();
+  return Object.assign({}, L, { lines: best });
+}
 function rlParaText(ctx, L, x, y0, w, lh, ink, ts, font){
   const words = L.lines.map(l => l.split(' ').filter(Boolean)), N = words.reduce((a, l) => a + l.length, 0) || 1;
   const rd = Math.min(1.6, 0.35 + N * 0.035);                       // time until the whole paragraph is written
@@ -8955,7 +9068,7 @@ function rlParaText(ctx, L, x, y0, w, lh, ink, ts, font){
     const ly = y0 + lh * (j + 0.5), last = j === words.length - 1;
     const tw = ws.reduce((a, wd) => a + ctx.measureText(wd).width, 0);
     // justify every line but the last, as long as the gaps stay natural (no huge holes in a short line)
-    let gap = sp; if(!last && ws.length > 1){ const g = (w - tw) / (ws.length - 1); if(g >= sp && g <= sp * 3.2) gap = g; }
+    let gap = sp; if(!last && ws.length > 1){ const g = (w - tw) / (ws.length - 1); if(g >= sp * 0.6) gap = g; }
     let cx = x;
     ws.forEach(wd => {
       const a = clamp((ts - (n / N) * rd) / 0.28, 0, 1); n++;
@@ -8980,31 +9093,22 @@ function rlSumFrame(ctx, x, y, w, h, ts){
   rr(ctx, x, y, w, h, 18); ctx.stroke();
   ctx.restore();
 }
-/* the accent bar down the whole paragraph, with a soft light gliding down it every few seconds */
-function rlParaBar(ctx, x, top, h, bar, ts, rd){
-  ctx.fillStyle = bar; rr(ctx, x, top, 6, h, 3); ctx.fill();
-  const cyc = (ts - rd) % 3.2;
-  if(ts > rd && cyc < 1.6){
-    const gy = top + h * easeIO(cyc / 1.6), gr = ctx.createLinearGradient(0, gy - 46, 0, gy + 46);
-    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.save(); ctx.beginPath(); rr(ctx, x, top, 6, h, 3); ctx.clip(); ctx.fillStyle = gr; ctx.fillRect(x, gy - 46, 6, 92); ctx.restore();
-  }
-}
 function qtSumDraw(ctx, L, x, y, w, th, ac, hl, ts, d){
-  const paper = th.name === 'paper', bar = paper ? ac : hl, n = L.lines.length;
+  L = rlBalance(ctx, L, w - 20);
+  const n = L.lines.length, lh = L.size * 1.42, y0 = y + 44;
   ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const pa = ease(ts / 0.4);                                         // a solid dark panel, so the words are always easy to read
+  if(pa > 0){ ctx.globalAlpha = pa; ctx.fillStyle = 'rgba(9,14,30,.94)'; rr(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, 18); ctx.fill(); ctx.globalAlpha = 1; }
   const ca = ease(ts / 0.35);
   if(ca > 0){
     ctx.globalAlpha = ca; ctx.font = fontStr(19, 800, BFAM);
     const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;
-    ctx.fillStyle = hl; rr(ctx, x + (1 - ca) * -30, y, lw, 30, 15); ctx.fill();
+    ctx.fillStyle = RL_SUM_YEL; rr(ctx, x + (1 - ca) * -30, y, lw, 30, 15); ctx.fill();
     ctx.fillStyle = '#111'; ctx.fillText(lb, x + 12 + (1 - ca) * -30, y + 16);
   }
-  const lh = L.size * 1.42, y0 = y + 44, bk = ease((ts - 0.15) / 0.4);
-  rlSumFrame(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, ts);
-  if(bk > 0){ ctx.globalAlpha = bk; rlParaBar(ctx, x, y0 + 4, (lh * n - 8) * bk, bar, ts, Math.min(1.6, 0.35 + L.lines.join(' ').split(' ').length * 0.035) + 0.25); }
   ctx.globalAlpha = 1;
-  rlParaText(ctx, L, x + 20, y0, w - 20, lh, th.ink, ts - 0.25, fontStr(L.size, 600, BFAM));
+  rlSumFrame(ctx, x - 14, y - 12, w + 26, 44 + lh * n + 24, ts);
+  rlParaText(ctx, L, x + 9, y0, w - 20, lh, '#ffffff', ts - 0.25, fontStr(L.size, 600, BFAM));
   ctx.restore();
 }
 /* when the news-in-short starts on a story (same timing as before), or null */
@@ -10343,15 +10447,15 @@ function rlSumPanel(ctx, R, g, p){
   const k = ease((p - a) / 0.5), [x, y, w, h] = rlSumRect(R, g.i), [ac, hl] = R.col(g.i), pad = 22;
   let L = null; for(let n = 7; n >= 3 && !L; n--) L = rlWrapFull(ctx, txt, w - pad * 2, 29, 600, n, 20);
   if(!L) L = rlWrap(ctx, txt, w - pad * 2, 22, 600, 7, 18);
+  L = rlBalance(ctx, L, w - pad * 2);
   const lh = L.size * 1.42, bh = Math.min(h, 54 + lh * L.lines.length + pad), by = y + (h - bh) / 2 + (1 - k) * 30;
   ctx.save(); ctx.globalAlpha = k;
-  ctx.fillStyle = 'rgba(8,12,24,.86)'; rr(ctx, x, by, w, bh, 18); ctx.fill();
-  const ts = p - a, rd = Math.min(1.6, 0.35 + txt.split(' ').length * 0.035) + 0.3;
+  ctx.fillStyle = 'rgba(9,14,30,.94)'; rr(ctx, x, by, w, bh, 18); ctx.fill();
+  const ts = p - a;
   rlSumFrame(ctx, x, by, w, bh, ts); ctx.globalAlpha = k;
-  rlParaBar(ctx, x, by + 16, bh - 32, hl, ts, rd); ctx.globalAlpha = k;
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
   ctx.font = fontStr(20, 800, BFAM); const lb = '📝 ' + t('rlSumL'), lw = ctx.measureText(lb).width + 24;
-  ctx.fillStyle = hl; rr(ctx, x + pad, by + 14, lw, 30, 15); ctx.fill(); ctx.fillStyle = '#111'; ctx.fillText(lb, x + pad + 12, by + 30);
+  ctx.fillStyle = RL_SUM_YEL; rr(ctx, x + pad, by + 14, lw, 30, 15); ctx.fill(); ctx.fillStyle = '#111'; ctx.fillText(lb, x + pad + 12, by + 30);
   rlParaText(ctx, L, x + pad, by + 54, w - pad * 2, lh, '#fff', ts - 0.3, fontStr(L.size, 600, BFAM));
   ctx.restore();
 }
@@ -10802,7 +10906,15 @@ const RL_GEN = {
   }
 };
 const RL_TRACKS = ['beat', 'headline', 'war', 'alert', 'trailer', 'countdown', 'march', 'breaking', 'piano', 'emotional', 'tension', 'happy', 'lofi'];
-function rlMusicOpts(){ return RL_TRACKS.map(k => [k, t('rlm_' + k)]).concat([['file', t('rlmFile')], ['none', t('rlmNone')]]); }
+function rlMusicOpts(){ return [['tfm', S.lang === 'bn' ? '⭐ TF নিউজ মিউজিক' : '⭐ TF News music']].concat(RL_TRACKS.map(k => [k, t('rlm_' + k)])).concat([['file', t('rlmFile')], ['none', t('rlmNone')]]); }
+/* ⭐ the app's own default music (music/tf-news-default.mp3, shipped with the web page, the Android and the Windows app) */
+function rlTfmLoad(){
+  if(RL.tfmAB) return Promise.resolve(RL.tfmAB);
+  if(!rlTfmLoad.p) rlTfmLoad.p = fetch('music/tf-news-default.mp3').then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    .then(ab => { RL.tfmAB = ab; return ab; }).catch(e => { console.warn('default music', e); rlTfmLoad.p = null; return null; });
+  return rlTfmLoad.p;
+}
+const rlMusicAB = () => RL.music === 'file' ? RL.musicAB : RL.music === 'tfm' ? RL.tfmAB : null;
 /* soft "slide change" sound on every new story: an airy swoosh + a light paper tick — on its own bus, never ducked */
 function rlSfx(ac, dest, R, T0, nb){
   nb = nb || noiseBuf(ac);
@@ -10822,7 +10934,7 @@ function rlSfx(ac, dest, R, T0, nb){
   });
 }
 function rlAudio(ac, dest, R, T0){
-  const total = R.tl.total, master = ac.createGain(), duck = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = 0.85;
+  const total = R.tl.total, master = ac.createGain(), duck = ac.createGain(), comp = ac.createDynamicsCompressor(), vol = 0.85 * (RL.mvol == null ? 100 : RL.mvol) / 100 + 0.0001;
   comp.threshold.value = -14; comp.ratio.value = 4; master.connect(duck); duck.connect(comp); comp.connect(dest);
   master.gain.setValueAtTime(0, T0); master.gain.linearRampToValueAtTime(vol, T0 + 0.35);
   master.gain.setValueAtTime(vol, T0 + Math.max(0.4, total - 1.8)); master.gain.linearRampToValueAtTime(0, T0 + total);
@@ -10837,7 +10949,7 @@ function rlAudio(ac, dest, R, T0){
   rlSfx(ac, dest, R, T0, nb);
   { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(110, T0); o.frequency.exponentialRampToValueAtTime(38, T0 + 0.9);
     g.gain.setValueAtTime(0.0001, T0); g.gain.exponentialRampToValueAtTime(0.7, T0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, T0 + 1.1); o.connect(g); g.connect(master); o.start(T0); o.stop(T0 + 1.2); }
-  if(RL.music === 'file' && R.musicBuf){
+  if((RL.music === 'file' || RL.music === 'tfm') && R.musicBuf){
     const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = R.musicBuf; s.loop = true; g.gain.value = 0.9;
     s.connect(g); g.connect(master); s.start(T0); s.stop(T0 + total + 0.1);
     return () => {};
@@ -11027,13 +11139,123 @@ function rlBusy(on){
   ['rlAi', 'rlAdd', 'rlShuffle', 'rlCardSave', 'rlCardShare'].forEach(id => { $(id).disabled = on; });
   $('rlList').querySelectorAll('button,textarea').forEach(el => { el.disabled = on; });
   if(!on){ $('rlProg').classList.add('hidden'); rlRenderList(); }
+  try{ rlDoneUi(); }catch(e){}
+}
+/* =====================================================================
+   🎬 background export: the video is built frame by frame (WebCodecs) instead of being filmed in real time,
+   so it keeps going when the tab is hidden, the app is minimised or the phone screen goes off.
+   Web: the tab title shows the progress. Android app: a notification shows it and keeps the phone awake.
+   ===================================================================== */
+const rlTick = (() => { const ch = new MessageChannel(), q = []; ch.port1.onmessage = () => { const f = q.shift(); if(f) f(); }; return () => new Promise(r => { q.push(r); ch.port2.postMessage(0); }); })();
+const BG = { title: '', on: false };
+function bgNative(){ const C0 = window.Capacitor; try{ if(!(C0 && C0.isNativePlatform && C0.isNativePlatform())) return null; if(C0.isPluginAvailable && !C0.isPluginAvailable('TFWork')) return null; return (C0.Plugins && C0.Plugins.TFWork) || (C0.registerPlugin && C0.registerPlugin('TFWork')) || null; }catch(e){ return null; } }
+function bgStart(){
+  if(!BG.on){ BG.title = document.title; BG.on = true; }
+  const N = bgNative(); if(N) try{ N.start({ title: 'ভিডিও তৈরি হচ্ছে', text: 'অ্যাপ বন্ধ বা স্ক্রিন অফ থাকলেও কাজ চলবে' }).catch(() => {}); }catch(e){}
+}
+function bgProgress(pct, text){
+  pct = Math.max(0, Math.min(100, Math.round(pct)));
+  if(BG.on) document.title = '⏳ ' + nwNum(pct) + '% · ভিডিও তৈরি হচ্ছে';
+  const N = bgNative(); if(N && bgProgress.last !== pct){ bgProgress.last = pct; try{ N.update({ percent: pct, text: text || '' }).catch(() => {}); }catch(e){} }
+}
+function bgStop(ok){
+  const N = bgNative(); if(N) try{ N.stop({ done: !!ok, title: ok ? '✅ ভিডিও তৈরি হয়েছে' : '', text: ok ? 'অ্যাপ খুলে ডাউনলোড বা শেয়ার করুন' : '' }).catch(() => {}); }catch(e){}
+  if(!BG.on) return; BG.on = false; bgProgress.last = -1;
+  if(ok){
+    document.title = '✅ ভিডিও তৈরি সম্পন্ন · ' + BG.title;
+    const back = () => { if(document.hidden) return; document.removeEventListener('visibilitychange', back); setTimeout(() => { if(!BG.on) document.title = BG.title; }, 4000); };
+    document.addEventListener('visibilitychange', back); back();
+  } else document.title = BG.title;
+}
+/* which H.264 / audio settings this browser can encode, or null */
+async function rlWcSetup(audio){
+  if(!(window.VideoEncoder && window.VideoFrame && window.OfflineAudioContext)) return null;
+  let vc = null;
+  for(const codec of ['avc1.4D401F', 'avc1.42001F', 'avc1.640028', 'avc1.4D4028', 'avc1.42E028']){
+    const cfg = { codec, width: RW, height: RH, bitrate: 5000000, framerate: 30, avc: { format: 'avc' } };
+    try{ const r = await VideoEncoder.isConfigSupported(cfg); if(r && r.supported){ vc = cfg; break; } }catch(e){}
+  }
+  if(!vc) return null;
+  let au = null;
+  if(audio){
+    if(!window.AudioEncoder || !window.AudioData) return null;
+    for(const [codec, mux] of [['mp4a.40.2', 'aac'], ['opus', 'opus']]){
+      const cfg = { codec, sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 };
+      try{ const r = await AudioEncoder.isConfigSupported(cfg); if(r && r.supported){ au = { cfg, mux }; break; } }catch(e){}
+    }
+    if(!au) return null;
+  }
+  if(!window.Mp4Muxer){ try{ await Promise.race([loadScript('https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js'), new Promise(r => setTimeout(r, 15000))]); }catch(e){} }
+  if(!window.Mp4Muxer) return null;
+  return { vc, au };
+}
+/* the soundtrack, mixed ahead of time (same music, voice and effects as the live recording) */
+async function rlMixAudio(R){
+  const sr = 48000, oac = new OfflineAudioContext(2, Math.ceil((R.tl.total + 0.3) * sr), sr);
+  // the music code schedules "a little ahead of now": here "now" is far away, so everything is scheduled at once
+  const px = new Proxy(oac, { get(t, k){ if(k === 'currentTime') return 1e7; const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } });
+  const dest = oac.destination;
+  const stop = RL.music !== 'none' ? rlAudio(px, dest, R, 0) : null;
+  if(RL.music === 'none' && R.vo) rlSfx(px, dest, R, 0);
+  voPlay(px, dest, R, 0);
+  try{ return await oac.startRendering(); } finally { if(stop) try{ stop(); }catch(e){} }
+}
+async function rlEncodeOffline(WC, R, ctx, onFrame, onProg){
+  const M = window.Mp4Muxer, target = new M.ArrayBufferTarget(), fps = 30, total = R.tl.total;
+  const muxer = new M.Muxer({ target, fastStart: 'in-memory', firstTimestampBehavior: 'offset',
+    video: { codec: 'avc', width: RW, height: RH, frameRate: fps },
+    audio: WC.au ? { codec: WC.au.mux, numberOfChannels: 2, sampleRate: 48000 } : undefined });
+  let err = null;
+  const venc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { err = e; } });
+  venc.configure(WC.vc);
+  // 1) sound
+  if(WC.au){
+    onProg(0, 'sound');
+    const buf = await rlMixAudio(R); if(RL.cancel) throw new Error('cancel');
+    const aenc = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { err = e; } });
+    aenc.configure(WC.au.cfg);
+    const L = buf.getChannelData(0), Rr = buf.numberOfChannels > 1 ? buf.getChannelData(1) : L, step = 4800;
+    for(let i = 0; i < buf.length; i += step){
+      const nn = Math.min(step, buf.length - i), d = new Float32Array(nn * 2);
+      d.set(L.subarray(i, i + nn), 0); d.set(Rr.subarray(i, i + nn), nn);
+      const ad = new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: nn, numberOfChannels: 2, timestamp: Math.round(i / 48000 * 1e6), data: d });
+      aenc.encode(ad); ad.close();
+      if(aenc.encodeQueueSize > 20) await rlTick();
+    }
+    await aenc.flush(); aenc.close();
+    if(err) throw err;
+  }
+  // 2) picture, frame by frame
+  const N = Math.max(1, Math.ceil(total * fps)), cv = ctx.canvas;
+  for(let f = 0; f < N; f++){
+    if(RL.cancel) throw new Error('cancel');
+    if(err) throw err;
+    const tt = Math.min(f / fps, total - 0.001);
+    await onFrame(tt);
+    rlFrame(ctx, R, tt);
+    const vf = new VideoFrame(cv, { timestamp: Math.round(f * 1e6 / fps), duration: Math.round(1e6 / fps) });
+    venc.encode(vf, { keyFrame: f % (fps * 2) === 0 }); vf.close();
+    while(venc.encodeQueueSize > 4 && !err) await rlTick();
+    if(f % 2 === 0) await rlTick();
+    if(f % 6 === 0) onProg(f / N, 'video', tt);
+  }
+  await venc.flush(); venc.close();
+  if(err) throw err;
+  muxer.finalize();
+  return new Blob([target.buffer], { type: 'video/mp4' });
+}
+/* ✅ after a finished export the "create video" button stays hidden; a double-click (or double-tap) on the badge brings it back */
+function rlSig(){ return RL.items.map(x => x.link).join('|') + '#' + RL.items.length; }
+function rlDoneUi(){
+  const done = !!(RL.blob && RL.doneLock && RL.doneSig === rlSig() && !RL.busy);
+  $('rlMake').classList.toggle('hidden', done); $('rlDone').classList.toggle('hidden', !done);
 }
 async function rlMake(){
   if(RL.busy || !RL.items.length) return;
   rlPvStop();
   const mime = rlMime(RL.music !== 'none' || VO.on);
   if(mime === null || !$('rlCanvas').captureStream){ toast(t('rlNoRec')); return; }
-  rlSyncTexts(); RL.cancel = false; rlBusy(true);
+  rlSyncTexts(); RL.cancel = false; rlBusy(true); RL.doneLock = false; bgStart(); let made = false;
   const v = $('rlVideo'); try{ v.pause(); }catch(e){}
   rlShowVideo(false);
   let ac = null, lock = null, stopAudio = null, stream = null;
@@ -11044,13 +11266,13 @@ async function rlMake(){
     await ensureFonts();
     const items = RL.items.slice(), st = RL.style, R = rlMakeR(items, st), n = items.length;
     await rlMusEnsure();
-    if(ac && RL.music === 'file' && RL.musicAB){ try{ R.musicBuf = await ac.decodeAudioData(RL.musicAB.slice(0)); }catch(e){ R.musicBuf = null; } }
+    if(ac && rlMusicAB()){ try{ R.musicBuf = await ac.decodeAudioData(rlMusicAB().slice(0)); }catch(e){ R.musicBuf = null; } }
     // a) photos (4 at a time)
     let done = 0, miss = 0; const imgs = new Array(n);
     prog(tf('rlPrep', { a: nwNum(0), b: nwNum(n) }), 0);
     let next = 0;
     const pText = () => tf('rlPrep', { a: nwNum(done), b: nwNum(n) }) + (RL.genBusy > 0 ? ' · ' + t('rlGenNow') : '');
-    const pTick = setInterval(() => { if(!RL.cancel) prog(pText(), done / n * 0.9); }, 700);
+    const pTick = setInterval(() => { if(!RL.cancel){ prog(pText(), done / n * 0.9); bgProgress(done / n * 8); } }, 700);
     try{
       await Promise.all(Array.from({ length: Math.min(6, n) }, async () => {
         while(next < n && !RL.cancel){ const i = next++; imgs[i] = await rlImgSafe(items[i], 150000); done++; prog(pText(), done / n * 0.9); }
@@ -11084,6 +11306,27 @@ async function rlMake(){
     const cv = $('rlCanvas'), ctx = cv.getContext('2d');
     rlFrame(ctx, R, 0);
     try{ const tc = document.createElement('canvas'); tc.width = RW; tc.height = RH; rlFrame(tc.getContext('2d'), R, 1.2); RL.thumb = null; tc.toBlob(b => { RL.thumb = b; }, 'image/jpeg', 0.92); }catch(e){ RL.thumb = null; }
+    const total = R.tl.total;
+    // c1) frame by frame — keeps going in the background (not for stories with real video footage)
+    let blob = null;
+    const WC = items.some(x => x.o && x.o.vclip) ? null : await rlWcSetup(RL.music !== 'none' || VO.on);
+    if(WC){
+      try{ if(navigator.wakeLock && !document.hidden) lock = await navigator.wakeLock.request('screen'); }catch(e){}
+      let lastCi = -1;
+      const onFrame = async tt => {
+        const seg = R.tl.segs.find(s => tt < s.s + s.d), ci = seg && seg.k === 'card' ? seg.i : seg && seg.k === 'outro' ? n - 1 : 0;
+        if(ci !== lastCi){ lastCi = ci; keepNear(ci); if(many){ await want(ci); for(let k = 0; k < 200 && R.bmp.get(ci) === null; k++) await rlTick(); } }
+      };
+      const onProg = (f, what, tt) => {
+        const pct = 8 + f * 92;
+        prog(what === 'sound' ? 'মিউজিক ও শব্দ তৈরি হচ্ছে…' : 'ভিডিও তৈরি হচ্ছে… ' + nwNum(Math.min(100, Math.floor(pct))) + '% · অ্যাপ বন্ধ বা স্ক্রিন অফ করলেও চলবে', f);
+        bgProgress(pct, Math.floor(pct) + '%');
+      };
+      try{ blob = await rlEncodeOffline(WC, R, ctx, onFrame, onProg); }
+      catch(e){ if(e && e.message === 'cancel') throw e; console.warn('frame-by-frame export failed, filming in real time instead', e); blob = null; }
+    }
+    if(!blob){
+    // c2) record in real time (older browsers)
     stream = cv.captureStream(30);
     const tracks = stream.getVideoTracks().slice();
     let T0 = 0;
@@ -11097,37 +11340,40 @@ async function rlMake(){
     const rec = new MediaRecorder(ms, o), chunks = [];
     rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
     const stopped = new Promise(r => { rec.onstop = r; });
-    try{ if(navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); }catch(e){}
+    try{ if(navigator.wakeLock && !lock) lock = await navigator.wakeLock.request('screen'); }catch(e){}
     rec.start(1000);
-    const t0 = performance.now() + 150, total = R.tl.total;
+    const t0 = performance.now() + 150;
+    // while the tab is hidden the screen's frame timer stops: a worker timer keeps the frames coming
+    let wk = null;
+    try{ wk = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 33)'], { type: 'text/javascript' }))); }catch(e){ wk = null; }
     let lastP = 0, lastCi = -1;
     let loopErr = null;
     await new Promise(res => {
       const loop = () => { try{ step(); }catch(e){ loopErr = e; res(); } };
       const step = () => {
         if(RL.cancel){ res(); return; }
-        if(document.hidden){ RL.cancel = 'hidden'; res(); return; }
         const tt = Math.max(0, (performance.now() - t0) / 1000);
         if(tt >= total){ rlFrame(ctx, R, total - 0.001); res(); return; }
         const seg = R.tl.segs.find(s => tt < s.s + s.d), ci = seg && seg.k === 'card' ? seg.i : seg && seg.k === 'outro' ? n - 1 : 0;
         if(ci !== lastCi){ lastCi = ci; keepNear(ci); }
         rlFrame(ctx, R, tt);
         const now = performance.now();
-        if(now - lastP > 300){ lastP = now; prog(tf('rlRec', { p: nwNum(Math.min(100, Math.floor(tt / total * 100))), a: nwMin(Math.floor(tt)), b: nwMin(total) }), tt / total); }
+        if(now - lastP > 300){ lastP = now; prog(tf('rlRec', { p: nwNum(Math.min(100, Math.floor(tt / total * 100))), a: nwMin(Math.floor(tt)), b: nwMin(total) }), tt / total); bgProgress(8 + tt / total * 92); }
         nextF();
       };
       // next frame: normally the screen's own timing; if the phone holds that back (busy graphics), a timer keeps the video moving
       let fid = 0;
-      const nextF = () => { const id = ++fid, go = () => { if(id === fid){ fid++; loop(); } }; requestAnimationFrame(go); setTimeout(go, 70); };
+      const nextF = () => { const id = ++fid, go = () => { if(id === fid){ fid++; loop(); } }; requestAnimationFrame(go); setTimeout(go, 70); if(wk) wk.onmessage = go; };
       nextF();
     });
+    if(wk) try{ wk.terminate(); }catch(e){}
     await sleep(RL.cancel || loopErr ? 0 : 300);
     try{ rec.stop(); }catch(e){}
     if(loopErr) throw loopErr;
     await Promise.race([stopped, sleep(4000)]);
     if(RL.cancel) throw new Error(RL.cancel === 'hidden' ? 'hidden' : 'cancel');
     const type = (rec.mimeType || mime || 'video/webm').split(';')[0];
-    let blob = new Blob(chunks, { type });
+    blob = new Blob(chunks, { type });
     if(!blob.size) throw new Error('empty');
     if(/mp4/.test(type)){             // Chrome's MP4 says its length is 0 — Facebook then refuses it ("at least 3 seconds"); rewrite it as a normal MP4
       try{ const r = mp4Faststart(await blob.arrayBuffer()); if(r && r.secs > 1) blob = new Blob([r.data], { type: 'video/mp4' }); }catch(e){ console.warn('mp4 fix', e); }
@@ -11138,12 +11384,14 @@ async function rlMake(){
         if(window.ysFixWebmDuration) blob = await window.ysFixWebmDuration(blob, Math.round(total * 1000), { logger: false });
       }catch(e){}
     }
+    }
     if(RL.url) URL.revokeObjectURL(RL.url);
     RL.blob = blob; RL.url = URL.createObjectURL(blob);
     v.src = RL.url; rlShowVideo(true);
     rlAfterExport();                                     // no auto-play while muted
     RL.vidStyle = st;                                    // separate cards keep the look of this video
     RL.style = rlNewStyle(RL.style);                     // next reel gets a different motion, colours and music
+    RL.doneLock = true; RL.doneSig = rlSig(); made = true;
     toast(t('rlDone'));
   }catch(e){
     if(e && e.message === 'hidden') toast(t('rlHidden'));
@@ -11156,11 +11404,17 @@ async function rlMake(){
     if(ac) try{ ac.close(); }catch(e){}
     if(lock) try{ lock.release(); }catch(e){}
     bmps.forEach(bm => { try{ bm.close(); }catch(e){} });
-    rlBusy(false); rlTexts();
+    bgStop(made);
+    rlBusy(false); rlTexts(); rlDoneUi();
     if(!RL.blob) rlPreview();
   }
 }
 $('rlMake').addEventListener('click', rlMake);
+{ const d = $('rlDone'); let last = 0;
+  const unlock = () => { RL.doneLock = false; rlDoneUi(); toast('আবার ভিডিও বানাতে "ভিডিও তৈরি করুন" চাপুন'); };
+  d.addEventListener('dblclick', e => { e.preventDefault(); unlock(); });
+  d.addEventListener('click', () => { const now = Date.now(); if(now - last < 450){ last = 0; unlock(); return; } last = now;
+    const r = $('rlRes'); if(r && !r.classList.contains('hidden')) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); }); }
 $('rlCancel').addEventListener('click', () => { RL.cancel = true; });
 function rlFile(){
   const ext = /mp4/.test(RL.blob.type) ? 'mp4' : 'webm', d = new Date();
@@ -12962,10 +13216,150 @@ async function ppOpenPaper(p){
       return;
     }catch(e){ PP.iabOpen = false; console.error('pp open', e); toast(t('tPpOpenFail')); return; }
   }
-  try{ window.open(p.u, '_blank', 'noopener'); }catch(e){ location.href = p.u; return; }
-  toast(t('tPpTab'));
-  setTimeout(() => { const i = $('ppLink'); if(i) i.focus({ preventScroll: true }); }, 400);
+  if(window.tfShell){ try{ window.open(p.u, '_blank', 'noopener'); }catch(e){ location.href = p.u; return; } toast(t('tPpTab')); return; }
+  pwOpen(p);                                      // web: the paper's stories are listed right here
 }
+/* ---------------- 🌐 web: browse a paper inside the app ----------------
+   A web page cannot look inside another site's tab, so on the web the paper's own pages are read here
+   (through the same helpers that read articles) and shown as a list of its stories, in the paper's order:
+   tap ＋ to add a story to the reel list, 🖼 for a photo card; the section chips open সারাদেশ, রাজনীতি … */
+const PW = { paper: null, url: '', hist: [], tok: 0, items: [], secs: [] };
+async function pwFetch(url){
+  const tries = [];
+  if(S.worker){ const w = S.worker.trim(); tries.push(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + encodeURIComponent(url)); }
+  tries.push('https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(url),
+    'https://corsproxy.io/?url=' + encodeURIComponent(url), 'https://api.allorigins.win/get?url=' + encodeURIComponent(url));
+  try{
+    return await Promise.any(tries.map(async p => {
+      let html = await getText(p, 16000);
+      if(p.includes('/get?')){ try{ html = JSON.parse(html).contents || ''; }catch(e){ html = ''; } }
+      if(!html || html.length < 1500 || !/<a\s/i.test(html)) throw new Error('thin');
+      return { html };
+    }));
+  }catch(e){}
+  const raw = await getText('https://r.jina.ai/' + url, 30000, { 'Accept': 'application/json', 'X-Return-Format': 'html', 'X-With-Images-Summary': 'false' });
+  let html = raw; try{ const j = JSON.parse(raw); html = (j && j.data && (j.data.html || j.data.content)) || ''; }catch(e){}
+  if(!html || !/<a\s/i.test(html)) throw new Error('BLOCKED');
+  return { html };
+}
+function pwImgOf(el, base){
+  const pick = im => { const s = im.getAttribute('data-src') || im.getAttribute('data-original') || im.getAttribute('data-lazy-src') || (im.getAttribute('srcset') || im.getAttribute('data-srcset') || '').split(',').map(x => x.trim().split(' ')[0]).filter(Boolean).pop() || im.getAttribute('src') || '';
+    const u = nwAbs(s, base); return /^https?:/.test(u) && !/\.svg(\?|$)|logo|icon|placeholder|blank\.|spacer|1x1|pixel|loader/i.test(u) ? u : ''; };
+  for(let n = el, k = 0; n && k < 4; n = n.parentElement, k++){
+    const ims = n.querySelectorAll('img'); for(const im of ims){ const u = pick(im); if(u) return u; }
+    const src = n.querySelector('source[srcset], source[data-srcset]'); if(src){ const u = nwAbs((src.getAttribute('srcset') || src.getAttribute('data-srcset') || '').split(',')[0].trim().split(' ')[0], base); if(/^https?:/.test(u)) return u; }
+    const bg = n.querySelector('[style*="background-image"]'); if(bg){ const m = bg.getAttribute('style').match(/url\(['"]?([^'")]+)/); if(m){ const u = nwAbs(m[1], base); if(/^https?:/.test(u)) return u; } }
+    if(n.matches && n.matches('article, li, section')) break;
+  }
+  return '';
+}
+function pwParse(html, url, paper){
+  const doc = new DOMParser().parseFromString(html, 'text/html'), base = url;
+  doc.querySelectorAll('script, style, noscript, iframe, form').forEach(e => e.remove());
+  const host = (paper && paper.host) || hostOf(url), same = h => h && (h === host || h.endsWith('.' + host) || host.endsWith('.' + h));
+  const seen = new Map(), secs = new Map(), out = [];
+  doc.querySelectorAll('a[href]').forEach(a => {
+    const href = nwAbs(a.getAttribute('href') || '', base); if(!/^https?:/.test(href)) return;
+    let U; try{ U = new URL(href); }catch(e){ return; }
+    if(!same(U.hostname.replace(/^www\d?\./, '')) && !same(U.hostname)) return;
+    const path = decodeURIComponent(U.pathname).replace(/\/+$/, ''), parts = path.split('/').filter(Boolean);
+    const text = norm((a.getAttribute('title') && a.textContent.trim().length < 8 ? a.getAttribute('title') : a.textContent) || '').replace(/\s+/g, ' ');
+    if(/\/(tag|tags|topic|author|writer|video|videos|photo|photos|gallery|epaper|e-paper|search|login|subscribe|about|contact|privacy|terms|advertis)(\/|$)/i.test(path)) return;
+    const words = text.split(' ').length;
+    const looksStory = words >= 4 && text.length >= 18 && (parts.length >= 2 || /\d{4,}/.test(path) || /[-_][^/]{12,}$/.test(path));
+    if(looksStory){
+      const k = (U.hostname.replace(/^www\d?\./, '') + path).toLowerCase();
+      const old = seen.get(k);
+      if(old){ if(!old.img) old.img = pwImgOf(a, base); if(text.length > old.title.length && text.length < 160) old.title = text; return; }
+      const it = { title: text.slice(0, 180), link: U.origin + U.pathname, img: pwImgOf(a, base) };
+      seen.set(k, it); out.push(it);
+    } else if(parts.length >= 1 && parts.length <= 2 && text.length >= 2 && text.length <= 22 && words <= 3 && !/\d{4,}/.test(path)){
+      const k = path.toLowerCase(); if(!secs.has(k)) secs.set(k, { name: text, link: U.origin + U.pathname });
+    }
+  });
+  // the paper's own important sections first (সারাদেশ, রাজনীতি, বিশ্ব …)
+  const pri = s => /সারাদেশ|সারা দেশ|দেশ|জাতীয়|রাজনীতি|বিশ্ব|আন্তর্জাতিক|বাংলাদেশ|national|country|politic|world|international/i.test(s.name + ' ' + s.link) ? 0 : /খেলা|বিনোদন|লাইফ|ধর্ম|চাকরি|ফিচার|sport|entertain|lifestyle|religion|job/i.test(s.name + ' ' + s.link) ? 2 : 1;
+  const sl = [...secs.values()].filter(s => !/লগইন|সাবস্ক্রাইব|ই-পেপার|আর্কাইভ|যোগাযোগ|বিজ্ঞাপন|login|archive|contact/i.test(s.name)).slice(0, 40).sort((a, b) => pri(a) - pri(b)).slice(0, 18);
+  return { items: out.slice(0, 120), secs: sl };
+}
+const pwSheet = (() => {
+  const el = document.createElement('div'); el.id = 'pwSheet'; el.className = 'nsheet hidden no-print'; el.setAttribute('role', 'dialog');
+  el.innerHTML = '<div class="nsbox"><div class="nshead"><button type="button" class="btn" id="pwBack" aria-label="back">←</button><b id="pwTitle"></b><span class="nwupd" id="pwSub"></span>' +
+    '<button type="button" class="btn" id="pwTab" title="নতুন ট্যাবে খুলুন">↗</button><button type="button" class="btn" id="pwRe" title="refresh">🔄</button><button type="button" class="x" id="pwClose" aria-label="close">×</button></div>' +
+    '<div id="pwSecs" class="nwchips nwcats"></div><div id="pwState" class="nwstate"></div><div id="pwList" class="nwlist"></div>' +
+    '<div class="pwfoot"><span id="pwCount"></span><button type="button" class="btn primary" id="pwReel"></button></div></div>';
+  document.body.appendChild(el);
+  const css = document.createElement('style');
+  css.textContent = '#pwSheet{z-index:95}#pwSheet .nshead b{overflow:hidden;text-overflow:ellipsis}#pwBack{min-height:34px;padding:2px 10px}#pwTab,#pwRe{min-height:34px;padding:2px 9px}' +
+    '.pwit{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}.pwit .nwthumb{flex:none}.pwit .pwt{flex:1;min-width:0;font-weight:700;font-size:15px;line-height:1.45;cursor:pointer}' +
+    '.pwit .pwb{display:flex;flex-direction:column;gap:5px;flex:none}.pwit .pwb button{min-width:46px;min-height:34px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:15px;cursor:pointer}' +
+    '.pwit .pwb button.on{background:#16a34a;border-color:#16a34a;color:#fff}.pwfoot{display:flex;align-items:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}' +
+    '.pwfoot span{flex:1;font-weight:700}.pwfoot .btn{min-height:42px}';
+  document.head.appendChild(css);
+  return el;
+})();
+function pwRenderFoot(){ const n = PP.basket.length; $('pwCount').textContent = n ? '📋 ' + nwNum(n) + 'টি খবর বাছাই' : 'খবরের পাশে ＋ চাপুন'; $('pwReel').textContent = '🎬 রিল বানান'; $('pwReel').disabled = !n; }
+function pwRender(){
+  const list = $('pwList'); list.innerHTML = '';
+  PW.items.forEach((o, i) => {
+    const d = document.createElement('div'); d.className = 'pwit';
+    const on = ppHas(o.link);
+    d.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : '📰') + '</span><span class="pwt" data-open="' + i + '"></span>' +
+      '<span class="pwb"><button type="button" data-add="' + i + '" class="' + (on ? 'on' : '') + '" title="রিলের তালিকায় যোগ">' + (on ? '✓' : '＋') + '</button><button type="button" data-card="' + i + '" title="ফটো কার্ড">🖼</button></span>';
+    d.querySelector('.pwt').textContent = o.title;
+    if(o.img){ const im = d.querySelector('img'); im.onerror = () => { if(!im.dataset.f){ im.dataset.f = 1; im.src = o.img; } else im.parentNode.textContent = '📰'; }; im.src = proxImg(o.img, 240); }
+    list.appendChild(d);
+  });
+  const sb = $('pwSecs'); sb.innerHTML = '';
+  PW.secs.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (s.link === PW.url ? ' on' : ''); b.dataset.sec = i; b.textContent = s.name; sb.appendChild(b); });
+  $('pwBack').disabled = !PW.hist.length;
+  pwRenderFoot();
+}
+async function pwLoad(url, push){
+  if(push && PW.url) PW.hist.push(PW.url);
+  PW.url = url; const tok = ++PW.tok;
+  $('pwList').innerHTML = ''; $('pwState').innerHTML = '<span class="spin"></span> পত্রিকার পাতা আনা হচ্ছে…'; $('pwSub').textContent = hostOf(url);
+  try{
+    const { html } = await pwFetch(url); if(tok !== PW.tok) return;
+    const r = pwParse(html, url, PW.paper);
+    PW.items = r.items; if(r.secs.length || !PW.secs.length) PW.secs = r.secs.length ? r.secs : PW.secs;
+    $('pwState').textContent = PW.items.length ? '' : 'এই পাতায় খবর পাওয়া যায়নি — উপরের বিভাগ বা ↗ দিয়ে চেষ্টা করুন।';
+    pwRender(); $('pwList').scrollTop = 0;
+  }catch(e){
+    if(tok !== PW.tok) return;
+    $('pwState').innerHTML = 'পত্রিকার পাতা এখানে আনা যায়নি। ↗ চেপে নতুন ট্যাবে খুলে খবরের লিংক কপি করে "লিংক" ঘরে দিন' + (S.worker ? '' : ', অথবা লাইভ নিউজের ⚙️ প্রক্সি যোগ করুন') + '।';
+    pwRender();
+  }
+}
+function pwOpen(p){
+  PW.paper = p; PW.hist = []; PW.secs = []; PW.items = []; PW.url = '';
+  $('pwTitle').textContent = ppName(p); pwSheet.classList.remove('hidden'); document.body.classList.add('nwlock');
+  try{ history.pushState({ pw: 1 }, ''); }catch(e){}
+  pwLoad(p.u, false);
+}
+function pwClose(fromPop){
+  if(pwSheet.classList.contains('hidden')) return;
+  pwSheet.classList.add('hidden'); PW.tok++;
+  if(!fromPop){ try{ if(history.state && history.state.pw) history.back(); }catch(e){} }
+  try{ ppRenderBasket(); }catch(e){}
+}
+$('pwClose').addEventListener('click', () => pwClose());
+$('pwRe').addEventListener('click', () => pwLoad(PW.url, false));
+$('pwBack').addEventListener('click', () => { const u = PW.hist.pop(); if(u) pwLoad(u, false); });
+$('pwTab').addEventListener('click', () => { try{ window.open(PW.url, '_blank', 'noopener'); }catch(e){} });
+$('pwReel').addEventListener('click', () => { pwClose(); setTimeout(ppMakeReel, 60); });
+window.addEventListener('popstate', () => { if(!pwSheet.classList.contains('hidden')) pwClose(true); });
+$('pwSecs').addEventListener('click', e => { const b = e.target.closest('[data-sec]'); if(!b) return; const s = PW.secs[+b.dataset.sec]; if(s) pwLoad(s.link, true); });
+$('pwList').addEventListener('click', e => {
+  const a = e.target.closest('[data-add]'), c = e.target.closest('[data-card]'), o = e.target.closest('[data-open]');
+  if(a){ const it = PW.items[+a.dataset.add]; if(!it) return;
+    if(ppHas(it.link)){ ppRemove(it.link); toast(t('tPpRemoved')); }
+    else { const n = ppAddItem({ url: it.link, title: it.title, img: it.img, imgs: it.img ? [it.img] : [] }); toast(n ? tf('tPpAdded', { n: nwNum(n) }) : t('tPpHad')); }
+    pwRender(); return; }
+  if(c){ const it = PW.items[+c.dataset.card]; if(!it) return; pwClose(); ppClose(); nwPick(ppItemObj({ title: it.title, link: it.link, img: it.img })); return; }
+  if(o){ const it = PW.items[+o.dataset.open]; if(it) try{ window.open(it.link, '_blank', 'noopener'); }catch(e){} }
+});
+
 
 /* ---------------- making a card / a reel ---------------- */
 async function ppCardFromPage(p){

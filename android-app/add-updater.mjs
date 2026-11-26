@@ -14,6 +14,7 @@ if (cfg.appId !== 'com.taiful.tfnewscraft') throw new Error('appId changed — u
 
 copyFileSync(join(here, 'native', 'TFUpdaterPlugin.java'), join(pkgDir, 'TFUpdaterPlugin.java'));
 copyFileSync(join(here, 'native', 'TFPickerPlugin.java'), join(pkgDir, 'TFPickerPlugin.java'));   // native picture picker for the logo
+for (const f of ['TFWorkPlugin.java', 'TFWorkService.java']) copyFileSync(join(here, 'native', f), join(pkgDir, f));   // background video export
 
 const actPath = join(pkgDir, 'MainActivity.java');
 let act = readFileSync(actPath, 'utf8');
@@ -25,6 +26,7 @@ if (!act.includes('TFUpdaterPlugin')) {
     '    public void onCreate(android.os.Bundle savedInstanceState) {\n' +
     '        registerPlugin(TFUpdaterPlugin.class);\n' +
     '        registerPlugin(TFPickerPlugin.class);\n' +
+    '        registerPlugin(TFWorkPlugin.class);\n' +
     '        super.onCreate(savedInstanceState);\n' +
     '    }\n' +
     '}');
@@ -40,6 +42,16 @@ if (!man.includes('REQUEST_INSTALL_PACKAGES')) {
   writeFileSync(manPath, man);
 }
 if (!man.includes('androidx.core.content.FileProvider')) throw new Error('FileProvider missing from the manifest');
+// background video export: foreground service + wake lock + progress notification
+man = readFileSync(manPath, 'utf8');
+if (!man.includes('TFWorkService')) {
+  const perms = ['android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_DATA_SYNC', 'android.permission.WAKE_LOCK', 'android.permission.POST_NOTIFICATIONS']
+    .filter(x => !man.includes('"' + x + '"')).map(x => '    <uses-permission android:name="' + x + '" />').join('\n');
+  man = man.replace('<uses-permission android:name="android.permission.INTERNET" />', '<uses-permission android:name="android.permission.INTERNET" />\n' + perms);
+  man = man.replace('</application>', '        <service android:name=".TFWorkService" android:exported="false" android:foregroundServiceType="dataSync" />\n    </application>');
+  if (!man.includes('TFWorkService') || !man.includes('FOREGROUND_SERVICE_DATA_SYNC')) throw new Error('could not add the export service to the manifest');
+  writeFileSync(manPath, man);
+}
 
 const fpPath = join(main, 'res', 'xml', 'file_paths.xml');
 let fp = existsSync(fpPath) ? readFileSync(fpPath, 'utf8') : '<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n</paths>';
@@ -47,5 +59,5 @@ if (!fp.includes('tf-update')) {
   fp = fp.replace('</paths>', '    <cache-path name="tf_update" path="tf-update/" />\n</paths>');
   writeFileSync(fpPath, fp);
 }
-if (!readFileSync(actPath, 'utf8').includes('TFPickerPlugin')) throw new Error('TFPickerPlugin not registered');
+if (!readFileSync(actPath, 'utf8').includes('TFPickerPlugin') || !readFileSync(actPath, 'utf8').includes('TFWorkPlugin')) throw new Error('plugins not registered');
 console.log('in-app updater + logo picker added');

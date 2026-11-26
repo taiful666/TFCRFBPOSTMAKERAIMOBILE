@@ -26,4 +26,10 @@ if (existsSync(join(root, 'fonts'))) {
   mkdirSync(join(www, 'fonts'), { recursive: true });
   for (const f of readdirSync(join(root, 'fonts'))) copyFileSync(join(root, 'fonts', f), join(www, 'fonts', f));
 }
+// the app's own default reel music
+if (existsSync(join(root, 'music'))) {
+  mkdirSync(join(www, 'music'), { recursive: true });
+  for (const f of readdirSync(join(root, 'music'))) copyFileSync(join(root, 'music', f), join(www, 'music', f));
+}
+if (!existsSync(join(www, 'music', 'tf-news-default.mp3'))) throw new Error('default music missing');
 console.log('www ready');

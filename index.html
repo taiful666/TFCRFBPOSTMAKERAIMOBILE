@@ -13216,10 +13216,150 @@ async function ppOpenPaper(p){
       return;
     }catch(e){ PP.iabOpen = false; console.error('pp open', e); toast(t('tPpOpenFail')); return; }
   }
-  try{ window.open(p.u, '_blank', 'noopener'); }catch(e){ location.href = p.u; return; }
-  toast(t('tPpTab'));
-  setTimeout(() => { const i = $('ppLink'); if(i) i.focus({ preventScroll: true }); }, 400);
+  if(window.tfShell){ try{ window.open(p.u, '_blank', 'noopener'); }catch(e){ location.href = p.u; return; } toast(t('tPpTab')); return; }
+  pwOpen(p);                                      // web: the paper's stories are listed right here
 }
+/* ---------------- 🌐 web: browse a paper inside the app ----------------
+   A web page cannot look inside another site's tab, so on the web the paper's own pages are read here
+   (through the same helpers that read articles) and shown as a list of its stories, in the paper's order:
+   tap ＋ to add a story to the reel list, 🖼 for a photo card; the section chips open সারাদেশ, রাজনীতি … */
+const PW = { paper: null, url: '', hist: [], tok: 0, items: [], secs: [] };
+async function pwFetch(url){
+  const tries = [];
+  if(S.worker){ const w = S.worker.trim(); tries.push(w + (w.includes('?') ? '&' : (w.endsWith('/') ? '?' : '/?')) + 'url=' + encodeURIComponent(url)); }
+  tries.push('https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(url),
+    'https://corsproxy.io/?url=' + encodeURIComponent(url), 'https://api.allorigins.win/get?url=' + encodeURIComponent(url));
+  try{
+    return await Promise.any(tries.map(async p => {
+      let html = await getText(p, 16000);
+      if(p.includes('/get?')){ try{ html = JSON.parse(html).contents || ''; }catch(e){ html = ''; } }
+      if(!html || html.length < 1500 || !/<a\s/i.test(html)) throw new Error('thin');
+      return { html };
+    }));
+  }catch(e){}
+  const raw = await getText('https://r.jina.ai/' + url, 30000, { 'Accept': 'application/json', 'X-Return-Format': 'html', 'X-With-Images-Summary': 'false' });
+  let html = raw; try{ const j = JSON.parse(raw); html = (j && j.data && (j.data.html || j.data.content)) || ''; }catch(e){}
+  if(!html || !/<a\s/i.test(html)) throw new Error('BLOCKED');
+  return { html };
+}
+function pwImgOf(el, base){
+  const pick = im => { const s = im.getAttribute('data-src') || im.getAttribute('data-original') || im.getAttribute('data-lazy-src') || (im.getAttribute('srcset') || im.getAttribute('data-srcset') || '').split(',').map(x => x.trim().split(' ')[0]).filter(Boolean).pop() || im.getAttribute('src') || '';
+    const u = nwAbs(s, base); return /^https?:/.test(u) && !/\.svg(\?|$)|logo|icon|placeholder|blank\.|spacer|1x1|pixel|loader/i.test(u) ? u : ''; };
+  for(let n = el, k = 0; n && k < 4; n = n.parentElement, k++){
+    const ims = n.querySelectorAll('img'); for(const im of ims){ const u = pick(im); if(u) return u; }
+    const src = n.querySelector('source[srcset], source[data-srcset]'); if(src){ const u = nwAbs((src.getAttribute('srcset') || src.getAttribute('data-srcset') || '').split(',')[0].trim().split(' ')[0], base); if(/^https?:/.test(u)) return u; }
+    const bg = n.querySelector('[style*="background-image"]'); if(bg){ const m = bg.getAttribute('style').match(/url\(['"]?([^'")]+)/); if(m){ const u = nwAbs(m[1], base); if(/^https?:/.test(u)) return u; } }
+    if(n.matches && n.matches('article, li, section')) break;
+  }
+  return '';
+}
+function pwParse(html, url, paper){
+  const doc = new DOMParser().parseFromString(html, 'text/html'), base = url;
+  doc.querySelectorAll('script, style, noscript, iframe, form').forEach(e => e.remove());
+  const host = (paper && paper.host) || hostOf(url), same = h => h && (h === host || h.endsWith('.' + host) || host.endsWith('.' + h));
+  const seen = new Map(), secs = new Map(), out = [];
+  doc.querySelectorAll('a[href]').forEach(a => {
+    const href = nwAbs(a.getAttribute('href') || '', base); if(!/^https?:/.test(href)) return;
+    let U; try{ U = new URL(href); }catch(e){ return; }
+    if(!same(U.hostname.replace(/^www\d?\./, '')) && !same(U.hostname)) return;
+    const path = decodeURIComponent(U.pathname).replace(/\/+$/, ''), parts = path.split('/').filter(Boolean);
+    const text = norm((a.getAttribute('title') && a.textContent.trim().length < 8 ? a.getAttribute('title') : a.textContent) || '').replace(/\s+/g, ' ');
+    if(/\/(tag|tags|topic|author|writer|video|videos|photo|photos|gallery|epaper|e-paper|search|login|subscribe|about|contact|privacy|terms|advertis)(\/|$)/i.test(path)) return;
+    const words = text.split(' ').length;
+    const looksStory = words >= 4 && text.length >= 18 && (parts.length >= 2 || /\d{4,}/.test(path) || /[-_][^/]{12,}$/.test(path));
+    if(looksStory){
+      const k = (U.hostname.replace(/^www\d?\./, '') + path).toLowerCase();
+      const old = seen.get(k);
+      if(old){ if(!old.img) old.img = pwImgOf(a, base); if(text.length > old.title.length && text.length < 160) old.title = text; return; }
+      const it = { title: text.slice(0, 180), link: U.origin + U.pathname, img: pwImgOf(a, base) };
+      seen.set(k, it); out.push(it);
+    } else if(parts.length >= 1 && parts.length <= 2 && text.length >= 2 && text.length <= 22 && words <= 3 && !/\d{4,}/.test(path)){
+      const k = path.toLowerCase(); if(!secs.has(k)) secs.set(k, { name: text, link: U.origin + U.pathname });
+    }
+  });
+  // the paper's own important sections first (সারাদেশ, রাজনীতি, বিশ্ব …)
+  const pri = s => /সারাদেশ|সারা দেশ|দেশ|জাতীয়|রাজনীতি|বিশ্ব|আন্তর্জাতিক|বাংলাদেশ|national|country|politic|world|international/i.test(s.name + ' ' + s.link) ? 0 : /খেলা|বিনোদন|লাইফ|ধর্ম|চাকরি|ফিচার|sport|entertain|lifestyle|religion|job/i.test(s.name + ' ' + s.link) ? 2 : 1;
+  const sl = [...secs.values()].filter(s => !/লগইন|সাবস্ক্রাইব|ই-পেপার|আর্কাইভ|যোগাযোগ|বিজ্ঞাপন|login|archive|contact/i.test(s.name)).slice(0, 40).sort((a, b) => pri(a) - pri(b)).slice(0, 18);
+  return { items: out.slice(0, 120), secs: sl };
+}
+const pwSheet = (() => {
+  const el = document.createElement('div'); el.id = 'pwSheet'; el.className = 'nsheet hidden no-print'; el.setAttribute('role', 'dialog');
+  el.innerHTML = '<div class="nsbox"><div class="nshead"><button type="button" class="btn" id="pwBack" aria-label="back">←</button><b id="pwTitle"></b><span class="nwupd" id="pwSub"></span>' +
+    '<button type="button" class="btn" id="pwTab" title="নতুন ট্যাবে খুলুন">↗</button><button type="button" class="btn" id="pwRe" title="refresh">🔄</button><button type="button" class="x" id="pwClose" aria-label="close">×</button></div>' +
+    '<div id="pwSecs" class="nwchips nwcats"></div><div id="pwState" class="nwstate"></div><div id="pwList" class="nwlist"></div>' +
+    '<div class="pwfoot"><span id="pwCount"></span><button type="button" class="btn primary" id="pwReel"></button></div></div>';
+  document.body.appendChild(el);
+  const css = document.createElement('style');
+  css.textContent = '#pwSheet{z-index:95}#pwSheet .nshead b{overflow:hidden;text-overflow:ellipsis}#pwBack{min-height:34px;padding:2px 10px}#pwTab,#pwRe{min-height:34px;padding:2px 9px}' +
+    '.pwit{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}.pwit .nwthumb{flex:none}.pwit .pwt{flex:1;min-width:0;font-weight:700;font-size:15px;line-height:1.45;cursor:pointer}' +
+    '.pwit .pwb{display:flex;flex-direction:column;gap:5px;flex:none}.pwit .pwb button{min-width:46px;min-height:34px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:15px;cursor:pointer}' +
+    '.pwit .pwb button.on{background:#16a34a;border-color:#16a34a;color:#fff}.pwfoot{display:flex;align-items:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}' +
+    '.pwfoot span{flex:1;font-weight:700}.pwfoot .btn{min-height:42px}';
+  document.head.appendChild(css);
+  return el;
+})();
+function pwRenderFoot(){ const n = PP.basket.length; $('pwCount').textContent = n ? '📋 ' + nwNum(n) + 'টি খবর বাছাই' : 'খবরের পাশে ＋ চাপুন'; $('pwReel').textContent = '🎬 রিল বানান'; $('pwReel').disabled = !n; }
+function pwRender(){
+  const list = $('pwList'); list.innerHTML = '';
+  PW.items.forEach((o, i) => {
+    const d = document.createElement('div'); d.className = 'pwit';
+    const on = ppHas(o.link);
+    d.innerHTML = '<span class="nwthumb">' + (o.img ? '<img loading="lazy" alt="" referrerpolicy="no-referrer">' : '📰') + '</span><span class="pwt" data-open="' + i + '"></span>' +
+      '<span class="pwb"><button type="button" data-add="' + i + '" class="' + (on ? 'on' : '') + '" title="রিলের তালিকায় যোগ">' + (on ? '✓' : '＋') + '</button><button type="button" data-card="' + i + '" title="ফটো কার্ড">🖼</button></span>';
+    d.querySelector('.pwt').textContent = o.title;
+    if(o.img){ const im = d.querySelector('img'); im.onerror = () => { if(!im.dataset.f){ im.dataset.f = 1; im.src = o.img; } else im.parentNode.textContent = '📰'; }; im.src = proxImg(o.img, 240); }
+    list.appendChild(d);
+  });
+  const sb = $('pwSecs'); sb.innerHTML = '';
+  PW.secs.forEach((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'nwchip' + (s.link === PW.url ? ' on' : ''); b.dataset.sec = i; b.textContent = s.name; sb.appendChild(b); });
+  $('pwBack').disabled = !PW.hist.length;
+  pwRenderFoot();
+}
+async function pwLoad(url, push){
+  if(push && PW.url) PW.hist.push(PW.url);
+  PW.url = url; const tok = ++PW.tok;
+  $('pwList').innerHTML = ''; $('pwState').innerHTML = '<span class="spin"></span> পত্রিকার পাতা আনা হচ্ছে…'; $('pwSub').textContent = hostOf(url);
+  try{
+    const { html } = await pwFetch(url); if(tok !== PW.tok) return;
+    const r = pwParse(html, url, PW.paper);
+    PW.items = r.items; if(r.secs.length || !PW.secs.length) PW.secs = r.secs.length ? r.secs : PW.secs;
+    $('pwState').textContent = PW.items.length ? '' : 'এই পাতায় খবর পাওয়া যায়নি — উপরের বিভাগ বা ↗ দিয়ে চেষ্টা করুন।';
+    pwRender(); $('pwList').scrollTop = 0;
+  }catch(e){
+    if(tok !== PW.tok) return;
+    $('pwState').innerHTML = 'পত্রিকার পাতা এখানে আনা যায়নি। ↗ চেপে নতুন ট্যাবে খুলে খবরের লিংক কপি করে "লিংক" ঘরে দিন' + (S.worker ? '' : ', অথবা লাইভ নিউজের ⚙️ প্রক্সি যোগ করুন') + '।';
+    pwRender();
+  }
+}
+function pwOpen(p){
+  PW.paper = p; PW.hist = []; PW.secs = []; PW.items = []; PW.url = '';
+  $('pwTitle').textContent = ppName(p); pwSheet.classList.remove('hidden'); document.body.classList.add('nwlock');
+  try{ history.pushState({ pw: 1 }, ''); }catch(e){}
+  pwLoad(p.u, false);
+}
+function pwClose(fromPop){
+  if(pwSheet.classList.contains('hidden')) return;
+  pwSheet.classList.add('hidden'); PW.tok++;
+  if(!fromPop){ try{ if(history.state && history.state.pw) history.back(); }catch(e){} }
+  try{ ppRenderBasket(); }catch(e){}
+}
+$('pwClose').addEventListener('click', () => pwClose());
+$('pwRe').addEventListener('click', () => pwLoad(PW.url, false));
+$('pwBack').addEventListener('click', () => { const u = PW.hist.pop(); if(u) pwLoad(u, false); });
+$('pwTab').addEventListener('click', () => { try{ window.open(PW.url, '_blank', 'noopener'); }catch(e){} });
+$('pwReel').addEventListener('click', () => { pwClose(); setTimeout(ppMakeReel, 60); });
+window.addEventListener('popstate', () => { if(!pwSheet.classList.contains('hidden')) pwClose(true); });
+$('pwSecs').addEventListener('click', e => { const b = e.target.closest('[data-sec]'); if(!b) return; const s = PW.secs[+b.dataset.sec]; if(s) pwLoad(s.link, true); });
+$('pwList').addEventListener('click', e => {
+  const a = e.target.closest('[data-add]'), c = e.target.closest('[data-card]'), o = e.target.closest('[data-open]');
+  if(a){ const it = PW.items[+a.dataset.add]; if(!it) return;
+    if(ppHas(it.link)){ ppRemove(it.link); toast(t('tPpRemoved')); }
+    else { const n = ppAddItem({ url: it.link, title: it.title, img: it.img, imgs: it.img ? [it.img] : [] }); toast(n ? tf('tPpAdded', { n: nwNum(n) }) : t('tPpHad')); }
+    pwRender(); return; }
+  if(c){ const it = PW.items[+c.dataset.card]; if(!it) return; pwClose(); ppClose(); nwPick(ppItemObj({ title: it.title, link: it.link, img: it.img })); return; }
+  if(o){ const it = PW.items[+o.dataset.open]; if(it) try{ window.open(it.link, '_blank', 'noopener'); }catch(e){} }
+});
+
 
 /* ---------------- making a card / a reel ---------------- */
 async function ppCardFromPage(p){

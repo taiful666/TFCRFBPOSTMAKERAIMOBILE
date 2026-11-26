@@ -1156,7 +1156,7 @@ html[data-theme="dark"] #metaDate,html[data-theme="dark"] .nwdate{background:tra
         </div>
         <div id="setLogoBox" style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--surface-2,var(--surface))">
           <div style="font-size:15px;font-weight:700;margin-bottom:8px">🖼️ আপনার পেজের লোগো</div>
-          <input type="file" id="logoFile" accept="image/*" class="hidden">
+          <input type="file" id="logoFile" accept="image/*,.jpg,.jpeg,.jfif,.png,.webp,.gif,.bmp,.heic,.heif,.avif,.svg,.ico,.tif,.tiff" class="hidden">
           <div class="srcprev"><img id="logoThumb" alt="" class="hidden" style="object-fit:contain;background:repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 0 0/12px 12px"><span id="logoInfo"></span></div>
           <div class="srow" style="margin:0">
             <button type="button" class="btn" id="logoUpBtn" data-i18n="logoUp"></button>
@@ -2866,7 +2866,7 @@ Object.assign(T.bn, {
   logoNone:'কোনো লোগো নেই — লোগো ছাড়াও কার্ড ঠিকমতো তৈরি হবে।',logoNote:'স্বচ্ছ (transparent) PNG সবচেয়ে ভালো। লোগো এই ব্রাউজারে মনে রাখা হবে।',
   previewCard:'🔍 বড় করে দেখুন',dlPng:'⬇ PNG ডাউনলোড',nextDesign:'🎲 নতুন ডিজাইন',resetCard:'↺ রিসেট',backEditor:'← এডিটরে ফিরুন',
   tCardDl:'কার্ড ডাউনলোড হয়েছে',tCardTaint:'⚠️ এই ছবিটি পত্রিকার সার্ভারের নিরাপত্তা সেটিংয়ের কারণে PNG-তে এক্সপোর্ট করা যাচ্ছে না। সমাধান: মূল পাতা থেকে ছবিটি কম্পিউটারে সেভ করে "আপলোড" দিয়ে দিন।',tImgLoadFail:'⚠️ ছবিটি লোড করা যায়নি — অন্য উৎস বেছে নিন বা নিজের ছবি আপলোড করুন।',loadingImg:'ছবি লোড হচ্ছে…',
-  tBadFile:'শুধু JPG, PNG, WEBP বা GIF ছবি দিন (ছবি সর্বোচ্চ ১৫ MB, লোগো ৫ MB)',tNoOrig:'এই খবরে মূল ছবি নেই',tNoAi:'আগে "AI ছবি" ট্যাবে একটি ছবি তৈরি করে "কার্ডে ব্যবহার" চাপুন',tLogoNoSave:'লোগো বসানো হয়েছে, কিন্তু ব্রাউজারে মনে রাখার জায়গা নেই', tLogoOk:'✔ লোগো বসানো হয়েছে', tLogoBig:'ছবিটা খুব বড় (৪০ MB-এর কম দিন)', tLogoRead:'এই ছবিটা ফোন খুলতে পারছে না — PNG বা JPG ছবি দিন (HEIC ছবি হলে স্ক্রিনশট নিয়ে সেটা দিন)',
+  tBadFile:'শুধু JPG, PNG, WEBP বা GIF ছবি দিন (ছবি সর্বোচ্চ ১৫ MB, লোগো ৫ MB)',tNoOrig:'এই খবরে মূল ছবি নেই',tNoAi:'আগে "AI ছবি" ট্যাবে একটি ছবি তৈরি করে "কার্ডে ব্যবহার" চাপুন',tLogoNoSave:'লোগো বসানো হয়েছে, কিন্তু ব্রাউজারে মনে রাখার জায়গা নেই', tLogoOk:'✔ লোগো বসানো হয়েছে', tLogoBig:'ছবিটা খুব বড় (৬০ MB-এর কম দিন)', tLogoRead:'এই ফাইলটা ছবি হিসেবে খোলা গেল না — ফাইলটা নষ্ট বা ছবি নয়। লোগোর একটা স্ক্রিনশট নিয়ে সেটা দিন।',
   labelAi:'AI দিয়ে তৈরি প্রতীকী ছবি',photoBy:'ছবি: ',srcPrefix:'তথ্যসূত্রঃ ',tCardReset:'কার্ড রিসেট হয়েছে',
   fbTitle:'📣 ফেসবুক পোস্ট প্রস্তুত',fbNote:'এটি সরাসরি ফেসবুকে পোস্ট করে না। পোস্টের লেখা কপি করুন এবং ফটো কার্ড ডাউনলোড করে নিজে ফেসবুকে আপলোড করুন।',fbPost:'পোস্টের লেখা (সম্পাদনাযোগ্য)',
   fbPh:'"📣 ফেসবুকের জন্য প্রস্তুত করুন" চাপুন — পোস্ট, শিরোনাম, বিবরণ, হ্যাশট্যাগ ও ফটো কার্ড একসাথে তৈরি হবে।',fbCopy:'📋 পোস্ট কপি',fbEdit:'✏️ পোস্ট সম্পাদনা',fbCard:'🖼️ ফটো কার্ড তৈরি/সম্পাদনা',fbDl:'⬇ ফটো কার্ড ডাউনলোড',fbSrc:'সূত্র ও লিংক যুক্ত করুন',fbCardLbl:'ফটো কার্ড',
@@ -2900,7 +2900,7 @@ Object.assign(T.en, {
   logoNone:'No logo — the card works fine without one.',logoNote:'A transparent PNG works best. The logo is remembered in this browser.',
   previewCard:'🔍 Preview card',dlPng:'⬇ Download PNG',nextDesign:'🎲 New design',resetCard:'↺ Reset',backEditor:'← Return to editor',
   tCardDl:'Card downloaded',tCardTaint:'⚠️ This photo cannot be exported to PNG because of the news site\'s security settings. Fix: save the photo from the original page to your computer and use "Upload".',tImgLoadFail:'⚠️ Could not load the image — choose another source or upload your own.',loadingImg:'Loading image…',
-  tBadFile:'Use a JPG, PNG, WEBP or GIF image (photo max 15 MB, logo 5 MB)',tNoOrig:'This article has no original image',tNoAi:'First generate an image in the "AI Image" tab and press "Use this image on card"',tLogoNoSave:'Logo placed, but there is no room to remember it in this browser', tLogoOk:'✔ Logo added', tLogoBig:'The image is too large (use one under 40 MB)', tLogoRead:'This phone cannot open this image — use a PNG or JPG (for HEIC, take a screenshot and use that)',
+  tBadFile:'Use a JPG, PNG, WEBP or GIF image (photo max 15 MB, logo 5 MB)',tNoOrig:'This article has no original image',tNoAi:'First generate an image in the "AI Image" tab and press "Use this image on card"',tLogoNoSave:'Logo placed, but there is no room to remember it in this browser', tLogoOk:'✔ Logo added', tLogoBig:'The image is too large (use one under 60 MB)', tLogoRead:'This file could not be opened as a picture — it may be damaged or not an image. Take a screenshot of the logo and use that.',
   labelAi:'AI-generated illustration',photoBy:'Photo: ',srcPrefix:'Source: ',tCardReset:'Card reset',
   fbTitle:'📣 Facebook-ready post',fbNote:'This does not post to Facebook directly. Copy the post text and download the photo card, then upload them to Facebook yourself.',fbPost:'Post text (editable)',
   fbPh:'Press "📣 Prepare for Facebook" — the post, headline, description, hashtags and photo card are prepared together.',fbCopy:'📋 Copy post text',fbEdit:'✏️ Edit post',fbCard:'🖼️ Create/Edit photo card',fbDl:'⬇ Download photo card',fbSrc:'Add source & link',fbCardLbl:'Photo card',
@@ -3912,15 +3912,75 @@ function updateLogoUi(){
   if(C.logoUrl){ th.src = C.logoUrl; th.classList.remove('hidden'); $('logoInfo').textContent = ''; } else { th.removeAttribute('src'); th.classList.add('hidden'); $('logoInfo').textContent = t('logoNone'); }
   $('logoRmBtn').disabled = !C.logoUrl;
 }
-async function onLogoFile(f){
-  if(!validImage(f, 40, true)){ toast(t(f && f.size > 40 * 1048576 ? 'tLogoBig' : 'tBadFile')); return; }
-  let url = '', im = null;
-  try{ url = URL.createObjectURL(f); im = await loadImg(url, false, 20000); }
-  catch(e){ try{ im = await loadImg(await fileToDataUrl(f), false, 20000); }catch(e2){ im = null; } }   // some phones only open it this way
-  finally{ if(url) setTimeout(() => { try{ URL.revokeObjectURL(url); }catch(e){} }, 1000); }
-  if(!im){ toast(t('tLogoRead')); return; }
+/* a logo may come in any picture format, from any phone: JPG, PNG, WebP, GIF, BMP, SVG, AVIF, ICO,
+   iPhone HEIC/HEIF, very large camera photos, files with no type or a wrong type (WhatsApp, Drive, file managers).
+   Several ways of opening the picture are tried in turn; the first one that works is used. */
+async function logoSniff(f){
   try{
-    const out = logoDataUrl(im);
+    const b = new Uint8Array(await f.slice(0, 32).arrayBuffer());
+    const a = String.fromCharCode.apply(null, b);
+    if(/^ftyp(heic|heix|hevc|hevx|heim|heis|mif1|msf1)/.test(a.slice(4, 12))) return 'heic';
+    if(/^ftyp(avif|avis)/.test(a.slice(4, 12))) return 'avif';
+    if(b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2A || b[0] === 0x4D && b[1] === 0x4D && b[3] === 0x2A) return 'tiff';
+    if(/<\?xml|<svg/i.test(a)) return 'svg';
+  }catch(e){}
+  const n = String(f.name || '').toLowerCase(), ty = String(f.type || '').toLowerCase();
+  if(/\.(heic|heif)$/.test(n) || /heic|heif/.test(ty)) return 'heic';
+  if(/\.svg$/.test(n) || /svg/.test(ty)) return 'svg';
+  return '';
+}
+async function logoDecode(f){
+  const kind = await logoSniff(f);
+  const tries = [];
+  // 1) huge camera photos: let the phone shrink it while opening (saves memory on small phones)
+  if(window.createImageBitmap && f.size > 6 * 1048576 && kind !== 'svg') tries.push(() => createImageBitmap(f, { resizeWidth: 1200, resizeQuality: 'high' }));
+  // 2) the usual way
+  tries.push(async () => { const u = URL.createObjectURL(kind === 'svg' && !/svg/.test(f.type || '') ? new Blob([f], { type: 'image/svg+xml' }) : f);
+    try{ return await loadImg(u, false, 20000); } finally{ setTimeout(() => { try{ URL.revokeObjectURL(u); }catch(e){} }, 1500); } });
+  // 3) other phones only open it these ways
+  if(window.createImageBitmap) tries.push(() => createImageBitmap(f));
+  tries.push(async () => loadImg(await fileToDataUrl(f), false, 20000));
+  // 4) a file sent with a wrong type: read it again as a plain picture
+  tries.push(async () => { const u = URL.createObjectURL(new Blob([await f.arrayBuffer()], { type: kind === 'svg' ? 'image/svg+xml' : 'image/png' }));
+    try{ return await loadImg(u, false, 20000); } finally{ setTimeout(() => { try{ URL.revokeObjectURL(u); }catch(e){} }, 1500); } });
+  // 5) iPhone HEIC/HEIF photos on Android/Windows: convert to JPG first
+  if(kind === 'heic' || /heic|heif/i.test((f.type || '') + (f.name || ''))) tries.unshift(async () => {
+    if(!window.heic2any) await Promise.race([loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js'), new Promise(r => setTimeout(r, 20000))]);
+    if(!window.heic2any) throw new Error('noheic');
+    let out = await window.heic2any({ blob: f, toType: 'image/png' }); if(Array.isArray(out)) out = out[0];
+    const u = URL.createObjectURL(out);
+    try{ return await loadImg(u, false, 20000); } finally{ setTimeout(() => { try{ URL.revokeObjectURL(u); }catch(e){} }, 1500); }
+  });
+  // 6) TIFF pictures (scanners, some design apps): decode them in the app
+  if(kind === 'tiff') tries.unshift(async () => {
+    if(!window.UTIF) await Promise.race([loadScript('https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js'), new Promise(r => setTimeout(r, 20000))]);
+    if(!window.UTIF) throw new Error('notiff');
+    const buf = await f.arrayBuffer(), ifds = UTIF.decode(buf); UTIF.decodeImage(buf, ifds[0]);
+    const rgba = UTIF.toRGBA8(ifds[0]), c = document.createElement('canvas'); c.width = ifds[0].width; c.height = ifds[0].height;
+    c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, c.width * c.height * 4), c.width, c.height), 0, 0);
+    return c;
+  });
+  for(const tr of tries){
+    try{
+      const im = await tr();
+      if(im && (im.naturalWidth || im.width)){
+        // make sure it can really be drawn (some phones open a picture but cannot draw a very big one)
+        const out = logoDataUrl(im);
+        if(out && out.length > 100) return out;
+      }
+    }catch(e){}
+  }
+  return '';
+}
+async function onLogoFile(f){
+  if(!f) return;
+  if(f.size > 60 * 1048576){ toast(t('tLogoBig')); return; }
+  if(/^(video|audio)\//i.test(f.type || '') || /\.(pdf|docx?|xlsx?|zip|mp4|mp3)$/i.test(f.name || '')){ toast(t('tBadFile')); return; }
+  toast(S.lang === 'bn' ? 'লোগো প্রস্তুত হচ্ছে…' : 'Preparing the logo…');
+  let out = '';
+  try{ out = await logoDecode(f); }catch(e){ out = ''; }
+  if(!out){ toast(t('tLogoRead')); return; }
+  try{
     C.logoUrl = out; C.logoDX = C.logoDY = 0; saveCardDesign();
     await logoKeep(out);
     loadLogo(C.logoUrl); toast(t('tLogoOk'));
@@ -3928,7 +3988,8 @@ async function onLogoFile(f){
 }
 /* small enough to always save: max 512 px; PNG keeps a clear background, WebP when the PNG is too heavy */
 function logoDataUrl(im){
-  const iw = im.naturalWidth || im.width || 400, ih = im.naturalHeight || im.height || 400;
+  let iw = im.naturalWidth || im.width || 400, ih = im.naturalHeight || im.height || 400;
+  if(iw < 2 || ih < 2){ iw = ih = 400; }   // some SVG logos have no size of their own
   for(const max of [512, 400, 300]){
     const s = Math.min(1, max / Math.max(iw, ih)), c = document.createElement('canvas');
     c.width = Math.max(1, Math.round(iw * s)); c.height = Math.max(1, Math.round(ih * s));

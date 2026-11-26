@@ -4890,10 +4890,10 @@ NW.focus = store.get('nwFocus', true) !== false;
 /* sections nobody needs in a news card feed */
 const NW_JUNK_PATH = /\/(entertainment|binodon|bindon|showbiz|cinema|music|ott|tv-?show|lifestyle|life-style|jibon-?jap[oa]n|jibonjapon|recipe|cooking|food|fashion|beauty|horoscope|rashifal|travel|tourism|tech|technology|science|gadgets?|auto|automobile|jobs?|chakri|career|education|shiksha|campus|admission|religion|islam|dhormo|ruposhi|nari|women|kids|shishu|literature|sahitya|sahitto|feature|features|opinion|editorial|column|photo|photos|gallery|video|videos|epaper|e-paper|corporate|brand|ads?|advertorial|business|economy|stock|share-?market|bank|health|swasthya|probash|bibidh|miscellaneous|viral|trending|offbeat|sports?|khela|cricket|football)(\/|$|-)/i;
 const NW_KEEP_PATH = /\/(politics?|rajniti|national|bangladesh|country|saradesh|sara-?desh|zilla|district|dhaka|chattogram|crime|accident|court|law|world|international|antorjatik|aantorjatik|bishwo|asia|middle-east|south-asia)(\/|$|-)/i;
-const NW_JUNK_T = /রাশিফল|রেসিপি|রান্না|রূপচর্চা|সাজগোজ|ত্বকের|চুলের যত্ন|ফ্যাশন|টিপস|জেনে নিন|যেসব খাবার|খেলে কী হয়|ওজন কমা|ঘুমের আগে|নিয়োগ বিজ্ঞপ্তি|চাকরির খবর|চাকরি দেবে|কুইজ|ছবিতে দেখুন|ফটো গ্যালারি|ই-পেপার|অফার|ডিসকাউন্ট|ছাড়ে কিনুন|দাম কত|ফোনের দাম|স্মার্টফোন|নামাজের সময়সূচি|সেহরি ও ইফতার|আজকের আবহাওয়া কেমন|প্রেমের|সম্পর্কের টানাপোড়েন|বিয়ের পর/;
+const NW_JUNK_T = /পুরস্কার পেল|পুরস্কার দিল|সম্মাননা পেল|সম্মাননা পেলেন|পদক পেল|পদক অর্জন|স্বর্ণপদক অর্জন|উদ্বোধন|আউটলেট|এক্সপো|মেলা শুরু|অংশীদারত্ব|অ্যাওয়ার্ড|আর্কাইভ|আড্ডানামা|যেসব অভ্যাস|ঝুঁকি কমাতে|ক্ষতি \||নিয়োগ দেবে|বিজ্ঞপ্তি|রাশিফল|রেসিপি|রান্না|রূপচর্চা|সাজগোজ|ত্বকের|চুলের যত্ন|ফ্যাশন|টিপস|জেনে নিন|যেসব খাবার|খেলে কী হয়|ওজন কমা|ঘুমের আগে|নিয়োগ বিজ্ঞপ্তি|চাকরির খবর|চাকরি দেবে|কুইজ|ছবিতে দেখুন|ফটো গ্যালারি|ই-পেপার|অফার|ডিসকাউন্ট|ছাড়ে কিনুন|দাম কত|ফোনের দাম|স্মার্টফোন|নামাজের সময়সূচি|সেহরি ও ইফতার|আজকের আবহাওয়া কেমন|প্রেমের|সম্পর্কের টানাপোড়েন|বিয়ের পর/;
 /* which of the 3 main sectors a story belongs to: 'politics' | 'intl' | 'bd' | '' (= filler, hidden in focus mode) */
 function nwSector(o){
-  if(o._sec != null) return o._sec;
+  if(o._sec != null) return nwSectorNow(o);
   const tt = String(o.title || '');
   let path = ''; try{ path = decodeURIComponent(new URL(o.link).pathname); }catch(e){}
   let v = '';
@@ -4905,7 +4905,17 @@ function nwSector(o){
     const other = ['entertain','tech','religion','edu'].some(id => { const c = NW_CATS.find(x => x.id === id); return c && c.kw.test(nwQN(tt)); });
     v = other && !NW_KEEP_PATH.test(path) && !NW_RIOT.test(tt) ? '' : 'bd';
   }
-  return (o._sec = v);
+  o._sec = v;
+  return nwSectorNow(o);
+}
+/* দেশের খবর: only the hot ones — clashes, violence, fire, crime, accidents, protests, disasters, what social media is
+   talking about, or a story many papers carry at once. Routine items (awards, openings, prices, tips …) stay out. */
+const NW_INCIDENT = /হত্যা|খুন|নিহত|লাশ|মরদেহ|আহত|হামলা|সংঘর্ষ|ধাওয়া|গুলি|ককটেল|বিস্ফোরণ|আগুন|অগ্নিকাণ্ড|ভাঙচুর|অবরোধ|বিক্ষোভ|দুর্ঘটনা|ধর্ষণ|অপহরণ|গ্রেপ্তার|গ্রেফতার|আটক|ছিনতাই|ডাকাতি|গণপিটুনি|পিটিয়ে|সহিংস|কারফিউ|১৪৪ ধারা|বন্যা|ঘূর্ণিঝড়|ভূমিকম্প|বজ্রপাত|ডুবে|নিখোঁজ|উদ্ধার|চাঁদাবাজি|দখল|মৃত্যুদণ্ড|ফাঁসি|রিমান্ড/;
+const NW_TREND = /ভাইরাল|ফেসবুকে|ফেসবুক লাইভ|সোশ্যাল মিডিয়া|সামাজিক যোগাযোগমাধ্যম|সামাজিক মাধ্যম|তোলপাড়|চাঞ্চল্য|আলোচনার ঝড়|সমালোচনার ঝড়|সমালোচনার মুখে|ক্ষোভ|উত্তেজনা|আতঙ্ক|থমথমে|রণক্ষেত্র|বিস্ময়|হতবাক/;
+function nwSectorNow(o){
+  if(o._sec !== 'bd') return o._sec;
+  const tt = String(o.title || '');
+  return NW_RIOT.test(tt) || NW_INCIDENT.test(tt) || NW_TREND.test(tt) || NW_MOVE.test(tt) || NW_ACCIDENT.test(tt) || (o._vir || 0) >= 2 ? 'bd' : '';
 }
 function nwSecLabel(v){ return v === 'politics' ? t('nwSecPol') : v === 'intl' ? t('nwSecIntl') : v === 'bd' ? t('nwSecBd') : ''; }
 function nwPickRender(){
@@ -5366,7 +5376,7 @@ function nwRender(){
   if(NW.src === 'quotes') all = all.filter(o => nwHot(o) >= 2);
   // 🎯 focus: only politics, international and nationwide stories (a typed search or a chosen topic always wins)
   const focusOn = NW.focus && !searching && NW.src !== 'quotes';
-  if(focusOn) all = all.filter(o => nwSector(o));
+  if(focusOn){ nwViral(all); all = all.filter(o => nwSector(o)); }
   // stories with a photo always come first (a photo found earlier on this phone counts too); stories without one go to the end
   const nwHasImg = o => { if(!o.img){ try{ const m = nwImgMem[o.link]; if(m) o.img = m; }catch(e){} } return o.img ? 1 : 0; };
   // order of the list: (1) the most important stories of the chosen view, (2) the rest, (3) sports always at the very end.
@@ -5374,7 +5384,7 @@ function nwRender(){
   //   আন্তর্জাতিক → ইরান, চীন, যুক্তরাষ্ট্র, রাশিয়া → ইসরায়েল, ফিলিস্তিন, সৌদি, মধ্যপ্রাচ্য → ভারত, পাকিস্তান
   //   দেশ / রাজনীতি → সংঘর্ষ-সহিংসতা → তীব্র রাজনৈতিক বক্তব্য → আন্দোলন-বিক্ষোভ
   // inside each group: with photo first, then a "hotness" score expressed as hours added to the publish time
-  nwViral(all);
+  if(!focusOn) nwViral(all);
   const mode = NW.cat === 'intl' ? 'intl' : (NW.cat === 'bd' || NW.cat === 'politics') ? 'bd' : NW.cat ? 'cat' : focusOn ? 'focus' : '';
   const nwKey = o => (o.date ? o.date.getTime() : 0) + nwBonus(o, mode) * 3600000;
   const nwGrp = o => (NW.cat !== 'sports' && nwIsSport(o)) ? 0 : nwTop(o, mode, now) ? 2 : 1;

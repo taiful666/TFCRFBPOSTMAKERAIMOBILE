@@ -76,6 +76,7 @@ post = mustReplace(post, "    // c) record in real time\n", `    // c0) desktop 
             if(typeof rlAfterExport === 'function') rlAfterExport(); else try{ v.currentTime = 0; v.play().catch(() => {}); }catch(e){}
             RL.vidStyle = st; RL.style = rlNewStyle(RL.style); toast(t('rlDone'));
             fastDone = true;
+            if(typeof rlSig === 'function'){ RL.doneLock = true; RL.doneSig = rlSig(); made = true; }
           }
         }
       }catch(e){

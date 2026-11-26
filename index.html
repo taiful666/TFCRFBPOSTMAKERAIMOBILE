@@ -11193,6 +11193,7 @@ async function rlMake(){
     if(many){ await Promise.all([0, 1, 2].map(want)); }
     if(RL.cancel) throw new Error('cancel');
     if(VO.on){ if(!ac) throw new Error('audio'); await voBuild(ac, R, prog); }   // voice parts + story times follow the sentences
+    // c) record in real time
     const cv = $('rlCanvas'), ctx = cv.getContext('2d');
     rlFrame(ctx, R, 0);
     try{ const tc = document.createElement('canvas'); tc.width = RW; tc.height = RH; rlFrame(tc.getContext('2d'), R, 1.2); RL.thumb = null; tc.toBlob(b => { RL.thumb = b; }, 'image/jpeg', 0.92); }catch(e){ RL.thumb = null; }

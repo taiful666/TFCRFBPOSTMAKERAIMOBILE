@@ -17,7 +17,7 @@ body::-webkit-scrollbar{width:10px}body::-webkit-scrollbar-thumb{background:rgba
 .ghost:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.18)}
 svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 h2{font-size:15px;font-weight:700;color:var(--mute);letter-spacing:.3px;margin-bottom:14px}
-.create{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:38px}
+.create{display:grid;grid-template-columns:repeat(7,1fr);gap:14px;margin-bottom:38px}
 .c{position:relative;height:150px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel2),var(--panel));color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:18px;text-align:left;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s}
 .c:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.2);box-shadow:0 14px 30px rgba(0,0,0,.45)}
 .c:active{transform:translateY(-1px) scale(.99)}
@@ -27,7 +27,7 @@ h2{font-size:15px;font-weight:700;color:var(--mute);letter-spacing:.3px;margin-b
 .c .r{position:absolute;top:18px;right:16px;font-size:12px;font-weight:700;color:var(--mute);border:1px solid var(--line);border-radius:7px;padding:2px 8px}
 .c.hero{background:linear-gradient(150deg,#ff5a36,#c8261a 70%);border-color:transparent}
 .c.hero .ic{background:rgba(255,255,255,.18)}.c.hero .r{color:#fff;border-color:rgba(255,255,255,.4)}
-.c.t1 .ic{color:#ff8a6b}.c.t2 .ic{color:var(--gold)}.c.t3 .ic{color:#8ab4ff}.c.t4 .ic{color:var(--teal)}.c.t5 .ic{color:#c9a6ff}
+.c.t1 .ic{color:#ff8a6b}.c.t2 .ic{color:var(--gold)}.c.t3 .ic{color:#8ab4ff}.c.t4 .ic{color:var(--teal)}.c.t5 .ic{color:#c9a6ff}.c.t6 .ic{color:#ffc24d}
 .ph{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .ph h2{margin:0}.ph .n{font-size:13px;color:var(--mute)}
 .q{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--ink);border-radius:11px;padding:9px 14px;font-size:14px;outline:none;width:240px;user-select:text}
@@ -53,7 +53,7 @@ h2{font-size:15px;font-weight:700;color:var(--mute);letter-spacing:.3px;margin-b
 .empty{border:1px dashed rgba(255,255,255,.14);border-radius:18px;padding:48px 20px;text-align:center;color:var(--mute);font-size:15px}
 .empty svg{width:44px;height:44px;margin-bottom:10px;color:#2f416f}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#0d1736;border:1px solid var(--teal);padding:10px 18px;border-radius:12px;font-size:14px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-@media (max-width:1180px){.create{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:1180px){.create{grid-template-columns:repeat(4,1fr)}}
 </style></head>
 <body>
 <div class="wrap">
@@ -72,6 +72,7 @@ h2{font-size:15px;font-weight:700;color:var(--mute);letter-spacing:.3px;margin-b
   <button class="c t3" data-k="card"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="9" cy="9" r="1.7"/><path d="M4 17l5-5 4 4 2.5-2.5L20 18"/></svg></span><b>ফটো কার্ড</b></button>
   <button class="c t4" data-k="live"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/></svg></span><b>লাইভ খবর</b></button>
   <button class="c t5" data-k="paper"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 5h13a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg></span><b>পত্রিকা</b></button>
+  <button class="c t6" data-k="viral"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M10 8.5v7l6-3.5z"/></svg></span><span class="r">নতুন</span><b>ভাইরাল ভিডিও কার্ড</b></button>
  </div>
 
  <div class="ph"><h2>সাম্প্রতিক প্রজেক্ট</h2><span class="n" id="cnt"></span><div class="sp"></div><input class="q" id="q" placeholder="প্রজেক্ট খুঁজুন" spellcheck="false"></div>

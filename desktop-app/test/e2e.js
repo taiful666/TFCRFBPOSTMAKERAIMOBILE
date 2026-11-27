@@ -83,7 +83,7 @@ module.exports = async (T) => {
     /* 1. home */
     await until(() => ev('home', "document.querySelectorAll('.c').length===6"));
     await shot('home', '01-home.png');
-    check('home shows 6 create buttons', await ev('home', "document.querySelectorAll('.c').length") === 6);
+    check('home shows 7 create buttons', await ev('home', "document.querySelectorAll('.c').length") === 7);
     check('app opens on the home screen', T.activeTab === 'home');
 
     /* 2. new news video from home → clean editor + start screen */

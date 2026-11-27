@@ -753,6 +753,12 @@ ipcMain.handle('home:new', async (e, kind) => {
   kind = String(kind);
   if (kind === 'video' || kind === 'short') { await newProject(kind === 'short' ? '9:16' : '16:9'); return true; }
   if (kind === 'card') { showTab('post'); return true; }
+  if (kind === 'viral') {               // 🎥 ভাইরাল ভিডিও কার্ড: the post maker opens straight on it
+    showTab('post'); const wc = views.post.webContents; await waitLoaded(wc);
+    for (let i = 0; i < 60; i++) { try { if (await wc.executeJavaScript('!!(window.TFViralVideo&&window.__tfDesk)')) break; } catch (e) {} await new Promise((r) => setTimeout(r, 150)); }
+    try { await wc.executeJavaScript('window.TFViralVideo&&window.TFViralVideo.open()', true); } catch (e) {}
+    return true;
+  }
   if (kind === 'live' || kind === 'reel') { setSub('live'); showTab('hub'); return true; }
   if (kind === 'paper') { setSub('paper'); showTab('hub'); return true; }
   return false;

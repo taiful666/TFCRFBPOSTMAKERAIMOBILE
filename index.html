@@ -9424,7 +9424,9 @@ function voPron(s){
   s = s.replace(new RegExp('[' + BN_L + ']+', 'g'), voPhala);           // ব-ফলা / ম-ফলা, after the ত rule so স্বাগত → সাগতো
   return s;
 }
-const voSpeak = x => voPron(rlSpeak(voPron(x)));
+/* the voice never reads a star: নি*হত → নিহত (stars are only for the screen and the caption) */
+const voUnstar = x => String(x || '').replace(/(?<=[\u0980-\u09FFA-Za-z])[*∗•#@$!%](?=[\u0980-\u09FFA-Za-z])/g, '');
+const voSpeak = x => voPron(rlSpeak(voPron(voUnstar(x))));
 /* ---- the script: "শুরু:", "১:", "২:" …, "শেষ:" ---- */
 const VO_DIG = s => String(s).replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
 function voParse(txt){
@@ -12828,10 +12830,10 @@ sh.innerHTML = `<div class="nsbox vvbox">
     <div class="vvrow"><button type="button" class="btn primary" id="vvPick">📁 ভিডিও বাছুন</button></div>
     <input type="file" id="vvFile" accept="video/*" class="hidden">
     <div class="vvst" id="vvInfo">ফেসবুক বা অন্য জায়গা থেকে ডাউনলোড করা ভিডিও দিন — কার্ডের ভেতরে ভিডিওটা চলবে, সাথে তার নিজের শব্দ।</div>
-    <label class="vvlbl" for="vvHead">শিরোনাম (ঐচ্ছিক, কার্ডের উপরে থাকবে — *শব্দ* দিলে হলুদ হবে)</label>
-    <input type="text" id="vvHead" maxlength="120" placeholder="যেমন: সামাজিক যোগাযোগমাধ্যমে *ভাইরাল* ভিডিও">
-    <label class="vvlbl" for="vvText">চলমান লেখা — যা লিখবেন তা কার্ডে বারবার স্ক্রল করে চলবে</label>
-    <textarea id="vvText" placeholder="এখানে লিখুন…"></textarea>
+    <label class="vvlbl" for="vvText">✍️ আপনার লেখা — কার্ডের উপরে বড় শিরোনামের মতো শব্দে শব্দে বারবার অ্যানিমেট হবে, নিচেও স্ক্রল করে চলবে (*শব্দ* দিলে হলুদ হবে)</label>
+    <textarea id="vvText" placeholder="যেমন: সামাজিক যোগাযোগমাধ্যমে *ভাইরাল* এই ভিডিও নিয়ে তোলপাড়"></textarea>
+    <label class="vvlbl" for="vvHead">ছোট লেবেল (ঐচ্ছিক, শিরোনামের উপরে লাল ফিতায়)</label>
+    <input type="text" id="vvHead" maxlength="40" placeholder="যেমন: ভাইরাল ভিডিও">
     <div class="vvpv"><canvas id="vvCanvas" width="720" height="1280"></canvas></div>
     <div class="vvrow"><button type="button" class="btn" id="vvSound">🔇 শব্দ বন্ধ</button><button type="button" class="btn" id="vvReplay">⟲ আবার চালান</button></div>
     <div class="vvrow"><button type="button" class="btn primary" id="vvMake">🎬 ভিডিও তৈরি করুন</button><button type="button" class="btn hidden" id="vvStop">✖ থামান</button></div>
@@ -12857,19 +12859,54 @@ function vvScroll(ctx, text, x, y, w, h, size, color, speed, t){
   for(let xx = x + w * 0.15 - off; xx < x + w; xx += tw) ctx.fillText(text, xx, y + h / 2 + 1);
   ctx.restore();
 }
-function vvHeadDraw(ctx, raw, y){
-  const M = lvMarks(rlMask(raw, true)), Lw = rlWrap(ctx, M.text, W - 60, 40, 800, 2, 28), lh = Lw.size * 1.28;
-  ctx.font = fontStr(Lw.size, 800, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  let wi = 0;
-  Lw.lines.forEach((l, j) => {
-    let xx = 30; const yy = y + lh * (j + 0.5);
-    l.split(' ').forEach(word => {
-      const on = !!M.flags[wi++], ww = ctx.measureText(word).width;
-      if(on){ ctx.fillStyle = C.hl || '#ffd200'; rr(ctx, xx - 5, yy - lh * 0.44, ww + 10, lh * 0.88, 6); ctx.fill(); }
-      ctx.fillStyle = '#111'; ctx.fillText(word, xx, yy); xx += ww + ctx.measureText(' ').width;
+/* the big headline: your text in pieces of up to 3 lines; each piece types in word by word, stays, then the next one —
+   round and round for the whole video */
+let vvChunkKey = '', vvChunks = [];
+function vvPieces(ctx, raw){
+  const M = lvMarks(rlMask(raw, true)), key = M.text + '|' + M.flags.join('');
+  if(key === vvChunkKey) return vvChunks;
+  const size = 50, maxW = W - 84; ctx.font = fontStr(size, 800, BFAM);
+  const words = M.text ? M.text.split(' ') : [], lines = []; let cur = [];
+  words.forEach((w, i) => { const txt = cur.map(k => words[k]).concat(w).join(' ');
+    if(cur.length && ctx.measureText(txt).width > maxW){ lines.push(cur); cur = [i]; } else cur.push(i); });
+  if(cur.length) lines.push(cur);
+  const out = []; for(let i = 0; i < lines.length; i += 3) out.push(lines.slice(i, i + 3).map(l => l.map(k => ({ w: words[k], on: !!M.flags[k] }))));
+  vvChunkKey = key; vvChunks = out; return out;
+}
+function vvHeadline(ctx, raw, y, h, t, label){
+  const ac = C.accent || '#0b2a6b', hl = C.hl || '#ffd200';
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, shade(ac, -0.7)); g.addColorStop(1, 'rgba(6,10,24,.97)');
+  ctx.fillStyle = g; rr(ctx, 14, y, W - 28, h, 16); ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = hl; rr(ctx, 14, y, W - 28, h, 16); ctx.stroke();
+  let top = y + 16;
+  if(label){ ctx.font = fontStr(22, 800, BFAM); const lw = ctx.measureText(label).width + 30; const pz = 1 + 0.04 * Math.sin(t * 6);
+    ctx.save(); ctx.translate(34 + lw / 2, top + 17); ctx.scale(pz, pz); ctx.fillStyle = '#e11d2a'; rr(ctx, -lw / 2, -17, lw, 34, 6); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, 0, 1); ctx.restore(); top += 44; }
+  const P = vvPieces(ctx, raw); if(!P.length) return;
+  const wordsIn = c => c.reduce((n, l) => n + l.length, 0), PER = 0.22;
+  const dur = P.map(c => Math.max(3.2, wordsIn(c) * PER + 2.6)), cyc = dur.reduce((a, b) => a + b, 0);
+  let tt = t % cyc, k = 0; while(k < P.length - 1 && tt >= dur[k]){ tt -= dur[k]; k++; }
+  const c = P[k], d = dur[k], out = clamp((tt - (d - 0.35)) / 0.35, 0, 1);
+  let size = 50; ctx.font = fontStr(size, 800, BFAM);
+  const avail = y + h - top - 14, lh0 = size * 1.3; if(lh0 * c.length > avail){ size = Math.floor(avail / c.length / 1.3); ctx.font = fontStr(size, 800, BFAM); }
+  const lh = size * 1.3, y0 = top + (avail - lh * c.length) / 2, sp = ctx.measureText(' ').width;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  let n = 0;
+  ctx.save(); ctx.globalAlpha = 1 - out;
+  c.forEach((line, j) => {
+    const lw = line.reduce((a, o) => a + ctx.measureText(o.w).width, 0) + sp * (line.length - 1);
+    let x = (W - lw) / 2; const yy = y0 + lh * (j + 0.5);
+    line.forEach(o => {
+      const f = clamp((tt - n * PER) / 0.28, 0, 1), e = 1 - Math.pow(1 - f, 3), ww = ctx.measureText(o.w).width; n++;
+      if(f <= 0){ x += ww + sp; return; }
+      ctx.save(); ctx.globalAlpha = (1 - out) * e; ctx.translate(x + ww / 2, yy + (1 - e) * 26); const sc = 0.7 + 0.3 * e; ctx.scale(sc, sc);
+      if(o.on){ const mw = clamp((tt - n * PER) / 0.4, 0, 1); ctx.fillStyle = hl; rr(ctx, -ww / 2 - 6, -lh * 0.42, (ww + 12) * mw, lh * 0.84, 7); ctx.fill(); }
+      ctx.fillStyle = o.on ? '#111' : '#fff'; ctx.fillText(o.w, -ww / 2, 1); ctx.restore();
+      x += ww + sp;
     });
   });
-  return lh * Lw.lines.length;
+  ctx.restore();
+  if(P.length > 1){ for(let i = 0; i < P.length; i++){ ctx.beginPath(); ctx.arc(W / 2 + (i - (P.length - 1) / 2) * 18, y + h - 12, 4, 0, Math.PI * 2); ctx.fillStyle = i === k ? hl : 'rgba(255,255,255,.35)'; ctx.fill(); } }
 }
 function vvFrame(ctx, v, t, total){
   const ac = C.accent || '#0b2a6b', hl = C.hl || '#ffd200';
@@ -12895,9 +12932,10 @@ function vvFrame(ctx, v, t, total){
   ctx.beginPath(); ctx.arc(32, ly + LIVEH / 2, 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,' + bl.toFixed(3) + ')'; ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = fontStr(20, 800, BFAM); ctx.fillText('LIVE', 46, ly + LIVEH / 2 + 1);
   // headline (optional)
-  let y = ly + LIVEH + 14;
-  const head = String($('vvHead').value || '').trim();
-  if(head){ y += vvHeadDraw(ctx, head, y) + 12; }
+  let y = ly + LIVEH + 12;
+  const txt0 = String($('vvText').value || '').replace(/\s+/g, ' ').trim(), lab = rlMask(String($('vvHead').value || '').replace(/\*/g, '').trim(), true);
+  if(txt0){ const hh = lab ? 300 : 256; vvHeadline(ctx, txt0, y, hh, t, lab); y += hh + 12; }
+  else if(lab){ ctx.fillStyle = '#e11d2a'; ctx.font = fontStr(26, 800, BFAM); const lw = ctx.measureText(lab).width + 34; rr(ctx, 18, y, lw, 44, 8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(lab, 35, y + 23); y += 56; }
   // the video: whole picture visible (contain) over a dark, zoomed copy of itself
   const vy = y, vh = H - BOT - 12 - vy, vx = 18, vw = W - 36;
   ctx.save(); rr(ctx, vx, vy, vw, vh, 18); ctx.fillStyle = '#000'; ctx.fill(); ctx.clip();
@@ -12918,7 +12956,7 @@ function vvFrame(ctx, v, t, total){
   ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText('VIDEO', vx + vw - bw + 16, vy + 28);
   // your scrolling text, again and again
   const by = H - BOT;
-  const txt = rlMask(String($('vvText').value || '').replace(/\s+/g, ' ').trim(), true);
+  const txt = rlMask(txt0.replace(/\*/g, ''), true);
   ctx.fillStyle = shade(ac, -0.6); rr(ctx, 14, by, W - 28, 92, 14); ctx.fill();
   ctx.lineWidth = 4; ctx.strokeStyle = hl; rr(ctx, 14, by, W - 28, 92, 14); ctx.stroke();
   if(txt) vvScroll(ctx, txt, 26, by + 4, W - 52, 84, 38, '#fff', 120, t);
@@ -13046,8 +13084,8 @@ function vvFile(){
   return new File([VV.blob], name, { type: VV.blob.type });
 }
 function vvCaption(){
-  const head = String($('vvHead').value || '').replace(/\*/g, '').trim(), txt = String($('vvText').value || '').trim();
-  return capLimit(rlMask(['📌 ' + (head || txt.split(/[।\n]/)[0] || '').trim(), txt && txt !== head ? txt : '', '👇 আপনার মতামত কমেন্টে লিখুন।\n' + rlFollowLine(), pageTag() + ' #ভাইরাল_ভিডিও #খবর']
+  const head = String($('vvHead').value || '').replace(/\*/g, '').trim(), txt = String($('vvText').value || '').replace(/\*/g, '').trim();
+  return capLimit(rlMask(['📌 ' + (txt.split(/[।\n]/)[0] || head || '').trim(), txt.includes('।') || txt.includes('\n') ? txt : '', '👇 আপনার মতামত কমেন্টে লিখুন।\n' + rlFollowLine(), pageTag() + ' #ভাইরাল_ভিডিও #খবর']
     .filter(Boolean).join('\n\n'), false));
 }
 async function vvCopyCap(quiet){ const s = vvCaption(); try{ await navigator.clipboard.writeText(s); }catch(e){ const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(x){} ta.remove(); } if(!quiet) toast('ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন'); }

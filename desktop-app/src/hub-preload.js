@@ -15,5 +15,6 @@ contextBridge.exposeInMainWorld('hub', {
   clear: () => call('hub:clear'),
   send: (kind, link) => call('hub:send', String(kind), link ? String(link) : ''),
   onState: (cb) => ipcRenderer.on('hub:state', (e, s) => cb(s)),
-  onToast: (cb) => ipcRenderer.on('hub:toast', (e, t) => cb(t))
+  onToast: (cb) => ipcRenderer.on('hub:toast', (e, t) => cb(t)),
+  onRanked: (cb) => ipcRenderer.on('hub:ranked', () => cb())
 });

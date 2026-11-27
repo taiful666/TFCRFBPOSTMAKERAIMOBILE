@@ -195,6 +195,26 @@ function pumpRead() {
 }
 
 /* ---------- live feed ---------- */
+/* Live news order = the same rules as the web/mobile app (TFRank inside the post maker):
+   international politics first, then Bangladesh politics, then only the big domestic stories.
+   Stories that pass get focus:true (shown by default in the "খবর" tab); the rest stay for search and topics. */
+async function rankLive(items) {
+  try {
+    const wc = views.post && views.post.webContents; if (!wc) return items;
+    if (!loaded.post) loadApp('post');
+    await waitLoaded(wc);
+    let r = null;
+    for (let i = 0; i < 40 && !r; i++) {
+      r = await wc.executeJavaScript('(()=>{try{return typeof window.TFRank==="function"?window.TFRank(' + JSON.stringify(items.map((x) => ({ title: x.title, link: x.link, desc: x.desc, img: x.img, date: x.date, src: x.src, gsrc: x.src === 'google' ? x.srcName : '' }))) + '):null}catch(e){return null}})()', true).catch(() => null);
+      if (!r) await new Promise((res) => setTimeout(res, 250));
+    }
+    if (!r || !Array.isArray(r.order) || !r.order.length) return items;
+    const used = new Set(), out = [];
+    for (const i of r.order) { const it = items[i]; if (it && !used.has(i)) { used.add(i); out.push(Object.assign(it, { focus: true, sec: (r.sec && r.sec[i]) || '' })); } }
+    items.forEach((it, i) => { if (!used.has(i)) out.push(Object.assign(it, { focus: false, sec: '' })); });
+    return out;
+  } catch (e) { return items; }
+}
 async function fetchLive(force) {
   if (!force && liveCache.data && Date.now() - liveCache.at < 4 * 60 * 1000) return liveCache.data;
   const r = await net.fetch(NW_FEED + '?t=' + Math.floor(Date.now() / 60000), { cache: 'no-store' });
@@ -213,8 +233,33 @@ async function fetchLive(force) {
     });
   }));
   items.sort((a, b) => (b.date || 0) - (a.date || 0));
-  liveCache = { at: Date.now(), data: { items, names: NW_SRC, updated: j.updated ? Date.parse(j.updated) : Date.now() } };
+  // ranked with the post maker's own rules; when that page is not open yet, the list shows at once and is re-ordered a moment later
+  const ready = SELFTEST || (loaded.post && views.post && !views.post.webContents.isLoading());
+  const ranked = ready ? await rankLive(items) : items;
+  liveCache = { at: Date.now(), data: { items: ranked, names: NW_SRC, updated: j.updated ? Date.parse(j.updated) : Date.now() } };
+  if (!ready) {
+    const mine = liveCache, copy = items.map((x) => Object.assign({}, x));
+    rankLive(copy).then((r) => {
+      if (liveCache !== mine || r === copy) return;
+      mine.data = Object.assign({}, mine.data, { items: r });
+      if (alive(views.hub)) views.hub.webContents.send('hub:ranked');
+    }).catch(() => {});
+  }
   return liveCache.data;
+}
+
+/* ---------- is a newer Windows app out? (the installer is rebuilt on every change; an old install keeps old rules) ---------- */
+const RELEASE_PAGE = 'https://github.com/taiful666/TFCRFBPOSTMAKERAIMOBILE/releases/tag/windows-latest';
+async function checkUpdate() {
+  let built = 0; try { built = +JSON.parse(fs.readFileSync(path.join(APPS_DIR, 'build.json'), 'utf8')).built || 0; } catch (e) {}
+  if (!built) return;
+  const r = await net.fetch('https://api.github.com/repos/taiful666/TFCRFBPOSTMAKERAIMOBILE/releases/tags/windows-latest', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+  if (!r.ok) return;
+  const j = await r.json(), pub = Date.parse(j.published_at || j.created_at || '');
+  if (!pub || pub < built + 20 * 60 * 1000 || !win) return;
+  const { response } = await dialog.showMessageBox(win, { type: 'info', buttons: ['নতুন ভার্সন ডাউনলোড করুন', 'পরে'], defaultId: 0, cancelId: 1, title: 'TF Media Studio',
+    message: 'TF Media Studio-এর নতুন ভার্সন এসেছে', detail: 'আপনার কম্পিউটারের অ্যাপটি পুরোনো। নতুন সব সুবিধা ও ঠিক করা সমস্যা (ক্যাপশনের সীমা, সংবেদনশীল শব্দে স্টার, খবর বাছাই ইত্যাদি) পেতে নতুন Setup ডাউনলোড করে আবার ইনস্টল করুন — আপনার প্রজেক্ট ও সেটিংস থাকবে।' });
+  if (response === 0) shell.openExternal(RELEASE_PAGE);
 }
 
 /* ---------- sessions (network rules) ---------- */
@@ -879,6 +924,7 @@ else {
     registerThumbProtocol(session.fromPartition(PARTS.hub));
     setupPaperSession(session.fromPartition(PARTS.paper));
     createWindow();
+    if (!SELFTEST) setTimeout(() => checkUpdate().catch(() => {}), 8000);
     for (const t of Object.keys(views)) views[t].webContents.on('before-input-event', (e, inp) => {
       if (inp.type !== 'keyDown' || !inp.control) return;
       const i = ['1', '2', '3'].indexOf(inp.key); if (i >= 0) showTab(TABS[i]);

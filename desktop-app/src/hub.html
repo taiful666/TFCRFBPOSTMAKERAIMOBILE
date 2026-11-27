@@ -137,20 +137,21 @@ const CATS=[
 const NQ=s=>String(s||'').normalize('NFC').toLowerCase().replace(/[\u200c\u200d]/g,'').replace(/য়/g,'য়').replace(/ড়/g,'ড়').replace(/ঢ়/g,'ঢ়');
 function inCat(x,c){x._c=x._c||{};if(x._c[c[0]]!=null)return x._c[c[0]];let p='';try{p=decodeURIComponent(new URL(x.link).pathname)}catch(e){}
   const v=c[2].test(p)||c[3].test(NQ(x.title))||c[3].test(NQ((x.desc||'').slice(0,300)));return x._c[c[0]]=v}
-let cat='';
+let cat='';const SEC={intl:'🌍 আন্তর্জাতিক',politics:'🏛 রাজনীতি',bd:'🇧🇩 দেশ'};
 let S={sub:'live',picking:false,basket:[],papers:[]},LIVE={items:[],names:{},updated:0},src='all',shown=40,built=false,tt=null;
 
 function toast(m,ms){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',ms||2600)}
 function has(l){const k=key(l);return S.basket.some(b=>key(b.link)===k)}
 function filtered(){const toks=NQ(($('#q').value||'').trim()).split(/\s+/).filter(Boolean);const c=cat?CATS.find(k=>k[0]===cat):null;
-  return LIVE.items.filter(x=>{if(src!=='all'&&x.src!==src)return false;if(c&&!inCat(x,c))return false;if(!toks.length)return true;const h=NQ(x.title+' '+(x.desc||''));return toks.every(t=>h.includes(t))})}
+  const foc=cat==='__focus';
+  return LIVE.items.filter(x=>{if(foc&&!x.focus)return false;if(src!=='all'&&x.src!==src)return false;if(c&&!inCat(x,c))return false;if(!toks.length)return true;const h=NQ(x.title+' '+(x.desc||''));return toks.every(t=>h.includes(t))})}
 function renderCats(){const n={};LIVE.items.forEach(x=>CATS.forEach(c=>{if(inCat(x,c))n[c[0]]=(n[c[0]]||0)+1}));
-  $('#cats').innerHTML=[['','সব বিষয়']].concat(CATS.filter(c=>n[c[0]]).map(c=>[c[0],c[1]])).map(([i,t])=>`<button class="chip${cat===i?' on':''}" data-c="${esc(i)}">${esc(t)}</button>`).join('')}
+  $('#cats').innerHTML=[['','সব বিষয়']].concat(LIVE.items.some(x=>x.focus)?[['__focus','🎯 শুধু গুরুত্বপূর্ণ']]:[]).concat(CATS.filter(c=>n[c[0]]).map(c=>[c[0],c[1]])).map(([i,t])=>`<button class="chip${cat===i?' on':''}" data-c="${esc(i)}">${esc(t)}</button>`).join('')}
 function renderChips(){const c={};LIVE.items.forEach(x=>c[x.src]=(c[x.src]||0)+1);const ids=Object.keys(LIVE.names).filter(i=>c[i]);
   $('#chips').innerHTML=[['all','সব']].concat(ids.map(i=>[i,LIVE.names[i]])).map(([i,n])=>`<button class="chip${src===i?' on':''}" data-s="${esc(i)}">${esc(n)}</button>`).join('')}
 function renderList(){
   const L=filtered();$('#stat').textContent=LIVE.items.length?`${bn(LIVE.items.length)}টি খবর · ${ago(LIVE.updated)} আপডেট`:'খবর আনা হচ্ছে…';
-  $('#list').innerHTML=L.slice(0,shown).map((x,i)=>`<div class="item${has(x.link)?' sel':''}" data-i="${i}">${x.img?`<img loading="lazy" src="${esc(img(x.img))}" alt="">`:'<div class="ph"></div>'}<div class="t"><b>${esc(x.title)}</b><small>${esc(x.srcName)} · ${ago(x.date)}</small></div><div class="tick">✓</div></div>`).join('');
+  $('#list').innerHTML=L.slice(0,shown).map((x,i)=>`<div class="item${has(x.link)?' sel':''}" data-i="${i}">${x.img?`<img loading="lazy" src="${esc(img(x.img))}" alt="">`:'<div class="ph"></div>'}<div class="t"><b>${esc(x.title)}</b><small>${x.sec?esc(SEC[x.sec]||'')+' · ':''}${esc(x.srcName)} · ${ago(x.date)}</small></div><div class="tick">✓</div></div>`).join('');
   if(!L.length&&LIVE.items.length)$('#list').innerHTML='<div class="empty" style="height:auto;padding:40px">এই বাছাইয়ে কোনো খবর নেই</div>';
   $('#more').style.display=L.length>shown?'block':'none';window._view=L}
 function renderBasket(){
@@ -191,7 +192,7 @@ $('#pp').onchange=e=>{if(e.target.value)hub.paperGo(e.target.value);e.target.sel
 $('#back').onclick=()=>hub.back();
 $('#ab').onclick=()=>hub.setAdblock(!S.adblock);
 $('#pk').onclick=()=>hub.setPick(!S.picking);
-hub.onState(applyState);hub.onToast(t=>toast(t.msg,t.ms));
+hub.onState(applyState);hub.onToast(t=>toast(t.msg,t.ms));if(hub.onRanked)hub.onRanked(()=>{if(S.sub==='live')load(false)});
 hub.state().then(s=>{applyState(s);load(false)});
 setInterval(()=>{if(S.sub==='live')load(false)},10*60*1000);
 </script>

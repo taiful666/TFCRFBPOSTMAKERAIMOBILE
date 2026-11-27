@@ -2931,7 +2931,7 @@ const MASK_DEFAULT = ['ধর্ষণ','ধর্ষক','ধর্ষিত','
 S.mask = store.get('maskOn', true);
 S.maskCard = store.get('maskCard', true);
 S.maskCh = store.get('maskCh', '*');
-const maskList = () => { const l = store.get('maskWords', null); return Array.isArray(l) && l.length ? l : MASK_DEFAULT; };
+const maskList = () => { const l = store.get('maskWords', null); return Array.isArray(l) && l.length ? Array.from(new Set(MASK_DEFAULT.concat(l))) : MASK_DEFAULT; };
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const isBn = w => /[ঀ-৿]/.test(w);
 function maskRegexes(){
@@ -4912,10 +4912,19 @@ function nwSector(o){
    talking about, or a story many papers carry at once. Routine items (awards, openings, prices, tips …) stay out. */
 const NW_INCIDENT = /হত্যা|খুন|নিহত|লাশ|মরদেহ|আহত|হামলা|সংঘর্ষ|ধাওয়া|গুলি|ককটেল|বিস্ফোরণ|আগুন|অগ্নিকাণ্ড|ভাঙচুর|অবরোধ|বিক্ষোভ|দুর্ঘটনা|ধর্ষণ|অপহরণ|গ্রেপ্তার|গ্রেফতার|আটক|ছিনতাই|ডাকাতি|গণপিটুনি|পিটিয়ে|সহিংস|কারফিউ|১৪৪ ধারা|বন্যা|ঘূর্ণিঝড়|ভূমিকম্প|বজ্রপাত|ডুবে|নিখোঁজ|উদ্ধার|চাঁদাবাজি|দখল|মৃত্যুদণ্ড|ফাঁসি|রিমান্ড/;
 const NW_TREND = /ভাইরাল|ফেসবুকে|ফেসবুক লাইভ|সোশ্যাল মিডিয়া|সামাজিক যোগাযোগমাধ্যম|সামাজিক মাধ্যম|তোলপাড়|চাঞ্চল্য|আলোচনার ঝড়|সমালোচনার ঝড়|সমালোচনার মুখে|ক্ষোভ|উত্তেজনা|আতঙ্ক|থমথমে|রণক্ষেত্র|বিস্ময়|হতবাক/;
+/* দেশের খবর শুধু গুরুত্বপূর্ণগুলো: বড় সংঘর্ষ/সহিংসতা, সারা দেশে আলোচিত, কয়েকটি পত্রিকায় একসাথে, অথবা রাজধানী/জাতীয় পর্যায়ের ঘটনা।
+   রাজনীতি: শুধু সংঘর্ষ, আন্দোলন, তীব্র বক্তব্য, বড় নেতা/নির্বাচন বা কয়েকটি পত্রিকায় একসাথে আসা খবর। */
+const NW_BIG = /ঢাকা|রাজধানী|সারা দেশে|সারাদেশে|দেশজুড়ে|জাতীয়|সচিবালয়|শাহবাগ|বিশ্ববিদ্যালয়|শিক্ষার্থী|সেনাবাহিনী|সেনা|বিজিবি|র‌্যাব|পুলিশের গুলি|নির্বাচন|সরকার|উপদেষ্টা|প্রধানমন্ত্রী|রাষ্ট্রপতি|সংসদ|সীমান্ত|রোহিঙ্গা|ভূমিকম্প|ঘূর্ণিঝড়|বন্যা/;
+const NW_DEATHS = /(?:[২-৯2-9]|[১1][০-৯0-9]|দুই|তিন|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ)\s*(?:জন|জনের)?\s*(?:নিহত|মৃত্যু|প্রাণ)/;
+const NW_ROUTINE = /স্বর্ণের দাম|সোনার দাম|রুপার দাম|ডলারের দাম|ডলারের রেট|টাকার রেট|জ্বালানি তেলের দাম|বিয়ের ছবি|বিয়ে করলেন|নামাজের সময়|সেহরি|ইফতারের সময়|আজকের আবহাওয়া|শীতের পোশাক|রাশিফল|লটারি/;
 function nwSectorNow(o){
-  if(o._sec !== 'bd') return o._sec;
-  const tt = String(o.title || '');
-  return NW_RIOT.test(tt) || NW_INCIDENT.test(tt) || NW_TREND.test(tt) || NW_MOVE.test(tt) || NW_ACCIDENT.test(tt) || (o._vir || 0) >= 2 ? 'bd' : '';
+  const sec = o._sec, tt = String(o.title || ''), vir = o._vir || 0;
+  if(sec !== 'intl' && NW_ROUTINE.test(tt)) return '';
+  if(sec === 'politics') return (nwBdTier(o) >= 1 || nwHot(o) >= 3 || vir >= 2 || NW_BIG.test(tt)) ? 'politics' : '';
+  if(sec !== 'bd') return sec;
+  if(NW_RIOT.test(tt) || NW_TREND.test(tt) || vir >= 2 || NW_DEATHS.test(tt)) return 'bd';
+  if((NW_INCIDENT.test(tt) || NW_MOVE.test(tt) || NW_ACCIDENT.test(tt)) && (vir >= 1 || NW_BIG.test(tt))) return 'bd';
+  return '';
 }
 function nwSecLabel(v){ return v === 'politics' ? t('nwSecPol') : v === 'intl' ? t('nwSecIntl') : v === 'bd' ? t('nwSecBd') : ''; }
 function nwPickRender(){
@@ -5517,11 +5526,11 @@ function nwBonus(o, mode){
   const v = Math.min(o._vir || 0, 6) * 3, hot = [0, 3, 8, 14][nwHot(o)] || 0;
   if(mode === 'intl') return v + nwIntlTier(o) * 6;
   if(mode === 'bd') return v + nwBdTier(o) * 8 + (NW_FIERY.test(o.title || '') ? 2 : 0);
-  if(mode === 'focus'){
-    const sec = nwSector(o);
-    if(sec === 'intl') return v + 2 + nwIntlTier(o) * 4;
-    if(sec === 'politics') return v + 6 + nwBdTier(o) * 6 + (NW_FIERY.test(o.title || '') ? 3 : 0) + (nwHot(o) >= 3 ? 3 : 0);
-    return v + 2 + nwBdTier(o) * 6 + (NW_RIOT.test(o.title || '') || NW_ACCIDENT.test(o.title || '') ? 2 : 0);
+  if(mode === 'focus'){        // আন্তর্জাতিক রাজনীতি সবার আগে, তারপর দেশের রাজনীতি, তারপর দেশের বড় ঘটনা
+    const sec = nwSector(o), tt = o.title || '';
+    if(sec === 'intl') return NW_INTL_POL.test(tt) ? v + 10 + nwIntlTier(o) * 3 : v + 2 + nwIntlTier(o) * 2;
+    if(sec === 'politics') return v + 4 + nwBdTier(o) * 4 + (NW_FIERY.test(tt) ? 2 : 0) + (nwHot(o) >= 3 ? 2 : 0);
+    return v + nwBdTier(o) * 4 + (NW_RIOT.test(tt) ? 2 : 0);
   }
   const foreign = nwIsForeign(o), it = foreign ? nwIntlTier(o) : 0;
   return v + hot + (foreign ? (it >= 1 ? it * 2 - 4 : -12) : nwBdTier(o) * 2);
@@ -5531,7 +5540,7 @@ function nwTop(o, mode, now){
   if(o.date && now - o.date.getTime() > 36 * 3600000) return false;
   if(mode === 'intl') return nwIntlTier(o) >= 1;
   if(mode === 'bd') return nwBdTier(o) >= 1;
-  if(mode === 'focus') return (o._vir || 0) >= 2 || nwBdTier(o) >= 2 || (nwSector(o) === 'intl' && nwIntlTier(o) >= 2);
+  if(mode === 'focus') return nwSector(o) === 'intl' ? (nwIntlTier(o) >= 1 || NW_INTL_POL.test(o.title || '')) : ((o._vir || 0) >= 3 || nwBdTier(o) >= 3);
   return (o._vir || 0) >= 2;
 }
 /* how "hot" is a headline for a quote card? 0 = normal, 1 = political, 2 = statement, 3 = political statement */
@@ -5550,6 +5559,23 @@ function nwHot(o){
   if(q === 0 && o._hot === 1) o._hot = 1;
   return o._hot;
 }
+/* আন্তর্জাতিক রাজনীতি / যুদ্ধ / কূটনীতির শব্দ (এগুলো লাইভ খবরের একেবারে উপরে থাকে) */
+const NW_INTL_POL = /প্রেসিডেন্ট|প্রধানমন্ত্রী|নির্বাচন|সরকার|পার্লামেন্ট|সংসদ|যুদ্ধ|যুদ্ধবিরতি|হামলা|ক্ষেপণাস্ত্র|ড্রোন|সেনা|নিষেধাজ্ঞা|শুল্ক|কূটনৈতিক|বৈঠক|চুক্তি|আলোচনা|পরমাণু|জাতিসংঘ|ন্যাটো|অভ্যুত্থান|বিক্ষোভ|ট্রাম্প|পুতিন|নেতানিয়াহু|মোদি|শি জিনপিং|জিনপিং|খামেনি|এরদোয়ান|শাহবাজ|জেলেনস্কি|president|minister|election|war|missile|sanction|tariff|summit/i;
+/* desktop app (TF Media Studio): the "খবর" tab ranks the live feed with exactly the same rules as this app.
+   items: [{title, link, desc, date(ms), src, gsrc}] → { order: [index…] (focus list, best first), sec: ['intl'|'politics'|'bd'|''] } */
+window.TFRank = function(items){
+  const now = Date.now();
+  const all = (items || []).map((x, i) => ({ title: String(x.title || ''), link: String(x.link || ''), desc: String(x.desc || ''), img: x.img || '',
+    date: x.date ? new Date(x.date) : null, src: { id: x.src || '' }, gsrc: x.gsrc || '', _i: i }))
+    .filter(o => !o.date || o.date.getTime() < now + 3600000);
+  nwViral(all);
+  const sec = new Array((items || []).length).fill('');
+  const keep = all.filter(o => { const v = nwSector(o); sec[o._i] = v; return !!v; });
+  const key = o => (o.date ? o.date.getTime() : 0) + nwBonus(o, 'focus') * 3600000;
+  const grp = o => nwTop(o, 'focus', now) ? 2 : 1;
+  keep.sort((a, b) => grp(b) - grp(a) || (b.img ? 1 : 0) - (a.img ? 1 : 0) || key(b) - key(a));
+  return { order: keep.map(o => o._i), sec };
+};
 function nwDiagText(){
   const d = NW.diag, keys = Object.keys(d);
   if(!keys.length) return '—';
@@ -6143,7 +6169,7 @@ updateTakeUi();
 /* 2) many more sensitive words (Bangladeshi news vocabulary); also added to a list the user saved earlier */
 const MASK_MORE = ['মারামারি','কাটাকাটি','মারধর','মারপিট','হাতাহাতি','ধাওয়া-পাল্টা ধাওয়া','ধাওয়া পাল্টা ধাওয়া','লাঠিসোঁটা','ইটপাটকেল','রক্ত','রক্তপাত','রক্তারক্তি','রক্তাক্ত','জখম','কোপ','কুপিয়ে','চাপাতি','রামদা','ছুরি','ছুরিকাহত','বন্দুক','পিস্তল','রিভলভার','শটগান','আগ্নেয়াস্ত্র','গুলিবর্ষণ','গুলিবিদ্ধ','গুলি ছুড়ে','গুলি ছোড়া','হাতবোমা','ককটেল','পেট্রলবোমা','অগ্নিসংযোগ','দগ্ধ','অগ্নিদগ্ধ','ঝলসে','পুড়িয়ে','মৃত্যু','প্রাণহানি','শ্বাসরোধ','গলা টিপে','ঝুলন্ত','বিষপান','নিপীড়ন','উত্ত্যক্ত','ইভটিজিং','যৌন','পাচার','মানবপাচার','চোরাচালান','অস্ত্রধারী','সন্ত্রাসী','ডাকাতি','ডাকাত','ছিনতাই','চাঁদাবাজি','লুটপাট','ভাঙচুর','তাণ্ডব','দাঙ্গা','গণপিটুনি','পিটুনি','নৃশংস','বর্বর','বীভৎস','ক্ষতবিক্ষত','খণ্ডিত','টুকরো টুকরো','কঙ্কাল','শিরশ্ছেদ','ফাঁসি','মৃত্যুদণ্ড','ক্রসফায়ার','বন্দুকযুদ্ধ','এনকাউন্টার','গুম','জিম্মি','পণবন্দি','মুক্তিপণ','আত্মাহুতি','গাঁজা','ফেনসিডিল','কোকেন','জুয়া','ক্যাসিনো','অশ্লীল','নগ্ন','পতিতা','সংঘাত','রণক্ষেত্র','বিমান হামলা','ড্রোন হামলা','গণকবর',
   'blood','bloodshed','stab','stabbing','gun','guns','pistol','rifle','firing','gunman','wounded','assault','assaulted','beaten','lynch','lynching','mob','riot','riots','arson','burned alive','behead','beheaded','hanged','execution','hostage','ransom','trafficking','smuggling','cocaine','heroin','meth','gambling','porn','nude','naked','gore','brutal','dead','death','deaths','casualties'];
-MASK_MORE.forEach(w => { if(!MASK_DEFAULT.includes(w)) MASK_DEFAULT.push(w); });
+MASK_MORE.concat(['গুলিতে','গুলির','গুলি করে','গুলি চালিয়ে','বার গুলি','ধারালো অস্ত্র','সন্ত্রাসী','অস্ত্রধারী']).forEach(w => { if(!MASK_DEFAULT.includes(w)) MASK_DEFAULT.push(w); });
 (function(){
   if(store.get('maskV51', false)) return;
   const saved = store.get('maskWords', null);
@@ -6253,7 +6279,7 @@ const mk = (tag, cls, html) => { const e = document.createElement(tag); if(cls) 
 const escH = s => String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 
 /* ---- 1) one-tap stars on the card: drawn at paint time, original text is never changed ---- */
-S.cardStars = store.get('cardStars', false);
+S.cardStars = store.get('cardStars', true);    // on by default everywhere (a fresh Windows/phone install starred nothing)
 S.maskCard = false; store.set('maskCard', false);           // old behaviour rewrote the text for good — replaced by the switch
 const STAR_KEYS = ['headline', 'sub', 'desc', 'role', 'cat', 'take', 'points', 'numLabel'];
 let starCache = { key: '', out: {}, found: [] };
@@ -7724,7 +7750,7 @@ Object.assign(T.bn, {
   rlDone:'রিল তৈরি হয়েছে', rlCanceled:'ভিডিও তৈরি বাতিল হয়েছে', rlHidden:'অ্যাপ থেকে বের হলে ভিডিও থেমে যায় — আবার "ভিডিও তৈরি করুন" চাপুন',
   rlNoRec:'এই ব্রাউজারে ভিডিও তৈরি করা যায় না — Chrome দিয়ে খুলুন', rlNeedOne:'অন্তত ১টি খবর বেছে নিন', rlMax:'একসাথে সর্বোচ্চ {n}টি খবর',
   rlLong:'অনেক খবর — ভিডিও তৈরি হতে ভিডিওর সমান সময় লাগবে', rlNoImg:'{n}টি খবরের ছবি আনা যায়নি — রঙিন ব্যাকগ্রাউন্ড দেওয়া হয়েছে',
-  rlCapCopied:'ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন', rlCapCut:'ক্যাপশন ২৪০০ অক্ষরের মধ্যে ছোট করে কপি করা হয়েছে', rlSaved:'ভিডিও সেভ হয়েছে', rlAiDone:'শিরোনাম ও ক্যাপশন লেখা হয়েছে',
+  rlCapCopied:'ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন', rlCapCut:'ক্যাপশন ২২০০ অক্ষরের মধ্যে ছোট করে কপি করা হয়েছে', rlSaved:'ভিডিও সেভ হয়েছে', rlAiDone:'শিরোনাম ও ক্যাপশন লেখা হয়েছে',
   rlFileBad:'এই অডিও ফাইলটি চালানো যাচ্ছে না', rlChoose:'ফাইল বাছুন', rlToday:'আজকের', rlCount:'{n}টি গুরুত্বপূর্ণ খবর এক নজরে',
   rlLatest:'সর্বশেষ', rlFollow:'ফলো করুন', rlMoreNews:'আরও খবর পেতে আমাদের পেজটি ফলো করুন', rlLcs:'আপনার মত কমেন্টে জানান', rlGlance:'এক নজরে',
   rlLbls:'আজকের আলোচিত|বড় খবর|সর্বশেষ|গুরুত্বপূর্ণ খবর|এক নজরে আজ|আজকের শিরোনাম', rlLblSaid:'কে কী বললেন',
@@ -7750,7 +7776,7 @@ Object.assign(T.en, {
   rlDone:'Reel ready', rlCanceled:'Video cancelled', rlHidden:'The video stops if you leave the app — tap "Create video" again',
   rlNoRec:'This browser cannot record video — open in Chrome', rlNeedOne:'Pick at least 1 story', rlMax:'At most {n} stories at once',
   rlLong:'Many stories — making the video takes as long as the video itself', rlNoImg:'No photo for {n} stories — a colour background was used',
-  rlCapCopied:'Caption copied — paste it on Facebook', rlCapCut:'Caption shortened to 2400 characters and copied', rlSaved:'Video saved', rlAiDone:'Headlines and caption written',
+  rlCapCopied:'Caption copied — paste it on Facebook', rlCapCut:'Caption shortened to 2200 characters and copied', rlSaved:'Video saved', rlAiDone:'Headlines and caption written',
   rlFileBad:'This audio file cannot be played', rlChoose:'Choose file', rlToday:'Today', rlCount:'{n} important stories at a glance',
   rlLatest:'Latest', rlFollow:'Follow', rlMoreNews:'Follow our page for more news', rlLcs:'Tell us your view in the comments', rlGlance:'At a glance',
   rlLbls:'Talk of the day|Big story|Latest|Top story|Today at a glance|Today\'s headline', rlLblSaid:'Who said what',
@@ -10177,7 +10203,7 @@ function rlCoverData(R, items, imgs){
   const it = items[i] || items[0];
   const lbls = t('rlLbls').split('|'), ctas = t('rlCtas').split('|');
   const said = it && it.o && nwHot(it.o) >= 2 && st.lbl < 0.35;
-  return { i, img: imgs[i] || null, text: String(hook || (it && it.text) || R.title).replace(/\s+/g, ' ').trim(), src: (it && it.source) || '', lbl: imgs[i] ? rlPhLbl(it) : '',
+  return { i, img: imgs[i] || null, text: rlMask(String(hook || (it && it.text) || R.title).replace(/\s+/g, ' ').trim(), true), src: (it && it.source) || '', lbl: imgs[i] ? rlPhLbl(it) : '',
     label: said ? t('rlLblSaid') : lbls[Math.floor(st.lbl * lbls.length)],
     cta: R.n <= 1 || R.one ? t('rlCta1') : tf(ctas[Math.floor(st.cta * ctas.length)], { n: nwNum(R.n), m: nwNum(R.n - 1) }) };
 }
@@ -10613,11 +10639,18 @@ function rlPageWm(ctx, name, x, y, w, h){
     ctx.fillStyle = 'rgba(255,255,255,.075)'; ctx.fillText(name, tx, ty); } });
   ctx.restore();
 }
+/* ⭐ sensitive words are starred on every reel screen (headline, news-in-short, question, ticker) — the same on web, phone and Windows,
+   whatever text the story got (feed title, AI headline, hand edit). Turned off only by the user's own "mask" switch. */
+function rlMask(s, card){
+  if(!S.mask || typeof maskText !== 'function' || s == null || s === '') return s;
+  return maskText(String(s), card ? cardCh() : S.maskCh).text;
+}
 function rlMakeR(items, st){
+  if(S.mask) items = items.map(it => it && it.text ? Object.assign({}, it, { text: rlMask(it.text, true) }) : it);
   const page = pageName();
   const R = { one: items.length > 0 && items.every(x => x.o && x.o.vid), live: RL.tpl === 'live' || RL.tpl === 'quote', quote: RL.tpl === 'quote', deck: RL.tpl === 'deck', st, n: items.length, items, tl: rlTimeline(items.length, RL.secs), bgs: [], cards: [], bmp: new Map(),
-    title: RL.title || t('rlTitleDef'), page, cq: RL.cq || '', qs: items.map(rlStoryQ), sums: items.map(rlStorySum), today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
-  R.tick = rlTickStrip(RL.ticker || rlTickDef(), R.col(0)[0]);
+    title: rlMask(RL.title || t('rlTitleDef'), true), page, cq: rlMask(RL.cq || '', true), qs: items.map(rlStoryQ).map(x => rlMask(x, true)), sums: items.map(rlStorySum).map(x => rlMask(x, true)), today: fmtDate(new Date()), col: i => (RL.tpl === 'mine' && !RL.mixColor) ? [C.accent, C.hl] : rlColor(st, i) };
+  R.tick = rlTickStrip(rlMask(RL.ticker || rlTickDef(), true), R.col(0)[0]);
   return R;
 }
 
@@ -11433,7 +11466,7 @@ function rlFile(){
   return new File([RL.blob], name, { type: RL.blob.type });
 }
 async function rlCopyCap(quiet){
-  const s0 = $('rlCapIn').value, s = capLimit(s0);
+  const s0 = $('rlCapIn').value, s = capLimit(rlMask(s0, false));
   if(s !== s0.trim()){ $('rlCapIn').value = s; rlCapCount(); toast(t('rlCapCut')); quiet = true; }
   try{ await navigator.clipboard.writeText(s); if(!quiet) toast(t('rlCapCopied')); return true; }
   catch(e){ const ta = $('rlCapIn'); $('rlCapBox').open = true; ta.focus(); ta.select(); try{ document.execCommand('copy'); if(!quiet) toast(t('rlCapCopied')); return true; }catch(e2){ return false; } }
@@ -11517,6 +11550,10 @@ $('rlCardShare').addEventListener('click', () => rlCardsGo(true));
 /* ---------------- 7) caption + AI writing ---------------- */
 let capEdited = false;
 $('rlCapIn').addEventListener('input', () => { capEdited = true; rlCapCount(); });
+$('rlCapIn').addEventListener('change', () => {           // typed or pasted text: starred and kept under the limit as soon as the box is left
+  const ta = $('rlCapIn'), v0 = ta.value, v = capLimit(rlMask(v0, false));
+  if(v !== v0.trim()){ ta.value = v; rlCapCount(); if(v.length < v0.trim().length) toast(t('rlCapCut')); }
+});
 function rlCapCount(){ const n = $('rlCapIn').value.length, el = $('rlCapT'); if(!el) return; el.textContent = t('rlCap') + ' · ' + nwNum(n) + '/' + nwNum(CAP_MAX); el.style.color = n > CAP_MAX ? '#e11d2a' : ''; }
 function plain(s){ return String(s || '').replace(/\*/g, '').replace(/\s+/g, ' ').trim(); }
 const RL_QS = [
@@ -11547,9 +11584,9 @@ function rlQ(items){                                   // the comment question f
 function pageTag(){ return '#' + String(pageName() || '').replace(/[^\p{L}\p{N}_]/gu, ''); }
 function rlFollowLine(){ return 'নিয়মিত গুরুত্বপূর্ণ খবর পেতে ' + pageName() + ' পেজটি ফলো করুন।'; }
 /* fixes captions that came back from AI as a list or as JSON text ("...", lines) */
-/* ✂️ Facebook refuses long captions: the reel caption never goes over 2400 characters. Story lines are shortened first,
+/* ✂️ Facebook refuses long captions: the reel caption never goes over 2200 characters (Facebook: 2500). Story lines are shortened first,
    then the last stories and extra hashtags go; the hook, the question, "comment" and "follow" lines always stay. */
-const CAP_MAX = 2400;
+const CAP_MAX = 2200;   // Facebook stops at 2500; 300 kept free because Facebook counts some emoji/marks as 2
 function capLimit(v, max){
   max = max || CAP_MAX; let s = String(v == null ? '' : v).trim(); if(s.length <= max) return s;
   let L = s.split('\n');
@@ -12751,6 +12788,312 @@ window.TFVideoNews = { open: vnOpen };
 (window.TFClearHooks = window.TFClearHooks || []).push({
   has: () => !!(VN.file || VN.link || VN.open || String($('vnDesc').value || '').trim()),
   clear: () => { if(VN.open) vnClose(true); vnReset(); VN.stories = []; VN.done = new Set(); VN.seg = null; VN.times = []; vnStoryUi(); $('vnDesc').value = ''; $('vnOut').value = ''; $('vnTr').value = ''; $('vnLink').value = ''; $('vnSrc').value = ''; vcClear(); }
+});
+})();
+
+/* =====================================================================
+   🎥 ভাইরাল ভিডিও কার্ড — upload any downloaded video (Facebook / viral / your own). It plays inside the
+   page's news-card frame (header, LIVE ticker, "সর্বশেষ" strip and comment box stay as they are) with its own
+   sound, and the text you write keeps scrolling across the card again and again. Same on web, phone and Windows.
+   ===================================================================== */
+(function viralVideo(){
+const VV = { open: false, busy: false, cancel: false, url: '', vid: null, dur: 0, raf: 0, sound: false, blob: null, outUrl: '', name: '' };
+const vvCss = document.createElement('style');
+vvCss.textContent = `
+.vvbox{max-width:620px}
+.vvbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 14px 18px}
+.vvbody textarea,.vvbody input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg);color:var(--text);font:14.5px/1.55 var(--sans,inherit);outline:none}
+.vvbody textarea{min-height:86px;resize:vertical}
+.vvlbl{font-size:13px;font-weight:600;margin:12px 0 5px;display:block}
+.vvpv{display:flex;justify-content:center;margin-top:12px}
+.vvpv canvas{width:min(270px,70vw);aspect-ratio:9/16;border-radius:10px;background:#000;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.vvrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.vvrow .btn{min-height:40px;flex:1 1 auto}
+.vvst{font-size:13px;margin-top:8px;color:var(--muted)}
+.vvst.bad{color:var(--danger,#d93025)}
+.vvbar{height:6px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-top:8px}
+.vvbar i{display:block;height:100%;width:0;background:var(--accent)}
+.vvres video{width:min(270px,70vw);aspect-ratio:9/16;border-radius:10px;background:#000;display:block;margin:10px auto 0}
+.qtile.vvtile{grid-column:1/-1;flex-direction:row;text-align:left;padding:12px 14px;gap:12px}
+.qtile.vvtile .qt{display:flex;flex-direction:column;gap:2px}
+.qtile.vvtile .qi{background:#fff4d6;color:#c77700}
+html[data-theme="dark"] .qtile.vvtile .qi{background:var(--surface-2);color:#ffc24d}
+`;
+document.head.appendChild(vvCss);
+const IC_VV = '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M10 8.5v7l6-3.5z"/>';
+const sh = mk('div', 'nsheet hidden no-print'); sh.id = 'vvSheet'; sh.setAttribute('role', 'dialog'); sh.setAttribute('aria-modal', 'true');
+sh.innerHTML = `<div class="nsbox vvbox">
+  <div class="nshead"><b>🎥 ভাইরাল ভিডিও কার্ড</b><span style="flex:1"></span><button type="button" class="x" id="vvClose" aria-label="close">×</button></div>
+  <div class="vvbody">
+    <div class="vvrow"><button type="button" class="btn primary" id="vvPick">📁 ভিডিও বাছুন</button></div>
+    <input type="file" id="vvFile" accept="video/*" class="hidden">
+    <div class="vvst" id="vvInfo">ফেসবুক বা অন্য জায়গা থেকে ডাউনলোড করা ভিডিও দিন — কার্ডের ভেতরে ভিডিওটা চলবে, সাথে তার নিজের শব্দ।</div>
+    <label class="vvlbl" for="vvHead">শিরোনাম (ঐচ্ছিক, কার্ডের উপরে থাকবে — *শব্দ* দিলে হলুদ হবে)</label>
+    <input type="text" id="vvHead" maxlength="120" placeholder="যেমন: সামাজিক যোগাযোগমাধ্যমে *ভাইরাল* ভিডিও">
+    <label class="vvlbl" for="vvText">চলমান লেখা — যা লিখবেন তা কার্ডে বারবার স্ক্রল করে চলবে</label>
+    <textarea id="vvText" placeholder="এখানে লিখুন…"></textarea>
+    <div class="vvpv"><canvas id="vvCanvas" width="720" height="1280"></canvas></div>
+    <div class="vvrow"><button type="button" class="btn" id="vvSound">🔇 শব্দ বন্ধ</button><button type="button" class="btn" id="vvReplay">⟲ আবার চালান</button></div>
+    <div class="vvrow"><button type="button" class="btn primary" id="vvMake">🎬 ভিডিও তৈরি করুন</button><button type="button" class="btn hidden" id="vvStop">✖ থামান</button></div>
+    <div class="vvbar hidden" id="vvBar"><i id="vvBarF"></i></div>
+    <div class="vvst" id="vvSt"></div>
+    <div class="vvres hidden" id="vvRes">
+      <video id="vvOut" controls playsinline></video>
+      <div class="vvrow"><button type="button" class="btn primary" id="vvSave">⬇ সেভ করুন</button><button type="button" class="btn" id="vvShare">↗ শেয়ার</button><button type="button" class="btn" id="vvCap">📋 ক্যাপশন কপি</button></div>
+    </div>
+  </div></div>`;
+document.body.appendChild(sh);
+const vSt = (m, bad) => { const e = $('vvSt'); e.textContent = m || ''; e.classList.toggle('bad', !!bad); };
+$('vvHead').value = store.get('vvHead', '') || ''; $('vvText').value = store.get('vvText', '') || '';
+
+/* ---------- drawing one frame of the card (720 × 1280) ---------- */
+const W = RW, H = RH, HDR = 104, LIVEH = 48, BOT = 238;
+let tickC = null, tickKey = '';
+function vvTick(){ const tx = rlMask(RL.ticker || rlTickDef(), true), k = tx + '|' + C.accent; if(k !== tickKey){ tickKey = k; tickC = rlTickStrip(tx, C.hl || '#ffd200'); } return tickC; }
+function vvScroll(ctx, text, x, y, w, h, size, color, speed, t){
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.font = fontStr(size, 700, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = color;
+  const gap = 90, tw = ctx.measureText(text).width + gap, off = (t * speed) % tw;
+  for(let xx = x + w * 0.15 - off; xx < x + w; xx += tw) ctx.fillText(text, xx, y + h / 2 + 1);
+  ctx.restore();
+}
+function vvHeadDraw(ctx, raw, y){
+  const M = lvMarks(rlMask(raw, true)), Lw = rlWrap(ctx, M.text, W - 60, 40, 800, 2, 28), lh = Lw.size * 1.28;
+  ctx.font = fontStr(Lw.size, 800, BFAM); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  let wi = 0;
+  Lw.lines.forEach((l, j) => {
+    let xx = 30; const yy = y + lh * (j + 0.5);
+    l.split(' ').forEach(word => {
+      const on = !!M.flags[wi++], ww = ctx.measureText(word).width;
+      if(on){ ctx.fillStyle = C.hl || '#ffd200'; rr(ctx, xx - 5, yy - lh * 0.44, ww + 10, lh * 0.88, 6); ctx.fill(); }
+      ctx.fillStyle = '#111'; ctx.fillText(word, xx, yy); xx += ww + ctx.measureText(' ').width;
+    });
+  });
+  return lh * Lw.lines.length;
+}
+function vvFrame(ctx, v, t, total){
+  const ac = C.accent || '#0b2a6b', hl = C.hl || '#ffd200';
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#f4f6fb'; ctx.fillRect(0, 0, W, H);
+  // header: page name, date, logo
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, HDR);
+  ctx.fillStyle = ac; ctx.fillRect(0, HDR - 4, W, 4);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = shade(ac, -0.2); ctx.font = fontStr(32, 800, BFAM); ctx.fillText(pageName(), 28, 40, W - 150);
+  ctx.fillStyle = '#5b6270'; ctx.font = fontStr(19, 600, BFAM); ctx.fillText(fmtDate(new Date()), 28, 76, W - 150);
+  if(C.logoImg) rlLogoDisc(ctx, W - 58, HDR / 2 - 2, 38);
+  // LIVE ticker
+  const ly = HDR;
+  ctx.fillStyle = shade(ac, -0.35); ctx.fillRect(0, ly, W, LIVEH);
+  const tk = vvTick();
+  ctx.save(); ctx.beginPath(); ctx.rect(124, ly, W - 124, LIVEH); ctx.clip();
+  ctx.fillStyle = '#fff'; ctx.fillRect(124, ly + 6, W - 124, LIVEH - 12);
+  const tw = tk.width, off = (t * 70) % tw; for(let xx = 130 - off; xx < W; xx += tw) ctx.drawImage(tk, xx, ly + LIVEH / 2 - 35);
+  ctx.restore();
+  const bl = 0.5 + 0.5 * Math.sin(t * 7);
+  ctx.fillStyle = '#e11d2a'; rr(ctx, 12, ly + 8, 104, LIVEH - 16, 6); ctx.fill();
+  ctx.beginPath(); ctx.arc(32, ly + LIVEH / 2, 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,' + bl.toFixed(3) + ')'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = fontStr(20, 800, BFAM); ctx.fillText('LIVE', 46, ly + LIVEH / 2 + 1);
+  // headline (optional)
+  let y = ly + LIVEH + 14;
+  const head = String($('vvHead').value || '').trim();
+  if(head){ y += vvHeadDraw(ctx, head, y) + 12; }
+  // the video: whole picture visible (contain) over a dark, zoomed copy of itself
+  const vy = y, vh = H - BOT - 12 - vy, vx = 18, vw = W - 36;
+  ctx.save(); rr(ctx, vx, vy, vw, vh, 18); ctx.fillStyle = '#000'; ctx.fill(); ctx.clip();
+  const iw = v && v.videoWidth, ih = v && v.videoHeight;
+  if(iw && ih){
+    const kc = Math.max(vw / iw, vh / ih) * 1.08; ctx.globalAlpha = 0.35; ctx.imageSmoothingQuality = 'low';
+    ctx.drawImage(v, vx + (vw - iw * kc) / 2, vy + (vh - ih * kc) / 2, iw * kc, ih * kc); ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(vx, vy, vw, vh);
+    const k = Math.min(vw / iw, vh / ih); ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(v, vx + (vw - iw * k) / 2, vy + (vh - ih * k) / 2, iw * k, ih * k);
+  } else { ctx.fillStyle = '#fff'; ctx.font = fontStr(26, 600, BFAM); ctx.textAlign = 'center'; ctx.fillText('ভিডিও বাছুন', W / 2, vy + vh / 2); }
+  ctx.restore();
+  ctx.save(); rr(ctx, vx, vy, vw, vh, 18); ctx.lineWidth = 5; ctx.strokeStyle = hl; ctx.stroke(); ctx.restore();
+  // ● VIDEO badge
+  ctx.font = fontStr(18, 800, BFAM); const bw = ctx.measureText('VIDEO').width + 42;
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; rr(ctx, vx + vw - bw - 12, vy + 12, bw, 30, 6); ctx.fill();
+  ctx.beginPath(); ctx.arc(vx + vw - bw + 4, vy + 27, 6, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,40,40,' + bl.toFixed(3) + ')'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText('VIDEO', vx + vw - bw + 16, vy + 28);
+  // your scrolling text, again and again
+  const by = H - BOT;
+  const txt = rlMask(String($('vvText').value || '').replace(/\s+/g, ' ').trim(), true);
+  ctx.fillStyle = shade(ac, -0.6); rr(ctx, 14, by, W - 28, 92, 14); ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = hl; rr(ctx, 14, by, W - 28, 92, 14); ctx.stroke();
+  if(txt) vvScroll(ctx, txt, 26, by + 4, W - 52, 84, 38, '#fff', 120, t);
+  // "সর্বশেষ" strip
+  const sy = by + 104;
+  ctx.fillStyle = ac; ctx.fillRect(0, sy, W, 50);
+  ctx.fillStyle = hl; ctx.fillRect(0, sy, 132, 50);
+  ctx.fillStyle = '#111'; ctx.font = fontStr(23, 800, BFAM); ctx.textAlign = 'center'; ctx.fillText('সর্বশেষ', 66, sy + 26);
+  vvScroll(ctx, rlFollowLine() + '   👍 লাইক দিন   🔔 পেজটি ফলো করুন', 140, sy, W - 140, 50, 22, '#fff', 60, t);
+  // comment box
+  const cy = sy + 60;
+  ctx.fillStyle = '#fff'; rr(ctx, 14, cy, W - 28, 60, 12); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = hl; rr(ctx, 14, cy, W - 28, 60, 12); ctx.stroke();
+  ctx.fillStyle = '#111'; ctx.font = fontStr(23, 700, BFAM); ctx.textAlign = 'left'; ctx.fillText('💬 আপনার মতামত কমেন্টে লিখুন 👇', 34, cy + 31, W - 220);
+  const pulse = 1 + 0.05 * Math.sin(t * 5); ctx.save(); ctx.translate(W - 98, cy + 30); ctx.scale(pulse, pulse);
+  ctx.fillStyle = '#1877f2'; rr(ctx, -72, -19, 144, 38, 19); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = fontStr(19, 800, BFAM); ctx.textAlign = 'center'; ctx.fillText('+ ফলো করুন', 0, 1); ctx.restore();
+  // progress line
+  if(total > 0){ ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(0, H - 6, W, 6); ctx.fillStyle = '#e11d2a'; ctx.fillRect(0, H - 6, W * clamp(t / total, 0, 1), 6); }
+}
+
+/* ---------- preview ---------- */
+function vvLoop(){
+  cancelAnimationFrame(VV.raf);
+  const cv = $('vvCanvas'), ctx = cv.getContext('2d'), t0 = performance.now();
+  const go = () => { if(!VV.open || VV.busy) return; const v = VV.vid; vvFrame(ctx, v, v && !v.paused ? v.currentTime : (performance.now() - t0) / 1000, VV.dur); VV.raf = requestAnimationFrame(go); };
+  go();
+}
+async function vvLoad(file){
+  if(!file) return;
+  if(VV.vid){ try{ VV.vid.pause(); }catch(e){} }
+  if(VV.url) URL.revokeObjectURL(VV.url);
+  VV.url = URL.createObjectURL(file); VV.name = file.name || 'video';
+  const v = document.createElement('video'); v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.loop = true; v.muted = !VV.sound;
+  await new Promise((ok, bad) => { const to = setTimeout(() => bad(new Error('ভিডিও খোলা গেল না')), 30000);
+    v.onloadeddata = () => { clearTimeout(to); ok(); }; v.onerror = () => { clearTimeout(to); bad(new Error('এই ভিডিও ফরম্যাট খোলা যায় না — MP4 দিন')); }; v.src = VV.url; });
+  VV.vid = v; VV.dur = isFinite(v.duration) ? v.duration : 0;
+  $('vvInfo').textContent = '✓ ' + VV.name + (VV.dur ? ' · ' + nwMin(Math.round(VV.dur)) : '');
+  try{ await v.play(); }catch(e){}
+  vvLoop();
+}
+$('vvPick').addEventListener('click', () => $('vvFile').click());
+$('vvFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; vvLoad(f).catch(err => vSt('✖ ' + (err.message || err), true)); });
+$('vvHead').addEventListener('input', () => store.set('vvHead', $('vvHead').value));
+$('vvText').addEventListener('input', () => store.set('vvText', $('vvText').value));
+$('vvSound').addEventListener('click', () => { VV.sound = !VV.sound; if(VV.vid) VV.vid.muted = !VV.sound; $('vvSound').textContent = VV.sound ? '🔊 শব্দ চালু' : '🔇 শব্দ বন্ধ'; });
+$('vvReplay').addEventListener('click', () => { if(VV.vid){ VV.vid.currentTime = 0; VV.vid.play().catch(() => {}); } });
+
+/* ---------- making the video: the clip plays once in real time, the card is filmed with the clip's own sound ---------- */
+async function vvMake(){
+  if(VV.busy) return;
+  if(!VV.url){ vSt('আগে একটি ভিডিও বাছুন', true); return; }
+  const mime = rlMime(true);
+  if(mime === null || !HTMLCanvasElement.prototype.captureStream){ vSt('এই ব্রাউজারে ভিডিও তৈরি করা যায় না — Chrome ব্যবহার করুন', true); return; }
+  VV.busy = true; VV.cancel = false; cancelAnimationFrame(VV.raf);
+  $('vvMake').disabled = true; $('vvStop').classList.remove('hidden'); $('vvBar').classList.remove('hidden'); $('vvBarF').style.width = '0'; $('vvRes').classList.add('hidden');
+  if(VV.vid){ try{ VV.vid.pause(); }catch(e){} }
+  let ac = null, wk = null, lock = null;
+  try{
+    await ensureFonts();
+    const v = document.createElement('video'); v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.loop = false; v.src = VV.url;
+    await new Promise((ok, bad) => { v.onloadeddata = ok; v.onerror = () => bad(new Error('ভিডিও খোলা গেল না')); });
+    const total = isFinite(v.duration) && v.duration > 0 ? v.duration : VV.dur;
+    if(!total) throw new Error('ভিডিওর দৈর্ঘ্য বোঝা যায়নি');
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d');
+    vvFrame(ctx, v, 0, total);
+    const stream = cv.captureStream(30), tracks = stream.getVideoTracks().slice();
+    try{
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ac.createMediaElementSource(v), dest = ac.createMediaStreamDestination(); src.connect(dest);
+      if(VV.sound) src.connect(ac.destination);
+      dest.stream.getAudioTracks().forEach(tk => tracks.push(tk));
+      await ac.resume();
+    }catch(e){ console.warn('no sound track', e); }
+    const o = { videoBitsPerSecond: 5000000 }; if(mime) o.mimeType = mime; if(ac) o.audioBitsPerSecond = 128000;
+    const rec = new MediaRecorder(new MediaStream(tracks), o), chunks = [];
+    rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(r => { rec.onstop = r; });
+    try{ if(navigator.wakeLock) lock = await navigator.wakeLock.request('screen'); }catch(e){}
+    try{ wk = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 33)'], { type: 'text/javascript' }))); }catch(e){ wk = null; }
+    rec.start(1000);
+    await v.play();
+    let lastP = 0;
+    await new Promise(res => {
+      let fid = 0;
+      const step = () => {
+        if(VV.cancel || v.ended || v.currentTime >= total - 0.02){ res(); return; }
+        vvFrame(ctx, v, v.currentTime, total);
+        const now = performance.now();
+        if(now - lastP > 300){ lastP = now; const f = v.currentTime / total; $('vvBarF').style.width = Math.round(f * 100) + '%'; vSt('ভিডিও তৈরি হচ্ছে… ' + nwNum(Math.floor(f * 100)) + '% · শেষ না হওয়া পর্যন্ত অ্যাপ খোলা রাখুন'); }
+        next();
+      };
+      const next = () => { const id = ++fid, go = () => { if(id === fid){ fid++; step(); } }; requestAnimationFrame(go); setTimeout(go, 50); if(wk) wk.onmessage = go; };
+      v.onended = () => res();
+      next();
+    });
+    vvFrame(ctx, v, total, total);
+    await sleep(VV.cancel ? 0 : 250);
+    try{ rec.stop(); }catch(e){}
+    try{ v.pause(); }catch(e){}
+    await Promise.race([stopped, sleep(4000)]);
+    if(VV.cancel) throw new Error('cancel');
+    const type = (rec.mimeType || mime || 'video/webm').split(';')[0];
+    let blob = new Blob(chunks, { type });
+    if(!blob.size) throw new Error('ভিডিও তৈরি হয়নি');
+    if(/mp4/.test(type)){ try{ const r = mp4Faststart(await blob.arrayBuffer()); if(r && r.secs > 1) blob = new Blob([r.data], { type: 'video/mp4' }); }catch(e){ console.warn('mp4 fix', e); } }
+    VV.blob = blob; if(VV.outUrl) URL.revokeObjectURL(VV.outUrl); VV.outUrl = URL.createObjectURL(blob);
+    $('vvOut').src = VV.outUrl; $('vvRes').classList.remove('hidden'); $('vvBarF').style.width = '100%';
+    vSt('✓ ভিডিও তৈরি হয়েছে — সেভ বা শেয়ার করুন');
+    try{ $('vvRes').scrollIntoView({ block: 'center', behavior: 'smooth' }); }catch(e){}
+  }catch(e){
+    vSt(e && e.message === 'cancel' ? 'থামানো হয়েছে' : '✖ ' + ((e && e.message) || e), !(e && e.message === 'cancel'));
+  }finally{
+    if(wk) try{ wk.terminate(); }catch(e){}
+    if(ac) try{ ac.close(); }catch(e){}
+    if(lock) try{ lock.release(); }catch(e){}
+    VV.busy = false; $('vvMake').disabled = false; $('vvStop').classList.add('hidden');
+    if(VV.vid){ VV.vid.play().catch(() => {}); } vvLoop();
+  }
+}
+$('vvMake').addEventListener('click', vvMake);
+$('vvStop').addEventListener('click', () => { VV.cancel = true; });
+function vvFile(){
+  const ext = /mp4/.test(VV.blob.type) ? 'mp4' : 'webm', d = new Date();
+  const name = 'TF-Viral-Video-' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '-' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '.' + ext;
+  return new File([VV.blob], name, { type: VV.blob.type });
+}
+function vvCaption(){
+  const head = String($('vvHead').value || '').replace(/\*/g, '').trim(), txt = String($('vvText').value || '').trim();
+  return capLimit(rlMask(['📌 ' + (head || txt.split(/[।\n]/)[0] || '').trim(), txt && txt !== head ? txt : '', '👇 আপনার মতামত কমেন্টে লিখুন।\n' + rlFollowLine(), pageTag() + ' #ভাইরাল_ভিডিও #খবর']
+    .filter(Boolean).join('\n\n'), false));
+}
+async function vvCopyCap(quiet){ const s = vvCaption(); try{ await navigator.clipboard.writeText(s); }catch(e){ const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch(x){} ta.remove(); } if(!quiet) toast('ক্যাপশন কপি হয়েছে — ফেসবুকে পেস্ট করুন'); }
+$('vvSave').addEventListener('click', () => { if(!VV.blob) return; const f = vvFile(); download(f, f.name); toast('ভিডিও সেভ হয়েছে'); });
+$('vvCap').addEventListener('click', () => vvCopyCap());
+$('vvShare').addEventListener('click', async () => {
+  if(!VV.blob) return; const f = vvFile(); await vvCopyCap(true);
+  if(navigator.canShare && navigator.canShare({ files: [f] })){ try{ await navigator.share({ files: [f], text: vvCaption() }); return; }catch(e){ if(e && e.name === 'AbortError') return; } }
+  download(f, f.name); toast('ভিডিও সেভ হয়েছে · ক্যাপশন কপি হয়েছে');
+});
+
+/* ---------- open / close ---------- */
+function vvOpen(){
+  if(VV.open) return;
+  VV.open = true; sh.classList.remove('hidden'); document.body.classList.add('nwlock');
+  try{ if(!(history.state && history.state.vv)) history.pushState({ vv: 1 }, ''); }catch(e){}
+  if(VV.vid) VV.vid.play().catch(() => {});
+  vvLoop();
+}
+function vvClose(fromPop){
+  if(!VV.open) return;
+  if(VV.busy) VV.cancel = true;
+  VV.open = false; sh.classList.add('hidden'); cancelAnimationFrame(VV.raf);
+  if(VV.vid){ try{ VV.vid.pause(); }catch(e){} }
+  if(!RL.open) document.body.classList.remove('nwlock');
+  if(fromPop !== true){ try{ if(history.state && history.state.vv) history.back(); }catch(e){} }
+}
+$('vvClose').addEventListener('click', () => vvClose());
+sh.addEventListener('click', e => { if(e.target === sh && !VV.busy) vvClose(); });
+window.addEventListener('popstate', () => { if(VV.open && !(history.state && history.state.vv)) vvClose(true); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && VV.open && !VV.busy) vvClose(); });
+
+/* home tile (every version: web, phone, Windows) */
+(function addVvTile(tries){
+  const q = document.querySelector('.v6quick');
+  if(!q){ if((tries || 0) < 60) setTimeout(() => addVvTile((tries || 0) + 1), 250); return; }
+  if(q.querySelector('.vvtile')) return;
+  const b = mk('button', 'qtile vvtile', '<span class="qi">' + ic(IC_VV) + '</span><span class="qt"><b>ভাইরাল ভিডিও কার্ড</b><small>ডাউনলোড করা ভিডিও দিন — কার্ডের ভেতরে ভিডিও চলবে, সাথে আপনার চলমান লেখা</small></span>'); b.type = 'button';
+  b.addEventListener('click', vvOpen);
+  q.appendChild(b);
+  if((tries || 0) < 8) setTimeout(() => { if(!q.contains(b)) addVvTile(99); }, 1500);
+})();
+window.TFViralVideo = { open: vvOpen };
+(window.TFClearHooks = window.TFClearHooks || []).push({
+  has: () => !!(VV.url || VV.open),
+  clear: () => { if(VV.open) vvClose(true); if(VV.vid){ try{ VV.vid.pause(); }catch(e){} } VV.vid = null; if(VV.url) URL.revokeObjectURL(VV.url); VV.url = ''; VV.dur = 0; VV.blob = null; $('vvRes').classList.add('hidden'); $('vvInfo').textContent = ''; vSt(''); }
 });
 })();
 

@@ -125,4 +125,6 @@ news = mustReplace(news, "setCanvas();await fontsReady;build(true);requestAnimat
 // Desktop: hand the voice/music timeline helpers (private to the app's studio block) to the fast export engine.
 news = mustReplace(news, "$('#exportBtn').onclick=()=>exportVideo();", "window.TFX={get TL(){return TL},vo,voicePos,vOutT,mSeg};$('#exportBtn').onclick=()=>exportVideo();");
 writeFileSync(join(out, 'news', 'index.html'), news);
+// build time: the app compares it with the newest installer on GitHub and offers the update when it is older
+writeFileSync(join(out, 'build.json'), JSON.stringify({ built: Date.now(), sha: process.env.GITHUB_SHA || '' }));
 console.log('apps ready:', out);

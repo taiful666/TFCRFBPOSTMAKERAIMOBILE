@@ -130,6 +130,7 @@ module.exports = async (T) => {
     await until(() => ev('hub', "document.querySelectorAll('#list .item').length>=6"), 15000);
     await shot('hub', '05-picker.png');
     check('live headlines are listed', await ev('hub', "document.querySelectorAll('#list .item').length") >= 6);
+    check('live news are ranked with the app rules (important first)', await ev('hub', "LIVE.items.length>0&&LIVE.items.some(x=>x.focus)&&LIVE.items.findIndex(x=>!x.focus)!==0"));
     check('send button says প্রজেক্টে নিন', await ev('hub', "document.getElementById('gvT').textContent") === 'প্রজেক্টে নিন');
     const cats = await ev('hub', "[...document.querySelectorAll('#cats .chip')].map(b=>b.textContent)");
     check('category buttons are shown', cats.includes('খেলাধুলা') && cats.includes('রাজনীতি') && cats.includes('আন্তর্জাতিক'), cats);
@@ -246,6 +247,7 @@ module.exports = async (T) => {
     await until(() => T.activeTab === 'post', 30000); await sleep(1500);
     await shot('post', '14-reel.png');
     check('রিল বানান opens the reel studio with the news', T.activeTab === 'post' && T.basket.length === 0, { tab: T.activeTab, basket: T.basket.length });
+    check('viral video card is offered in the post maker', await ev('post', "!!document.querySelector('.vvtile')&&!!window.TFViralVideo"));
 
     /* 10. right-click photo → video library (this was broken: an unknown name stopped it) */
     T.showTab('home'); await sleep(200);
